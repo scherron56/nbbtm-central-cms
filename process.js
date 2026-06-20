@@ -1,11 +1,4 @@
-     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        if (typeof jQuery === 'undefined') {
-            document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>');
-        }
-    </script>
 $(document).ready(function () {
-    $(function () {
         // Fetch Contact/Member data
         $('#contact_select').change(function () {
             var contactid = $(this).val();
@@ -62,6 +55,5 @@ $(document).ready(function () {
                 error: function (xhr, status, error) {
                     console.error('update_member error:', error);
                 }
-            });
         });
     });
