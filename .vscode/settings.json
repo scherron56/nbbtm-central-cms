@@ -1,4 +1,7 @@
 {
     "livePreview.defaultPreviewPath": "/index.html",
-    "sqltools.connections": []
+    "sqltools.connections": [],
+    "cSpell.words": [
+        "actve"
+    ]
 }

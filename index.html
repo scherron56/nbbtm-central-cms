@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,86 +6,217 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bootstrap 5 Template</title>
+
   <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"> -->
-<script src="process.js" defer></script>  
-<link rel="stylesheet" href="css/style.css">
+<!-- <link herf="https://simplemaps.com/data/us-zips" > -->
+ <link rel="stylesheet" href="css/style.css">
+ 
+ <script src="https://code.jquery.com/jquery-3.6.0.min.js" ></script>
+
 <script>
-    if (typeof jQuery === 'undefined') {
-        document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>');
-    }
+  $(document).ready(function () {
+   // Fire off a single request to get data for both dropdown components
+    $.ajax({
+        url: 'tblSelects.php', 
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            // Error safety handling Check
+            if(response.error) {
+                console.error("Server Error: ", response.error);
+                return;
+            }
+
+            // 1. Process and append phonetype table to the 3 select options
+            var phtype1Select = $('#phone1type');
+            $.each(response.phonetypes, function(index, item) {
+               phtypeSelect.append(
+                    $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
+                );
+            });
+            var phtype2Select = $('#phone2type');
+            $.each(response.phonetypes, function(index, item) {
+               phtypeSelect.append(
+                    $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
+                );
+            });
+           var phtype3Select = $('#phone3type');
+            $.each(response.phonetypes, function(index, item) {
+               phtypeSelect.append(
+                    $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
+                );
+            });
+
+            // 2. Process and append title records
+            var titleSelect = $('#titles');
+            $.each(response.titles, function(index, item) {
+                titleSelect.append(
+                    $('<option></option>').val(item.title_id).text(item.titleabr)
+                );
+            });
+            var contactSelect = $('#contacts');
+            $.each(response.contacts, function(index, item) {
+                contactSelect.append(
+                    $('<option></option>').val(item.contact_id).text(item.fullname)
+                );
+            });
+        },
+        error: function(xhr, status, error) {
+            console.error("AJAX Connection Failed: " + error);
+        }
+    });
+
+        // Fetch Contact/Member data
+        $('#conSelect').change(function () {
+            var contactid = $(this).val();
+            if (contactid) {
+                $.ajax({
+                    url: '/include/getContact.php',
+                    type: 'GET',
+                    data: {
+                        contact_id: contactid
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        // Populate the form fields with the returned JSON
+                        $('#contact_id').val(data.contact_id || '');
+                        $('#title').val(data.title_id || '');
+                        $('#firstname').val(data.first_name || '');
+                        $('#middlename').val(data.middle_name || '');
+                        $('#lastname').val(data.last_name || '');
+                        $('#address1').val(data.address_1 || '');
+                        $('#city').val(data.city || '');
+                        $('#state').val(data.state || '');
+                        $('#zipcode').val(data.zipcode || '');
+                        $('#dob').val(data.date_of_birth || ''); 
+                        $('#gender').val(data.gender || '');
+                        $('#marital').val(data.marital_status || '');
+                        $('#anniv').val(data.anniv_date || ''); 
+                        $('#phone1').val(data.phone_1 || '');
+                        $('#phone2').val(data.phone_2 || '');
+                        $('#phone3').val(data.phone_3 || ''); 
+                        $('#phone1type').val(data.phone_1_type || '');
+                        $('#phone2type').val(data.phone_2_type || '');
+                        $('#phone3type').val(data.phone_3_type || ''); 
+                        $('#email').val(data.c_email || '');
+                        $('#ismember').val(data.is_member || '');
+                        $('#dateJoined').val(data.join_date || ''); 
+                        $('#isbaptized').val(data.is_baptized || ''); 
+                        $('#baptizedDate').val(data.baptized_date || '');
+                        $('#isactive').val(data.is_active || ''); 
+                        $('submit_btn').text('Update Contact/Member');
+                        $('#reset_btn').show();
+                    }});
+            }
+            else {
+                // Reset form if "--Add New Contact/Member --" is chosen
+                $('#pers-form')[0].reset();
+                $('#cont-fom')[0].reset();
+                $('#memb-form')[0].reset();
+                $('#contact_id').val('');
+                $('submit_btn').text('Add Contact/Member');
+                $('reset_btn').hide();
+            }
+        });
+        // Reset button functionality
+        $('reset_btn').click(function () {
+                $('#pers-form')[0].reset();
+                $('#cont-fom')[0].reset();
+                $('#memb-form')[0].reset();
+                $('#contact_id').val('');
+                $('submit_btn').text('Add Contact/Member');
+                $(this).hide();
+        })
+
+        // Handle Insert/Updates via AJAX
+        $('#membr-action').submit(function (e) {
+            e.preventDefault(); // Prevent standard page reload
+            $.ajax({
+                url: '/include/saveContact.php',
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function (response) {
+                    $('#response_message').html(response);
+                },
+                error: function (xhr, status, error) {
+                    console.error('update_member error:', error);
+                }
+        });
+    });
+)
 </script>
-
-
-
-
 </head>
 
 <body>
+  <?php  require_once("/config/db.php") ?>
+      <form class="container" name="conSelect" id="conSelec"></form>
+      <div class="form-field form-row1" style="--colspan: 1;">
+      <label for="contacts">Members/Contacts</label>
+      <select name="contacts" id="contacts">
+        <option value="">--Select--</option>
+      </select>
+      </div>
+      </form>
+    <form class="container" id="pers-form" name="pers-form">
 
-  <form class="container">
     <legend>
       <h2>Personal Information</h2>
-    </legend><!-- Row 1: Full width (Spans all columns) -->
-    <div class="form-field form-row1" style="--colspan: 1;>
-      <label for=" title_id">Title</label>
-      <select name="title" id="title_id">
-        <option value="">Select</option>
-        <?php foreach ($title as $row): ?>
-        <option value="<?= htmlspecialchars($row['title_id'], ENT_QUOTES, 'UTF-8') ?>">
-          <?= htmlspecialchars($row['titleabr'], ENT_QUOTES, 'UTF-8') ?>
-        </option>
-        <?php endforeach; ?>
+    </legend>
+    <div type="hidden" name="contact_id" id="contact_id"></div>
+    <div class="form-field form-row2" style="--colspan: 1;">
+      <label for="title">Title</label>
+      <select name="title" id="title">
+        <option value="">--Select--</option>
       </select>
     </div>
-    <div class="form-field form-row1" style="--colspan: 1;">
+    <div class="form-field form-row2" style="--colspan: 1;">
       <label for="firstname">First Name</label>
       <input type="firstname" id="firstname">
     </div>
-    <div class="form-field form-row1" style="--colspan: 1;">
+    <div class="form-field form-row2" style="--colspan: 1;">
       <label for="middlename">Middle Name</label>
       <input type="middlename" id="middlename" />
     </div>
-    <div class="form-field form-row1" style="--colspan: 1;">
+    <div class="form-field form-row2" style="--colspan: 1;">
       <label for="lastname">Last Name</label>
         <input type="text" id="lastname" /></label>
     </div>
-    <div class="form-field form-row2" style="--colspan: 5;">
+    <div class="form-field form-row3" style="--colspan: 5;">
       <label for="address1">Address</label>
       <input type="text" id="address1" />
     </div>
     <!-- Row 2: Two equal columns -->
-    <div class="form-field form-row3" style="--colspan: 4;">
-      <label for="fname">City</label>
-      <input type="text" id="fname" />
+    <div class="form-field form-row4" style="--colspan: 4;">
+      <label for="city">City</label>
+      <input type="text" id="city" />
     </div>
-    <div class="form-field form-row3"" style=" --colspan: 1;">
-      <label for="lname">State</label>
-      <input type="text" id="lname" />
+    <div class="form-field form-row4" style="--colspan: 1;">
+      <label for="state">State</label>
+      <input type="text" id="state" />
     </div>
-    <div class="form-field form-row3"" style=" --colspan: 1;">
-      <label for="zip">Zip Code</label>
+    <div class="form-field form-row4" style="--colspan: 1;">
+      <label for="zipcode">Zip Code</label>
       <input type="text" id="zip" />
     </div>
     <div class="form-field form-row4" style="--colspan: 1;">
       <label for="dob">Date of Birth</label>
-      <input type="text" id="dob" name="dob">
+      <input type="date" id="dob" name="dob">
     </div>
     <div class="form-field form-row4" style="--colspan: 1;">
-      <label for="contacts">Select</label>
-      <select id="contacts" name="contacts" size="1">
-        <option value="volvo">volvo</option>
-        <option value="saab"></option>
-        <option value="fiat"></option>
-        <option value="audi"></option>
-      </select>
+      <label for="gender">Gender</label>
+      <select id="gender" name="gender" size="1">
+         <option value="">Select</option>
+         <option value="F">Female</option>
+        <option value="M">Male</option>
+       </select>
     </div>
     <div class="form-field form-row4" style="--colspan: 1;">
-      <label for="contacts">Select</label>
-      <select id="contacts" name="contacts" size="1">
-        <option value="volvo">volvo</option>
-        <option value="saab"></option>
-        <option value="fiat"></option>
-        <option value="audi"></option>
+      <label for="marital">Marital Status</label>
+      <select id="marital" name="marital" size="1">
+       <option value="">Select</option>
+       <option value="S">Single</option>
+        <option value="M">Married</option>
       </select>
     </div>
     <div class="form-field form-row4" style="--colspan: 1;">
@@ -93,55 +225,46 @@
     </div>
   </form>
 
-  <form class="container2">
+  <form class="container2" name="cont-form" id="cont-form">
     <legend>
       <h2>Contact Information</h2>
     </legend>
     <div class="form-field form-row1" style="--colspan: 1;">
       <label for="phone1" name="phone">Primary Phone</label>
-      <input type="text" id=phone1 name="phone1">
+      <input type="tel" id="phone1" name="phone1">
     </div>
     <div class="form-field form-row1" style="--colspan: 1;">
-      <label for="phone1type">Select Type</label>
-      <select id="phone1type" name="phone1type" size="1">
-        <option value="cell">Cell</option>
-        <option value="landline">Landline</option>
-        <option value="work">Other</option>
-        <option value="other">Work</option>
+      <label for=" phone1type">Type</label>
+      <select name="phone1type" id="phone1type">
+        <option value="">--Select--</option>
       </select>
-    </div>
-    <div class="form-field form-row1" style="--colspan: 1;">
+    </div>         
+     <div class="form-field form-row1" style="--colspan: 1;">
       <label for="phone2" name="phone2">Secondary Phone</label>
-      <input type="text" id=phone2 name="phone2">
+      <input type="tel" id="phone2" name="phone2">
     </div>
     <div class="form-field form-row1" style="--colspan: 1;">
-      <label for="phone2type">Select Type</label>
-      <select id="phone2type" name="phone2type" size="1">
-        <option value="cell">Cell</option>
-        <option value="landline">Landline</option>
-        <option value="work">Other</option>
-        <option value="other">Work</option>
-      </select>
+      <label for=" phone2type">Type</label>
+      <select name="phone2type" id="phone2type">
+        <option value="">--Select--</option>
+       </select>
     </div>
     <div class="form-field form-row1" style="--colspan: 1;">
       <label for="phone3" name="phone3">Other Phone</label>
-      <input type="text" id=phone3 name="phone3">
+      <input type="tel" id="phone3" name="phone3">
     </div>
     <div class="form-field form-row1" style="--colspan: 1;">
-      <label for="phone2type">Select Type</label>
-      <select id="phone3type" name="phone3type" size="1">
-        <option value="cell">Cell</option>
-        <option value="landline">Landline</option>
-        <option value="work">Other</option>
-        <option value="other">Work</option>
+      <label for=" phone3type">Type</label>
+      <select name="phone3type" id="phone3type">
+        <option value="">--Select--</option>
       </select>
     </div>
     <div class="form-field form-row2" style="--colspan: 6;">
       <label for="email" name="email">E-mail Address</label>
-      <input type="text" id=email name="email">
+      <input type="email" id="email" name="email">
     </div>
   </form>
-  <form class="container3">
+  <form class="container3" name="memb-form" id="memb-form">
     <legend>
       <h2>Membership Information</h2>
     </legend>
@@ -151,7 +274,7 @@
     </div>
     <div class="form-field form-row1" style="--colspan: 1;">
       <label for="dateJoined">Date Joined</label>
-      <input type="text" id="dateJoined" name="dateJoined">
+      <input type="date" id="dateJoined" name="dateJoined">
 
     </div>
 
@@ -161,13 +284,18 @@
     </div>
     <div class="form-field form-row1" style="--colspan: 1;">
       <label for="baptizedDate">Date Baptized</label>
-      <input type="text" id="baptizedDate" name="baptizedDate">
+      <input type="date" id="baptizedDate" name="baptizedDate">
     </div>
     <div class="form-field form-row1" style="--colspan: 1;">
       <input type="checkbox" id="isactive" name="isactive">
       <label for="isactive">Active</label>
     </div>
   </form>
+  <form  class="container" name="membr-action" id="membr-action">
+    <input type="submit" class="nb-btn" name="submit_btn">
+    <input type="reset"  class="nb-btn" name="reset_btn">
+  </form>
   </main>
+
 </body>
 </html>

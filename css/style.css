@@ -62,3 +62,6 @@ legend{
 input{
     border-style:inset;
 }
+.nb-btn{
+    border-radius: 6px;
+}
