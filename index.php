@@ -1,28 +1,3 @@
-<?php
-require_once 'config/db.php';
-  // 1. Fetch Contacts
-$contacts=[];
-$titles=[];
-$phonetype=[];
-
-    $sqlcontacts= $db->query("SELECT contact_id, 
-            CONCAT(last_name, ', ', first_name, COALESCE(CONCAT(' ', middle_name), '')) as fullname 
-            FROM contacts");
-    $contacts = $sqlcontacts->fetch_all(MYSQLI_ASSOC);
-
- 
-    // 2. Fetch Titles (Uncommented and operational)
-    $sqlTitles =$db->query("SELECT title_id, titleabr FROM title");
-    $titles = $sqlTitles->fetch_all(MYSQLI_ASSOC);
-
-
-    //3.  Fetch Phone types
-    $sqlphone= $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type");
-    $phonetype = $sqlphone->fetch_all(MYSQLI_ASSOC);
-
-?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -38,23 +13,78 @@ $phonetype=[];
   <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  <script> 
+
+  <script>
+
+//    const express = require('express');
+// const cors = require('cors'); // Install via: npm install cors
+// const app = express();
+
+// app.use(cors({ origin: 'http://localhost:3000' })); // Allow your VS Code frontend port 
+
     $(document).ready(function () {
+      // Fire off a single request to get data for both dropdown components
+      $.ajax({
+        url: 'getLists.php',
+        type: 'POST',
+        dataType: 'json',
+        success: function (data) {
+
+        //  $('#contacts').empty();
+        //  $('#title').empty()
+
+         $.each(data.contacts, function (index, item) {
+          $('#contacts').append(
+              $('<option></option>').val(item.contact_id).text(item.fullname)
+            );
+          });
+                    // 2. Process and append title records
+         $.each(data.titles, function (index, item) {
+          $('#title').append(
+              $('<option></option>').val(item.title_id).text(item.titleabr)
+            );
+          });
+
+          $.each(data.phonetype, function (index, item) {
+          $('#phone1type').append(
+              $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
+            );
+          });
+
+          $.each(data.phonetype, function (index, item) {
+          $('#phone2type').append(
+              $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
+            );
+          });
+          $.each(data.phonetype, function (index, item) {
+          $('#phone3type').append(
+              $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
+            );
+          });
+ }, //error message
+          error: function(xhr, status, error){
+            console.error("Error loading lists  " + error)
+          }
+    
+     });
 
  
       // Fetch Contact/Member data
       $('#contacts').change(function () {
         var contactid = $(this).val();
-        if (contactid) {
+
+        console.log(contactid);
+
+        if (contactid !== "") {
           $.ajax({
             url: 'include/getContact.php',
             type: 'POST',
-            data: {
-              contact_id: contactid
-            },
-            dataType: 'text',
+            data: { contact: contactid },
+            dataType: 'json',
             success: function (data) {
               // Populate the form fields with the returned JSON
+              console.log(data.last_name);
+
               $('#contact_id').val(data.contact_id || '');
               $('#title').val(data.title_id || '');
               $('#firstname').val(data.first_name || '');
@@ -102,7 +132,7 @@ $phonetype=[];
       })
 
       // Handle Insert/Updates via AJAX
-      $('#contact-form').submit(function (e) {
+      $('#ccontact-form').submit(function (e) {
         e.preventDefault(); // Prevent standard page reload
         $.ajax({
           url: 'include/saveContact.php',
@@ -122,18 +152,16 @@ $phonetype=[];
 </head>
 
 <body class="nborder">
-  <form id="contact-form" name="contact-form" class="nborder" autocomplete="on">
+  <?php  require_once("config/db.php") ?>
+
+  <form id="contact-form" name="contact-form" class="nborder">
 
     <div class="container nborder" name="conSelect" id="conSelect">
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
         <label for="contacts" class="nborder">Members/Contacts</label>
-        <select name="contacts" id="contacts" autocomplete="on">
+        <select name="contacts" id="contacts">
           <option value="">--Select--</option>
-     <?php foreach ($contacts as $row): ?>
-        <option value="<?= htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8') ?>">
-            <?= htmlspecialchars($row['fullname'], ENT_QUOTES, 'UTF-8') ?>
-        </option>
-    <?php endforeach; ?>       </select>
+        </select>
       </div>
     </div>
     <div class="container" id="personalInfo" name="personalInfo">
@@ -146,17 +174,12 @@ $phonetype=[];
         <label for="title">Title</label>
         <select name="title" id="title">
           <option value="">--Select--</option>
-      <?php foreach ($titles as $row): ?>
-        <option value="<?= htmlspecialchars($row['title_id'], ENT_QUOTES, 'UTF-8') ?>">
-            <?= htmlspecialchars($row['titleabr'], ENT_QUOTES, 'UTF-8') ?>
-        </option>
-    <?php endforeach; ?>
-     </select>
+        </select>
       </div>
 
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="firstname">First Name</label>
-        <input type="firstname" id="firstname">
+        <input type="firstname" id="firstname" required>
       </div>
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="middlename">Middle Name</label>
@@ -164,11 +187,11 @@ $phonetype=[];
       </div>
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="lastname">Last Name</label>
-        <input type="text" id="lastname" /></label>
+        <input type="text" id="lastname" required/></label>
       </div>
       <div class="form-field form-row3 nborder" style="--colspan: 5;">
         <label for="address1">Address</label>
-        <input type="text" id="address1" name="address" autocomplete="on"/>
+        <input type="text" id="address1" name="address"  autocomplete="off"/>
       </div>
       <!-- Row 2: Two equal columns -->
       <div class="form-field form-row4 nborder" style="--colspan: 4;">
@@ -179,15 +202,15 @@ $phonetype=[];
         <label for="state">State</label>
         <input type="text" id="state" name="state" />
       </div>
-      <div class="form-field form-row5 nborder" style="--colspan: 1;">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
         <label for="zipcode" name="zipcode">Zip Code</label>
         <input type="text" id="zipcode" name="zipcode" />
       </div>
-      <div class="form-field form-row5 nborder" style="--colspan: 1;">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
         <label for="dob">Date of Birth</label>
         <input type="date" id="dob" name="dob">
       </div>
-      <div class="form-field form-row5 nborder" style="--colspan: 1;">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
         <label for="gender">Gender</label>
         <select id="gender" name="gender" size="1">
           <option value="">Select</option>
@@ -195,7 +218,7 @@ $phonetype=[];
           <option value="M">Male</option>
         </select>
       </div>
-      <div class="form-field form-row5 nborder" style="--colspan: 1;">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
         <label for="marital">Marital Status</label>
         <select id="marital" name="marital" size="1">
           <option value="">Select</option>
@@ -203,9 +226,9 @@ $phonetype=[];
           <option value="M">Married</option>
         </select>
       </div>
-      <div class="form-field form-row5 nborder" style="--colspan: 1;">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
         <label for="anniv">Anniversary Date</label>
-        <input type="date" id="anniv" name="anniv">
+        <input type="text" id="anniv" name="anniv">
       </div>
     </div>
     <div class="container2" id="contactInfo" name="contactInfo">
@@ -244,7 +267,7 @@ $phonetype=[];
       </div>
       <div class="form-field form-row2 nborder" style="--colspan: 6;">
         <label for="email" name="email">E-mail Address</label>
-        <input type="email" id="email" name="email" autocomplete="on">
+        <input type="email" id="email" name="email" autocomplete="off">
       </div>
     </div>
     <div class="container3" id="membershipInfo" name="membershipInfo">
