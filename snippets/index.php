@@ -17,9 +17,9 @@ try {
     $contacts = $contactsStmt->fetch_all(MYSQLI_ASSOC);
 
     echo json_encode([
-        'phonetypes' => $phonetypes,
-        'titles'     => $titles,
-        'contacts'   => $contacts
+        "phonetypes" => $phonetypes,
+        "titles"     => $titles,
+        "contacts"   => $contacts
     ]);
 } catch (Exception $e) {
     echo json_encode(['error' => $e->getMessage()]);
