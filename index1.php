@@ -1,4 +1,23 @@
-<?php header('Content-Type: application/json');?>
+<?php
+require_once 'config/db.php';
+  // 1. Fetch Contacts
+$contacts=[];
+$titles=[];
+$phonetype=[];
+
+    $sqlcontacts = $db->query("SELECT contact_id, CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_name, ' ')) as fullname FROM contacts");
+    $contacts = $sqlcontacts->fetch_all(MYSQLI_ASSOC);
+
+ 
+    // 2. Fetch Titles (Uncommented and operational)
+    $sqlTitles = $db->query("SELECT title_id, titleabr FROM title");
+    $titles = $sqlTitles->fetch_all(MYSQLI_ASSOC);
+
+
+    //3.  Fetch Phone types
+    $sqlphone= $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type");
+    $phonetype = $sqlphone->fetch_all(MYSQLI_ASSOC);
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,60 +33,36 @@
   <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-
-  <script>
+  <script> 
     $(document).ready(function () {
-      // Fire off a single request to get data for both dropdown components
-$.ajax({
-    url: "include/getLists.php",
-    type: 'POST',
-    dataType: 'json',
-    success: function (data) {
-        console.log("Server Status:", data.status);
-        
-        // Handle potential backend errors passed through JSON safely
-        if (data.status === 'error') {
-            console.error("Application Error:", data.message);
-            return;
-        }
-
-        // 1. Process and append contact records
-        if (data.contacts) {
-            $('#contacts').empty(); // Optional: clear existing placeholders
-            $.each(data.contacts, function (index, contact) {
-                $('#contacts').append(new Option(contact.fullname, contact.contact_id));
-            });
-        }
-        
-        // 2. Process and append title records
-        if (data.titles) {
-            $('#title').empty(); // Optional: clear existing placeholders
-            $.each(data.titles, function (index, titleItem) {
-                $('#title').append(new Option(titleItem.titleabr, titleItem.title_id));
-            });
-        }
-    }, 
-    error: function(xhr, status, error){
-        // Fixed: Use xhr.responseText to see exactly what the server spat out
-        console.error("AJAX Request Failed Status:", status);
-        console.error("AJAX Error Details:", error);
-        console.log("Raw Server Response Text:", xhr.responseText);
-    }
-});
-
-
- 
-      // Fetch Contact/Member data
-      $('#contacts').change(function () {
-        var contactid = $(this).val();
-        if (contactid) {
-          $.ajax({
-            url: 'include/getContact.php',
+       // Fire off a single request to get data for both dropdown components
+        $.ajax({
+            url: 'include/getLists.php',
             type: 'POST',
-            data: {
-              contact_id: contactid
+            dataType: 'json',
+            success: function (data) {
+                // Error safety handling Check
+                var titleSelect = $('#titles');
+                $.each(data.titles, function (data, item) {
+                    titleSelect.append(
+                        $('<option></option>').val(item.title_id).text(item.titleabr)
+                    );
+                });
             },
-            dataType: 'text',
+            error: function (xhr, status, error) {
+                console.error('Titles error:', error);
+            }
+        });
+
+         $('#contacts').on('change', function() {
+            var contactId = $(this).val(); // Get selected value
+
+      // Fetch Contact/Member data
+          $.ajax({
+            url: 'getContact.php',
+            type: 'POST',
+            data: { contact_id: contactId },
+            dataType: 'JSON',
             success: function (data) {
               // Populate the form fields with the returned JSON
               $('#contact_id').val(data.contact_id || '');
@@ -99,7 +94,7 @@ $.ajax({
               $('#reset_btn').show();
             }
           });
-        }
+        },
         else {
           // Reset form if "--Add New Contact/Member --" is chosen
           $('#contact-form')[0].reset();
@@ -137,8 +132,6 @@ $.ajax({
 </head>
 
 <body class="nborder">
-  <?php  require_once("config/db.php") ?>
-
   <form id="contact-form" name="contact-form" class="nborder" autocomplete="on">
 
     <div class="container nborder" name="conSelect" id="conSelect">
@@ -146,7 +139,11 @@ $.ajax({
         <label for="contacts" class="nborder">Members/Contacts</label>
         <select name="contacts" id="contacts" autocomplete="on">
           <option value="">--Select--</option>
-        </select>
+     <?php foreach ($contacts as $row): ?>
+        <option value="<?= htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8') ?>">
+            <?= htmlspecialchars($row['fullname'], ENT_QUOTES, 'UTF-8') ?>
+        </option>
+    <?php endforeach; ?>       </select>
       </div>
     </div>
     <div class="container" id="personalInfo" name="personalInfo">
@@ -157,9 +154,14 @@ $.ajax({
 
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="title">Title</label>
-        <select name="title" id="title">
+        <select name="title" id="title" size: 1; >
           <option value="">--Select--</option>
-        </select>
+      <?php foreach ($titles as $row): ?>
+        <option value="<?= htmlspecialchars($row['title_id'], ENT_QUOTES, 'UTF-8') ?>">
+            <?= htmlspecialchars($row['titleabr'], ENT_QUOTES, 'UTF-8') ?>
+        </option>
+    <?php endforeach; ?>
+     </select>
       </div>
 
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
@@ -224,20 +226,30 @@ $.ajax({
         <label for="phone1" name="phone1">Primary Phone</label>
         <input type="tel" id="phone1" name="phone1">
       </div>
-      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+      <div class="form-field form-row1 nborder" style="--colspan: 1; height: 1rem;">
         <label for="phone1type">Type</label>
-        <select name="phone1type" id="phone1type">
+        <select name="phone1type" id="phone1type" size="1">
           <option value="">--Select--</option>
-        </select>
+      <?php foreach ($phonetype as $row): ?>
+        <option value="<?= htmlspecialchars($row['phone_type_id'], ENT_QUOTES, 'UTF-8') ?>">
+            <?= htmlspecialchars($row['phone_type_desc'], ENT_QUOTES, 'UTF-8') ?>
+        </option>
+    <?php endforeach; ?>
+       </select>
       </div>
-      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+      <div class="form-field form-row1 nborder" style="--colspan: 1; height: 1rem;">
         <label for="phone2" name="phone2">Secondary Phone</label>
-        <input type="tel" id="phone2" name="phone2">
-      </div>
+        <input type="tel" id="phone2" name="phone2" >
+        </div>
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
         <label for="phone2type">Type</label>
         <select name="phone2type" id="phone2type">
           <option value="">--Select--</option>
+      <?php foreach ($phonetype as $row): ?>
+        <option value="<?= htmlspecialchars($row['phone_type_id'], ENT_QUOTES, 'UTF-8') ?>">
+            <?= htmlspecialchars($row['phone_type_desc'], ENT_QUOTES, 'UTF-8') ?>
+        </option>
+    <?php endforeach; ?>
         </select>
       </div>
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
@@ -248,7 +260,12 @@ $.ajax({
         <label for="phone3type">Type</label>
         <select name="phone3type" id="phone3type">
           <option value="">--Select--</option>
-        </select>
+      <?php foreach ($phonetype as $row): ?>
+        <option value="<?= htmlspecialchars($row['phone_type_id'], ENT_QUOTES, 'UTF-8') ?>">
+            <?= htmlspecialchars($row['phone_type_desc'], ENT_QUOTES, 'UTF-8') ?>
+        </option>
+    <?php endforeach; ?>
+   </select>
       </div>
       <div class="form-field form-row2 nborder" style="--colspan: 6;">
         <label for="email" name="email">E-mail Address</label>
@@ -289,3 +306,4 @@ $.ajax({
 </body>
 
 </html>
+

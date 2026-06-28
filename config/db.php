@@ -15,10 +15,11 @@ $db = new mysqli($host, $user, $pswd, $dbname, $port);
 // Check connection
 if ($db->connect_error) {
     die("Connection failed: " . $db->connect_error);
- } else {
-    echo "Successfully connected ! . <br><br>";
-    echo "Server is . $host . and user is . $user  ";
-};
+ } ;
+//  else {
+//     echo "Successfully connected ! . <br><br>";
+//     echo "Server is . $host . and user is . $user  ";
+// };
 $db->set_charset($charset);
 $db->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, 1);
 
