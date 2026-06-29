@@ -146,15 +146,16 @@
                 dataType: 'json',
                 success: function(response) {
                     if(response.status === 'success') {
-                        $('#responseMessage').html('<p style="color:green;">' + response.message + '</p>');
+                        $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
                         $('#contact-form')[0].reset(); // Clear the form
                     } else {
-                        $('#responseMessage').html('<p style="color:red;">' + response.message + '</p>');
-                    }
-                },
+                      if(response.errors.firstname)  $('#firstError').text(response.erros.firstname);
+                      if(response.errors.lastname) $('#lastError') text(response.erros.firstname);
+                      if(response.errors.email) $('#emailError') text(response.erros.email);
+                   } 
                 error: function() {
-                    $('#responseMessage').html('<p style="color:red;">An error occurred on the server.</p>');
-                }
+                    $('#responseMsg').html('<p style="color:red;">An error occurred on the server.</p>');
+                  }
             });
       });
     });
@@ -193,7 +194,7 @@
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="firstname">First Name</label>
         <input type="firstname" name="firstname" id="firstname" required>
-      </div>
+        <div id="firstError"></div>    
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="middlename">Middle Name</label>
         <input type="middlename" name="middlename" id="middlename" />
@@ -201,6 +202,7 @@
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="lastname">Last Name</label>
         <input type="text" id="lastname" name="lastname" required/></label>
+        <div id="lastError"></div>    
       </div>
       <div class="form-field form-row3 nborder" style="--colspan: 5;">
         <label for="address1">Address</label>
@@ -281,6 +283,7 @@
       <div class="form-field form-row2 nborder" style="--colspan: 6;">
         <label for="email" name="email">E-mail Address</label>
         <input type="email" id="email" name="email" autocomplete="off">
+        <div id="emaailError"></div>    
       </div>
     </div>
     <div class="container3" id="membershipInfo" name="membershipInfo">
@@ -313,7 +316,7 @@
     <input type="submit" class="nb-btn" name="submitBtn">
     <input type="reset" class="nb-btn" name="resetBtn">
   </form>
-  <div id="responseMessage"></div>
+  <div id="responseMsg"></div>
   </main>
 </body>
 

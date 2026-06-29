@@ -31,7 +31,8 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     $phone_2_type   = intval($_POST['phone_2_type']) ?? 0;
     $phone_3        = $_POST['phone_3'] ?? '';
     $phone_3_type   = intval($_POST['phone_3_type']) ?? 0;
-    $marital_status = intval($_POST['marital_status']) ?? ;
+    $anniv_date     = $_POST['anniv_date'] ?? null);
+    $marital_status = intval($_POST['marital_status']) ?? 0;
     $join_date      = $_POST['join_date'] ?? null;
     $baptized_date  = $_POST['baptized_date'] ?? null;
     
@@ -39,6 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     $is_member     = isset($_POST['is_member']) ? 1 : 0;
     $is_baptized   = isset($_POST['is_baptized']) ? 1 : 0;
     $is_child      = isset($_POST['is_child']) ? 1 : 0;
+    $is_head       = isset($_POST['is_head']) ? 1 : 0;
     $is_active     = isset($_POST['is_active']) ? 1 : 0;
 
 // validate entries
@@ -59,19 +61,19 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
                 date_of_birth, gender, address_1, city, state, 
                 zipcode, phone_1, phone_1_type, phone_2, phone_2_type, 
                 phone_3, phone_3_type, c_email, is_member, is_baptized, 
-                marital_status, join_date, baptized_date, is_child, is_active
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                marital_status, anniv_date, join_date, baptized_date, is_child, is_head, is_active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     if ($stmt = $db->prepare($sql)) {
         
-        $types = "isssssssssssssssssiisssii";
+        $types = "isssssssssssssssssiissssiii";
         $stmt->bind_param(
             $types, 
             $contact_id, $title_id, $first_name, $last_name, $middle_name,
             $date_of_birth, $gender, $address_1, $city, $state,
             $zipcode, $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $phone_3, $phone_3_type, $c_email, $is_member, $is_baptized,
-            $marital_status, $join_date, $baptized_date, $is_child, $is_active
+            $marital_status, $anniv_date, $join_date, $baptized_date, $is_child, $is_head, $is_active
         );
         
         // 4. Handle Execution Response
