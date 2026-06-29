@@ -8,13 +8,12 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
-if (isset($_POST['contact-form'])) {
-    // 1. Force the response header to be JSON
+ // 1. Force the response header to be JSON
 
 
     // 2. Map and clean inputs
     $contact_id     = isset($POST['contact_id']) ? intval($_POST['contact_id']) : 0;
-    $title_id       = $_POST['title_id'] ?? '';
+    $title_id       = isset($POST['title_id']) ? $_POST['title_id'] : 0;
     $first_name     = $_POST['first_name'] ?? '';
     $last_name      = $_POST['last_name'] ?? '';
     $middle_name    = $_POST['middle_name'] ?? ''; 
@@ -25,11 +24,11 @@ if (isset($_POST['contact-form'])) {
     $state          = $_POST['state'] ?? '';
     $zipcode        = $_POST['zipcode'] ?? '';
     $phone_1        = $_POST['phone_1'] ?? '';
-    $phone_1_type   = $_POST['phone_1_type'] ?? '';
+    $phone_1_type   = intval($_POST['phone_1_type']) ?? 0;
     $phone_2        = $_POST['phone_2'] ?? '';
-    $phone_2_type   = $_POST['phone_2_type'] ?? '';
+    $phone_2_type   = intval($_POST['phone_2_type']) ?? 0;
     $phone_3        = $_POST['phone_3'] ?? '';
-    $phone_3_type   = $_POST['phone_3_type'] ?? '';
+    $phone_3_type   = intval($_POST['phone_3_type']) ?? 0;
     $marital_status = $_POST['marital_status'] ?? '';
     $join_date      = $_POST['join_date'] ?? null;
     $baptized_date  = $_POST['baptized_date'] ?? null;
@@ -90,7 +89,7 @@ if (isset($_POST['contact-form'])) {
     
     // 5. Terminate script to ensure no trailing HTML tags are appended
     exit;
-}
+
 
 
 

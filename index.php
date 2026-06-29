@@ -128,10 +128,11 @@
         }
       });
       // Reset button functionality
-      $('reset_btn').click(function () {
+      $('#resetBtn').click(function () {
         $('#contact-form')[0].reset();
+        $('#contact-select')[0].reset();
         $('#contact_id').val('');
-        $('#submiBtn').text('Add Contact/Member');
+        $('#submitBtn').text('Add Contact/Member');
         $(this).hide();
       });
 
@@ -139,14 +140,14 @@
       $('#contact-form').submit(function (e) {
         e.preventDefault(); // Prevent standard page reload
              $.ajax({
-                url: 'saveComtact.php',
+                url: 'saveContact.php',
                 type: 'POST',
                 data: $(this).serialize(), // Converts all 4 fields into a URL-encoded string
                 dataType: 'json',
                 success: function(response) {
                     if(response.status === 'success') {
                         $('#responseMessage').html('<p style="color:green;">' + response.message + '</p>');
-                        $('#preferencesForm')[0].reset(); // Clear the form
+                        $('#contact-form')[0].reset(); // Clear the form
                     } else {
                         $('#responseMessage').html('<p style="color:red;">' + response.message + '</p>');
                     }
@@ -180,7 +181,7 @@
       <legend>
         <h2>Personal Information</h2>
       </legend>
-      <div type="hidden" name="contact_id" id="contact_id"></div>
+      <input type="hidden" name="contact_id" id="contact_id"></input>
 
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="title">Title</label>
@@ -191,15 +192,15 @@
 
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="firstname">First Name</label>
-        <input type="firstname" id="firstname" required>
+        <input type="firstname" name="firstname" id="firstname" required>
       </div>
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="middlename">Middle Name</label>
-        <input type="middlename" id="middlename" />
+        <input type="middlename" name="middlename" id="middlename" />
       </div>
       <div class="form-field form-row2 nborder" style="--colspan: 1;">
         <label for="lastname">Last Name</label>
-        <input type="text" id="lastname" required/></label>
+        <input type="text" id="lastname" name="lastname" required/></label>
       </div>
       <div class="form-field form-row3 nborder" style="--colspan: 5;">
         <label for="address1">Address</label>
