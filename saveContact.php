@@ -10,6 +10,8 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
  // 1. Force the response header to be JSON
 
+   $errors = [];
+
 
     // 2. Map and clean inputs
     $contact_id     = isset($POST['contact_id']) ? intval($_POST['contact_id']) : 0;
@@ -29,16 +31,28 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     $phone_2_type   = intval($_POST['phone_2_type']) ?? 0;
     $phone_3        = $_POST['phone_3'] ?? '';
     $phone_3_type   = intval($_POST['phone_3_type']) ?? 0;
-    $marital_status = $_POST['marital_status'] ?? '';
+    $marital_status = intval($_POST['marital_status']) ?? ;
     $join_date      = $_POST['join_date'] ?? null;
     $baptized_date  = $_POST['baptized_date'] ?? null;
     
-    $c_email       = filter_var($_POST['c_email'] ?? '', FILTER_SANITIZE_EMAIL);
+	$c_email       = $_POST['c_email'] ?? '';
     $is_member     = isset($_POST['is_member']) ? 1 : 0;
     $is_baptized   = isset($_POST['is_baptized']) ? 1 : 0;
     $is_child      = isset($_POST['is_child']) ? 1 : 0;
     $is_active     = isset($_POST['is_active']) ? 1 : 0;
 
+// validate entries
+
+
+    if (empty($firstname) || strlen($firstname) < 3) {
+        $errors['firstname'] = 'First Name must be at least 3 characters long.';
+    }
+    if (empty($lastname) || strlen($lastname) < 3) {
+        $errors['lastname'] = 'Last Name must be at least 3 characters long.';
+    }
+      if (!filter_var($c_email, FILTER_VALIDATE_EMAIL)){
+        $errors['c_email'] = 'Please enter a valid email';
+    }
     // 3. Prepare SQL Statement
     $sql = "INSERT INTO contacts (
                 contact_id, title_id, first_name, last_name, middle_name, 
