@@ -34,7 +34,7 @@
         //  $('#title').empty()
 
          $.each(data.contacts, function (index, item) {
-          $('#contacts').append(
+          $('#contactID').append(
               $('<option></option>').val(item.contact_id).text(item.fullname)
             );
           });
@@ -70,22 +70,25 @@
 
  
       // Fetch Contact/Member data
-      $('#contacts').change(function () {
-        var contactid = $(this).val();
-
-        console.log(contactid);
+      $('#contactID').change(function () {
+        let contactid = $(this).val();
+       // console.log(contactid);
 
         if (contactid !== "") {
+
           $.ajax({
-            url: 'include/getContact.php',
+            url: 'getContact.php',
             type: 'POST',
-            data: { contact: contactid },
+            data: { contactid: contactid },
             dataType: 'json',
             success: function (data) {
               // Populate the form fields with the returned JSON
-              console.log(data.last_name);
+                //  if (data.error) {
+                //     console.error("Server Error: " + data.error);
+                //     return;
+                //   }
 
-              $('#contact_id').val(data.contact_id || '');
+              $('#contact_id').val(contactid|| '');
               $('#title').val(data.title_id || '');
               $('#firstname').val(data.first_name || '');
               $('#middlename').val(data.middle_name || '');
@@ -110,14 +113,15 @@
               $('#isbaptized').val(data.is_baptized || '');
               $('#baptizedDate').val(data.baptized_date || '');
               $('#isactive').val(data.is_active || '');
-              $('submit_btn').text('Update Contact/Member');
-              $('#reset_btn').show();
+              $('#submitBtn').text('Update Contact/Member');
+              $('#resetBtn').show();
             }
           });
         }
         else {
           // Reset form if "--Add New Contact/Member --" is chosen
           $('#contact-form')[0].reset();
+          $('#contact-select')[0].reset();
           $('#contact_id').val('');
           $('#submitBtn').text('Add Contact/Member');
           $('#resetBtn').hide();
@@ -129,23 +133,28 @@
         $('#contact_id').val('');
         $('#submiBtn').text('Add Contact/Member');
         $(this).hide();
-      })
+      });
 
       // Handle Insert/Updates via AJAX
-      $('#ccontact-form').submit(function (e) {
+      $('#contact-form').submit(function (e) {
         e.preventDefault(); // Prevent standard page reload
-        $.ajax({
-          url: 'include/saveContact.php',
-          type: 'POST',
-          data: $(this).serialize(),
-          dataType: 'json',
-          success: function (response) {
-            $('#response_message').html(response);
-          },
-          error: function (xhr, status, error) {
-            console.error('update_member error:', error);
-          }
-        });
+             $.ajax({
+                url: 'saveComtact.php',
+                type: 'POST',
+                data: $(this).serialize(), // Converts all 4 fields into a URL-encoded string
+                dataType: 'json',
+                success: function(response) {
+                    if(response.status === 'success') {
+                        $('#responseMessage').html('<p style="color:green;">' + response.message + '</p>');
+                        $('#preferencesForm')[0].reset(); // Clear the form
+                    } else {
+                        $('#responseMessage').html('<p style="color:red;">' + response.message + '</p>');
+                    }
+                },
+                error: function() {
+                    $('#responseMessage').html('<p style="color:red;">An error occurred on the server.</p>');
+                }
+            });
       });
     });
   </script>
@@ -154,16 +163,19 @@
 <body class="nborder">
   <?php  require_once("config/db.php") ?>
 
-  <form id="contact-form" name="contact-form" class="nborder">
+  <form id="contact-select" name="contact-select" class="nborder">
 
     <div class="container nborder" name="conSelect" id="conSelect">
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
-        <label for="contacts" class="nborder">Members/Contacts</label>
-        <select name="contacts" id="contacts">
+        <label for="contactID" class="nborder">Members/Contacts</label>
+        <select name="contactID" id="contactID">
           <option value="">--Select--</option>
         </select>
       </div>
     </div>
+  </form>
+  <form id ="contact-form" name="contact-form" class="noborder">
+
     <div class="container" id="personalInfo" name="personalInfo">
       <legend>
         <h2>Personal Information</h2>
@@ -300,6 +312,7 @@
     <input type="submit" class="nb-btn" name="submitBtn">
     <input type="reset" class="nb-btn" name="resetBtn">
   </form>
+  <div id="responseMessage"></div>
   </main>
 </body>
 
