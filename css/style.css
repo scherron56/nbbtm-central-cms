@@ -19,6 +19,35 @@ label{
     margin: 1rem;
     padding: 10px;
 }
+.selectContainer{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    justify-items: left;
+
+    gap: 1rem;
+    margin: 1rem;
+    padding: 10px;
+}
+
+.selectContainer2{
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    justify-items: left;
+
+    gap: 1rem;
+    margin: 1rem;
+    padding: 10px;
+}
+.perscontainer{
+    display:grid;
+    justify-items: left;
+    gap:1rem;
+    margin: 1rem;
+    padding: 10px;
+}
+.persconRow1{
+    grid-row: 2
+}
 
 .container2{
     display: grid;
@@ -28,6 +57,7 @@ label{
     margin: 1rem;
     padding: 10px;
 }
+
 .container3{
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -44,12 +74,16 @@ label{
     inline-size: 100%;
     gap: .5rem; 
  }
+ .form-row0{
+    grid-row: 1;
+ }
 .form-row1{
     grid-row: 2;
 }
 .form-row2{
     grid-row: 3;
 }
+
 .form-row3{
     grid-row: 4;
 }
