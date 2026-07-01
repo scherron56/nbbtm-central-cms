@@ -143,7 +143,46 @@
           });
 
           // Handle Insert/Updates via AJAX
-          $('#contact-form').submit(function(e) {
+$('#contact-form').submit(function(e) {
+    e.preventDefault(); // Prevent standard page reload
+
+    // Clear previous error messages before making the call
+    $('#firstError, #lastError, #emailError, #responseMsg').text('');
+
+    let contactId = $('#contact_id').val();
+    
+    // Determine target URL based on whether contactId exists
+    let targetUrl = (contactId === "" || contactId === "0") ? 'saveContact.php' : 'updateContact.php';
+
+    $.ajax({
+        url: targetUrl,
+        type: 'POST',
+        data: $(this).serialize(), // Automatically packs all populated form elements
+        dataType: 'json',
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
+                $('#contact-form')[0].reset(); // Clear the form fields
+            }
+        },
+        error: function(xhr) {
+            // Handles 400 Bad Request (Validation) and 500 Internal Server errors cleanly
+            let response = xhr.responseJSON;
+            
+            if (response && response.errors) {
+                // Fixed spelling typos from 'erros' to 'errors'
+                if (response.errors.firstname) $('#firstError').text(response.errors.firstname);
+                if (response.errors.lastname) $('#lastError').text(response.errors.lastname);
+                if (response.errors.c_email) $('#emailError').text(response.errors.c_email);
+            } else if (response && response.message) {
+                $('#responseMsg').html('<p style="color:red;">' + response.message + '</p>');
+            } else {
+                $('#responseMsg').html('<p style="color:red;">An unexpected system error occurred.</p>');
+            }
+        }
+    });
+});
+
             e.preventDefault(); // Prevent standard page reload
             // Determine form action route based on action variable
             let contactId = $('#contact_id').val();
