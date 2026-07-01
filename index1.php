@@ -37,7 +37,7 @@ $phonetype=[];
     $(document).ready(function () {
        // Fire off a single request to get data for both dropdown components
         $.ajax({
-            url: 'include/getLists.php',
+            url: 'getLists.php',
             type: 'POST',
             dataType: 'json',
             success: function (data) {
@@ -54,42 +54,42 @@ $phonetype=[];
             }
         });
 
-         $('#contacts').on('change', function() {
+    $('#contacts').on('change', function() {
             var contactId = $(this).val(); // Get selected value
 
       // Fetch Contact/Member data
           $.ajax({
-            url: 'getContact.php',
+            url: 'api.php',
             type: 'POST',
-            data: { contact_id: contactId },
+            data: { action: 'get_contact', contact_id: contactId },
             dataType: 'JSON',
-            success: function (data) {
+            success: function (contact) {
               // Populate the form fields with the returned JSON
-              $('#contact_id').val(data.contact_id || '');
-              $('#title').val(data.title_id || '');
-              $('#firstname').val(data.first_name || '');
-              $('#middlename').val(data.middle_name || '');
-              $('#lastname').val(data.last_name || '');
-              $('#address1').val(data.address_1 || '');
-              $('#city').val(data.city || '');
-              $('#state').val(data.state || '');
-              $('#zipcode').val(data.zipcode || '');
-              $('#dob').val(data.date_of_birth || '');
-              $('#gender').val(data.gender || '');
-              $('#marital').val(data.marital_status || '');
-              $('#anniv').val(data.anniv_date || '');
-              $('#phone1').val(data.phone_1 || '');
-              $('#phone2').val(data.phone_2 || '');
-              $('#phone3').val(data.phone_3 || '');
-              $('#phone1type').val(data.phone_1_type || '');
-              $('#phone2type').val(data.phone_2_type || '');
-              $('#phone3type').val(data.phone_3_type || '');
-              $('#email').val(data.c_email || '');
-              $('#ismember').val(data.is_member || '');
-              $('#dateJoined').val(data.join_date || '');
-              $('#isbaptized').val(data.is_baptized || '');
-              $('#baptizedDate').val(data.baptized_date || '');
-              $('#isactive').val(data.is_active || '');
+              $('#contact_id').val(contact.contact_id || '');
+              $('#title').val(contact.title_id || '');
+              $('#firstname').val(contact.first_name || '');
+              $('#middlename').val(contact.middle_name || '');
+              $('#lastname').val(contact.last_name || '');
+              $('#address1').val(contact.address_1 || '');
+              $('#city').val(contact.city || '');
+              $('#state').val(contact.state || '');
+              $('#zipcode').val(contact.zipcode || '');
+              $('#dob').val(contact.date_of_birth || '');
+              $('#gender').val(contact.gender || '');
+              $('#marital').val(contact.marital_status || '');
+              $('#anniv').val(contact.anniv_date || '');
+              $('#phone1').val(contact.phone_1 || '');
+              $('#phone2').val(contact.phone_2 || '');
+              $('#phone3').val(contact.phone_3 || '');
+              $('#phone1type').val(contact.phone_1_type || '');
+              $('#phone2type').val(contact.phone_2_type || '');
+              $('#phone3type').val(contact.phone_3_type || '');
+              $('#email').val(contact.c_email || '');
+              $('#ismember').val(contact.is_member || '');
+              $('#dateJoined').val(contact.join_date || '');
+              $('#isbaptized').val(contact.is_baptized || '');
+              $('#baptizedDate').val(contact.baptized_date || '');
+              $('#isactive').val(contact.is_active || '');
               $('submit_btn').text('Update Contact/Member');
               $('#reset_btn').show();
             }
@@ -114,16 +114,23 @@ $phonetype=[];
       // Handle Insert/Updates via AJAX
       $('#contact-form').submit(function (e) {
         e.preventDefault(); // Prevent standard page reload
+        // Determine action route to take
+        let contactId = $('contact_id').val();
+        let actionUrl = contactId ? 'update' : 'create';
+
+        //Serialize inputs and merge action variable
+        let formData = $(this).serialize() + '&action' + actionUrl;
+
         $.ajax({
-          url: 'include/saveContact.php',
+          url: 'api.php',
           type: 'POST',
-          data: $(this).serialize(),
+          data: formData,
           dataType: 'json',
           success: function (response) {
             $('#response_message').html(response);
           },
           error: function (xhr, status, error) {
-            console.error('update_member error:', error);
+            console.error('update_contact error:', error);
           }
         });
       });

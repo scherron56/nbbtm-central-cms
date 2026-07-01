@@ -1,0 +1,156 @@
+<body class="nborder">
+  <?php  require_once("config/db.php") ?>
+
+  <form id="contact-select" name="contact-select" class="nborder">
+
+    <div class="container nborder" name="conSelect" id="conSelect">
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="contactID" class="nborder">Members/Contacts</label>
+        <select name="contactID" id="contactID">
+          <option value="">--Select--</option>
+        </select>
+      </div>
+    </div>
+  </form>
+  <form id ="contact-form" name="contact-form" class="noborder">
+    <div class="container" id="personalInfo" name="personalInfo">
+      <legend>
+        <h2>Personal Information</h2>
+      </legend>
+      <input type="hidden" name="contact_id" id="contact_id"></input>
+      <div class="form-field form-row2 nborder" style="--colspan: 1;">
+        <label for="title">Title</label>
+        <select name="title" id="title">
+          <option value="">--Select--</option>
+        </select>
+      </div>
+     <div class="form-field form-row2 nborder" style="--colspan: 1;">
+        <label for="firstname">First Name</label>
+        <input type="firstname" name="firstname" id="firstname" required>
+ 
+      <div class="form-field form-row2 nborder" style="--colspan: 1;">
+        <label for="middlename">Middle Name</label>
+        <input type="middlename" name="middlename" id="middlename" />
+      </div>
+      <div class="form-field form-row2 nborder" style="--colspan: 1;">
+        <label for="lastname">Last Name</label>
+        <input type="text" id="lastname" name="lastname" required/></label>
+     
+      </div>
+      <div class="form-field form-row3 nborder" style="--colspan: 5;">
+        <label for="address1">Address</label>
+        <input type="text" id="address1" name="address"  autocomplete="off"/>
+      </div>
+      <!-- Row 2: Two equal columns -->
+      <div class="form-field form-row4 nborder" style="--colspan: 4;">
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" />
+      </div>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="state">State</label>
+        <input type="text" id="state" name="state" />
+      </div>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="zipcode" name="zipcode">Zip Code</label>
+        <input type="text" id="zipcode" name="zipcode" />
+      </div>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="dob">Date of Birth</label>
+        <input type="date" id="dob" name="dob">
+      </div>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="gender">Gender</label>
+        <select id="gender" name="gender" size="1">
+          <option value="">Select</option>
+          <option value="F">Female</option>
+          <option value="M">Male</option>
+        </select>
+      </div>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="marital">Marital Status</label>
+        <select id="marital" name="marital" size="1">
+          <option value="">Select</option>
+          <option value="S">Single</option>
+          <option value="M">Married</option>
+        </select>
+      </div>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="anniv">Anniversary Date</label>
+        <input type="text" id="anniv" name="anniv">
+      </div>
+    </div>
+    <div class="container2" id="contactInfo" name="contactInfo">
+      <legend>
+        <h2>Contact Information</h2>
+      </legend>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="phone1" name="phone1">Primary Phone</label>
+        <input type="tel" id="phone1" name="phone1">
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="phone1type">Type</label>
+        <select name="phone1type" id="phone1type">
+          <option value="">--Select--</option>
+        </select>
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="phone2" name="phone2">Secondary Phone</label>
+        <input type="tel" id="phone2" name="phone2">
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="phone2type">Type</label>
+        <select name="phone2type" id="phone2type">
+          <option value="">--Select--</option>
+        </select>
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="phone3" name="phone3">Other Phone</label>
+        <input type="tel" id="phone3" name="phone3">
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="phone3type">Type</label>
+        <select name="phone3type" id="phone3type">
+          <option value="">--Select--</option>
+        </select>
+      </div>
+      <div class="form-field form-row2 nborder" style="--colspan: 6;">
+        <label for="email" name="email">E-mail Address</label>
+        <input type="email" id="email" name="email" autocomplete="off">
+        <div id="emaailError"></div>    
+      </div>
+    </div>
+    <div class="container3" id="membershipInfo" name="membershipInfo">
+      <legend>
+        <h2>Membership Information</h2>
+      </legend>
+      <div class="form-field form-row1 nborder" style="--colspan:1; size: 2ch;">
+        <input type="checkbox" id="ismember" name="ismember">
+        <label for="ismember">Member</label>
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="dateJoined">Date Joined</label>
+        <input type="date" id="dateJoined" name="dateJoined">
+
+      </div>
+
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <input type="checkbox" id="isbaptisted" name="isbaptisted">
+        <label for="isbaptisted">Baptized</label>
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="baptizedDate">Date Baptized</label>
+        <input type="date" id="baptizedDate" name="baptizedDate">
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <input type="checkbox" id="isactive" name="isactive">
+        <label for="isactive">Active</label>
+      </div>
+    </div>
+    <input type="submit" class="nb-btn" name="submitBtn">
+    <input type="reset" class="nb-btn" name="resetBtn">
+  </form>
+  <div id="responseMsg"></div>
+  </main>
+</body>
+
+</html>
