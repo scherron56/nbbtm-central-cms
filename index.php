@@ -190,8 +190,7 @@
           <option value="">--Select--</option>
         </select>
       </div>
-
-      <div class="form-field form-row2 nborder" style="--colspan: 1;">
+     <div class="form-field form-row1 nborder" style="--colspan: 1;">
         <label for="firstname">First Name</label>
         <input type="firstname" name="firstname" id="firstname" required>
         <div id="firstError"></div>    
