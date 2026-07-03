@@ -36,6 +36,20 @@ $is_head        = isset($_POST['is_head']) ? 1 : 0;
 $is_active      = isset($_POST['is_active']) ? 1 : 0;
 $contact_id     = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
 
+error_log(print_r($first_name, true));
+// Helper function to robustly sanitize ambiguous date strings
+function sanitizeToSqlDate($dateStr) {
+    if (!$dateStr) return null;
+    // Replace slashes with dashes to ensure standard interpretation, or use specialized parser
+    $timestamp = strtotime(str_replace('/', '-', $dateStr));
+    return $timestamp ? date('Y-m-d', $timestamp) : null;
+}
+
+$date_of_birth = sanitizeToSqlDate($date_of_birth);
+$anniv_date    = sanitizeToSqlDate($anniv_date);
+$join_date     = sanitizeToSqlDate($join_date);
+$baptized_date = sanitizeToSqlDate($baptized_date);
+
 // Ensure we have a valid contact ID to update
 if ($contact_id <= 0) {
     $errors['contact_id'] = 'Valid Contact ID is required for updates.';

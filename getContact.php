@@ -1,8 +1,9 @@
 <?php
 // $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
-$reponse = [];
-    
+$response = [];
+$query="";
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // FIX: Look for 'contactid' matching your JS data key
@@ -10,7 +11,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $contactid = (int)$_POST["contactid"];
 
-        $query = "SELECT contact_id, title_id, last_name, first_name, middle_name, date_of_birth, gender, address_1, city, state, zipcode, phone_1, phone_1_type, phone_2, phone_2_type, phone_3, phone_3_type, c_email, is_member, is_baptized, anniv_date, marital_status, join_date, baptized_date, is_child, is_head, is_active FROM contacts WHERE contact_id = ?";
+        $query = "SELECT contact_id, title_id, last_name, first_name, middle_name, date_of_birth, gender, address_1, city, state, zipcode, phone_1, phone_1_type, phone_2, phone_2_type, emergency_contact, phone_3, phone_3_type, c_email, is_member, is_baptized, anniv_date, marital_status, join_date, baptized_date, is_child, is_head, is_active FROM contacts WHERE contact_id = ?";
         
         if ($stmt = mysqli_prepare($db, $query)) {
             mysqli_stmt_bind_param($stmt, "i", $contactid);
@@ -34,9 +35,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $response = ['error' => 'Invalid request method'];
 }
 
-header('Content-Type: application/json');
+ header('Content-Type: application/json');
 echo json_encode($response);     
 
-    $db->close();
+if (isset($db) && $db instanceof mysqli) {
     
-?>
+    mysqli_close($db);
+    
+}

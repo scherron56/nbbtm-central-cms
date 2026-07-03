@@ -1,6 +1,6 @@
 <?php
 
-header('Content-Type: application/json');
+
 // $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
 
@@ -16,20 +16,20 @@ $titlestmt=$db->query("SELECT title_id, titleabr FROM title ORDER BY titleabr");
 
  //fetch Marital status
  $maritstmt=$db->query("SELECT marital_status_id, marital_status FROM marital_status ORDER BY marital_status");
- $mstatus = $maritstmt->fetch_all(MYSQLI_ASSOC);
+ $marital = $maritstmt->fetch_all(MYSQLI_ASSOC);
 /**
  * Fetch all contacts.
  */
-$constmnt=$db->query("SELECT contact_id, CONCAT(last_name, ', ', first_name, COALESCE(('  ' + middle_name),' ') ) as fullname FROM contacts ORDER BY last_name, first_name");
+$constmnt=$db->query("SELECT contact_id, CONCAT(last_name, ', ', first_name ) as fullname FROM contacts ORDER BY last_name, first_name");
 $contacts = $constmnt->fetch_all(MYSQLI_ASSOC);
 
 $response = [ 
     "phonetype"  => $phonetype,
 "titles"  => $titles,
-'marital' => $mstatus,
+"marital" => $marital,
 "contacts" => $contacts
 ];
-
+header('Content-Type: application/json');
 echo json_encode($response);
 exit;
 

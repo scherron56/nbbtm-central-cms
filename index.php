@@ -39,28 +39,28 @@
               });
               // 2. Process and append title records
               $.each(data.titles, function(index, item) {
-                $('#title').append(
+                $('#title_id').append(
                   $('<option></option>').val(item.title_id).text(item.titleabr)
                 );
               });
-              $.each(data.marital_status, function(index, item) {
-                $('#marital').append(
+              $.each(data.marital, function(index, item) {
+                $('#marital_status').append(
                   $('<option></option>').val(item.marital_status_id).text(item.marital_status)
                 );
               });
               $.each(data.phonetype, function(index, item) {
-                $('#phone1type').append(
+                $('#phone_1_type').append(
                   $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
                 );
               });
 
               $.each(data.phonetype, function(index, item) {
-                $('#phone2type').append(
+                $('#phone_2_type').append(
                   $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
                 );
               });
               $.each(data.phonetype, function(index, item) {
-                $('#phone3type').append(
+                $('#phone_3_type').append(
                   $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
                 );
               });
@@ -75,6 +75,7 @@
           // Fetch Contact/Member data
           $('#contactID').change(function() {
             let contactid = $(this).val();
+                        // let contactid = 3004;
             // console.log(contactid);
 
             if (contactid !== "") {
@@ -88,36 +89,37 @@
                 dataType: 'json',
                 success: function(data) {
                   // Populate the form fields with the returned JSON
-                  //  if (data.error) {
-                  //     console.error("Server Error: " + data.error);
-                  //     return;
-                  //   }
+                   if (data.error) {
+                      console.error("Server Error: " + data.error);
+                      return;
+                    }
 
                   $('#contact_id').val(contactid || '');
-                  $('#title').val(data.title_id || '');
-                  $('#firstname').val(data.first_name || '');
-                  $('#middlename').val(data.middle_name || '');
-                  $('#lastname').val(data.last_name || '');
-                  $('#address1').val(data.address_1 || '');
+                  $('#title_id').val(data.title_id || '');
+                  $('#first_name').val(data.first_name || '');
+                  $('#middle_name').val(data.middle_name || '');
+                  $('#last_name').val(data.last_name || '');
+                  $('#address_1').val(data.address_1 || '');
                   $('#city').val(data.city || '');
                   $('#state').val(data.state || '');
                   $('#zipcode').val(data.zipcode || '');
-                  $('#dob').val(data.date_of_birth || '');
+                  $('#date_of_birth').val(data.date_of_birth || '');
                   $('#gender').val(data.gender || '');
-                  $('#marital').val(data.marital_status || '');
-                  $('#anniv').val(data.anniv_date || '');
-                  $('#phone1').val(data.phone_1 || '');
-                  $('#phone2').val(data.phone_2 || '');
-                  $('#phone3').val(data.phone_3 || '');
-                  $('#phone1type').val(data.phone_1_type || '');
-                  $('#phone2type').val(data.phone_2_type || '');
-                  $('#phone3type').val(data.phone_3_type || '');
-                  $('#email').val(data.c_email || '');
-                  $('#ismember').val(data.is_member || '');
-                  $('#dateJoined').val(data.join_date || '');
-                  $('#isbaptized').val(data.is_baptized || '');
-                  $('#baptizedDate').val(data.baptized_date || '');
-                  $('#isactive').val(data.is_active || '');
+                  $('#marital_status').val(data.marital_status || '');
+                  $('#anniv_date').val(data.anniv_date || '');
+                  $('#phone_1').val(data.phone_1 || '');
+                  $('#phone_2').val(data.phone_2 || '');
+                  $('#emergency_contact').val(data.emergency_contact || '');
+                  $('#phone_3').val(data.phone_3 || '');
+                  $('#phone_1_type').val(data.phone_1_type || '');
+                  $('#phone_2_type').val(data.phone_2_type || '');
+                  $('#phone_3_type').val(data.phone_3_type || '');
+                  $('#c_email').val(data.c_email || '');
+                  $('#is_member').val(data.is_member || '');
+                  $('#join_date').val(data.join_date || '');
+                  $('#is_baptized').val(data.is_baptized || '');
+                  $('#baptized_date').val(data.baptized_date || '');
+                  $('#is_active').val(data.is_active || '');
                   $('#submitBtn').text('Update Contact/Member');
                   $('#resetBtn').show();
                 }
@@ -125,7 +127,6 @@
             } else {
               // Reset form if "--Add New Contact/Member --" is chosen
               $('#contact-form')[0].reset();
-              $('#contact-select')[0].reset();
               $('#contact_id').val('');
               $('#submitBtn').text('Add Contact/Member');
               $('#resetBtn').hide();
@@ -134,102 +135,64 @@
 
 
           // Reset button functionality
-          $('#resetBtn').click(function() {
+         $('#resetBtn').click(function() {
             $('#contact-form')[0].reset();
-            $('#contact-select')[0].reset();
             $('#contact_id').val('');
             $('#submitBtn').text('Add Contact/Member');
             $(this).hide();
           });
 
           // Handle Insert/Updates via AJAX
-$('#contact-form').submit(function(e) {
-    e.preventDefault(); // Prevent standard page reload
+          $('#contact-form').submit(function(e) {
+              e.preventDefault(); // Prevent standard page reload
 
-    // Clear previous error messages before making the call
-    $('#firstError, #lastError, #emailError, #responseMsg').text('');
+              // Clear previous error messages before making the call
+              $('#firstError, #lastError, #emailError, #responseMsg').text('');
 
-    let contactId = $('#contact_id').val();
-    
-    // Determine target URL based on whether contactId exists
-    let targetUrl = (contactId === "" || contactId === "0") ? 'saveContact.php' : 'updateContact.php';
+              let contactId = $('#contact_id').val();
 
-    $.ajax({
-        url: targetUrl,
-        type: 'POST',
-        data: $(this).serialize(), // Automatically packs all populated form elements
-        dataType: 'json',
-        success: function(response) {
-            if (response.status === 'success') {
-                $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
-                $('#contact-form')[0].reset(); // Clear the form fields
-            }
-        },
-        error: function(xhr) {
-            // Handles 400 Bad Request (Validation) and 500 Internal Server errors cleanly
-            let response = xhr.responseJSON;
-            
-            if (response && response.errors) {
-                // Fixed spelling typos from 'erros' to 'errors'
-                if (response.errors.firstname) $('#firstError').text(response.errors.firstname);
-                if (response.errors.lastname) $('#lastError').text(response.errors.lastname);
-                if (response.errors.c_email) $('#emailError').text(response.errors.c_email);
-            } else if (response && response.message) {
-                $('#responseMsg').html('<p style="color:red;">' + response.message + '</p>');
-            } else {
-                $('#responseMsg').html('<p style="color:red;">An unexpected system error occurred.</p>');
-            }
-        }
-    });
-});
-
-            e.preventDefault(); // Prevent standard page reload
-            // Determine form action route based on action variable
-            let contactId = $('#contact_id').val();
-            // let actionUrl = contactId-> 'update : create';
-
-            // let formData = $(this).serialize() + '&action' + actionUrl
-            if (contactId === "") {
+              // Determine target URL based on whether contactId exists
+              let targetUrl = (contactId === "" || contactId === "0") ? 'saveContact.php' : 'updateContact.php';
               $.ajax({
-                url: 'saveContact.php',
-                type: 'POST',
-                data: $(this).serialize(), // Converts all 4 fields into a URL-encoded string
-                dataType: 'json',
-                success: function(response) {
-                  if (response.status === 'success') {
-                    $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
-                    $('#contact-form')[0].reset(); // Clear the form
-                  } else {
-                    if (response.errors.firstname) $('#firstError').text(response.erros.firstname);
-                    if (response.errors.lastname) $('#lastError').text(response.erros.firstname);
-                    if (response.errors.email) $('#emailError').text(response.erros.email);
-                  }
-                }
-              }); //end of ajax
-            } else {
-              $.ajax({
-                  url: 'updateContact.php',
+                  url: targetUrl,
                   type: 'POST',
-                  data: $(this).serialize(), // Converts all 4 fields into a URL-encoded string
+                  data: $(this).serialize(), // Automatically packs all populated form elements
                   dataType: 'json',
                   success: function(response) {
                     if (response.status === 'success') {
                       $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
-                      $('#contact-form')[0].reset(); // Clear the form
-                    } else {
-                      if (response.errors.firstname) $('#firstError').text(response.erros.firstname);
-                      if (response.errors.lastname) $('#lastError').text(response.erros.firstname);
-                      if (response.errors.email) $('#emailError').text(response.erros.email);
+                      // if (targetUrl === 'saveContact.php') {
+                      //   $fullname = data.last_name.", ".data.first_name;
+                      //   const conSelectName = data.contactId;
+                      //   const dynamicDropdown = document.getElementById('contactID');
+                      //   if (dynamicDropdown) {
+                      //     const newOption = new Option(fullname, data.contactId);
+                      //     dynamicDropdown.add(newOption);
+                      //     dynamicDropdown.value = data.contactId; // Select the newly added option
+                      //   } else {
+                      //     console.error("Could not find contact ID.");
+                      //   }
+                      // }
                     }
-                  }
-                });
-}
+                    },
+                    error: function(xhr) {
+                      // Handles 400 Bad Request (Validation) and 500 Internal Server errors cleanly
+                      let response = xhr.responseJSON;
 
+                      if (response && response.errors) {
+                        if (response.errors.firstname) $('#firstError').text(response.errors.firstname).addClass('text-danger');
+                        if (response.errors.lastname) $('#lastError').text(response.errors.lastname).addClass('text-danger');
+                        if (response.errors.c_email) $('#emailError').text(response.errors.c_email).addClass('text-danger');
+                      } else if (response && response.message) {
+                        $('#responseMsg').html('<p style="color:red;">' + response.message + '</p>');
+                      } else {
+                        $('#responseMsg').html('<p style="color:red;">An unexpected system error occurred.</p>');
+                      }
+                    }
+                  });
+              });
 
-});// End of submit
-
-});
-
+          });
   </script>
 </head>
 
@@ -252,41 +215,40 @@ $('#contact-form').submit(function(e) {
       <legend>
         <h2>Personal Information</h2>
       </legend>
-
-      <input type="hidden" name="contact_id" id="contact_id"></input>
       <div class="selectContainer2 nborder">
-        <div class="form-field  nborder" style="--colspan: 1;">
-          <label for="title">Title</label>
-          <select name="title" id="title" size="1">
+       <div class="form-field nborder" style="--colspan: 1;">
+        <input type="hidden" name="contact_id" id="contact_id"></input></div>
+
+       <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="title_id">Title</label>
+          <select name="title_id" id="title_id" size="1">
             <option value="">--Select--</option>
           </select>
         </div>
 
 
-        <div class="form-field nborder" style="--colspan: 1;">
-          <label for="firstname">First Name</label>
-          <input type="firstname" name="firstname" id="firstname" required>
+        <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="first_name">First Name</label>
+          <input type="text" name="first_name" id="first_name">
           <div id="firstError" class="nborder"> </div>
         </div>
-
-
-        <div class="form-field nborder" style="--colspan: 1;">
-          <label for="middlename">Middle Name</label>
-          <input type="middlename" name="middlename" id="middlename" />
+        <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="middle_name">Middle Name</label>
+          <input type="text" name="middle_name" id="middle_name" />
         </div>
 
-        <div class="form-field  nborder" style="--colspan: 1;">
-          <label for="lastname">Last Name</label>
-          <input type="text" id="lastname" name="lastname" required /></label>
+        <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name"/></label>
           <div id="lastError" class="nborder"> </div>
         </div>
 
-        <div class="form-field form-row2 nborder" style="--colspan: 1;">
-          <label for="dob">Date of Birth</label>
-          <input type="date" id="dob" name="dob">
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth">
         </div>
 
-        <div class="form-field form-row2 nborder" style="--colspan: 1;">
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
           <label for="gender">Gender</label>
           <select id="gender" name="gender" size="1">
             <option value="">Select</option>
@@ -294,15 +256,15 @@ $('#contact-form').submit(function(e) {
             <option value="M">Male</option>
           </select>
         </div>
-        <div class="form-field form-row2 nborder" style="--colspan: 1;">
-          <label for="marital">Marital Status</label>
-          <select id="marital" name="marital" size="1">
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
+          <label for="marital_status">Marital Status</label>
+          <select id="marital_status" name="marital_status" size="1">
             <option value="">Select</option>
           </select>
         </div>
-        <div class="form-field form-row2 nborder" style="--colspan: 1;">
-          <label for="anniv">Anniversary Date</label>
-          <input type="text" id="anniv" name="anniv">
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
+          <label for="anniv_date">Anniversary Date</label>
+          <input type="date" id="anniv_date" name="anniv_date" />
         </div>
       </div>
 
@@ -312,10 +274,10 @@ $('#contact-form').submit(function(e) {
         <h2>Contact Information</h2>
       </legend>
       <div class="form-field form-row1 nborder" style="--colspan: 5;">
-        <label for="address1">Address</label>
-        <input type="text" id="address1" name="address" autocomplete="off" />
+        <label for="address_1">Address</label>
+        <input type="text" id="address_1" name="address_1" autocomplete="off" />
       </div>
-      <div class="form-field form-row2 nborder" style="--colspan: 2;">
+      <div class="  form-field form-row2 nborder" style="--colspan: 2;">
         <label for="city">City</label>
         <input type="text" id="city" name="city" />
       </div>
@@ -329,39 +291,43 @@ $('#contact-form').submit(function(e) {
       </div>
 
       <div class="form-field form-row3 nborder" style="--colspan: 1;">
-        <label for="phone1" name="phone1">Primary Phone</label>
-        <input type="tel" id="phone1" name="phone1">
+        <label for="phone_1" name="phone_1">Primary Phone</label>
+        <input type="tel" id="phone_1" name="phone_1">
       </div>
       <div class="form-field form-row3 nborder" style="--colspan: 1;">
-        <label for="phone1type">Type</label>
-        <select name="phone1type" id="phone1type">
+        <label for="phone_1_type">Type</label>
+        <select name="phone_1_type" id="phone_1_type">
           <option value="">--Select--</option>
         </select>
       </div>
       <div class="form-field form-row3 nborder" style="--colspan: 1;">
-        <label for="phone2" name="phone2">Secondary Phone</label>
-        <input type="tel" id="phone2" name="phone2">
+        <label for="phone_2" name="phone_2">Secondary Phone</label>
+        <input type="tel" id="phone_2" name="phone_2">
       </div>
       <div class="form-field form-row3 nborder" style="--colspan: 1;">
-        <label for="phone2type">Type</label>
-        <select name="phone2type" id="phone2type">
+        <label for="phone_2_type">Type</label>
+        <select name="phone_2_type" id="phone_2_type">
           <option value="">--Select--</option>
         </select>
       </div>
-      <div class="form-field form-row3 nborder" style="--colspan: 1;">
-        <label for="phone3" name="phone3">Other Phone</label>
-        <input type="tel" id="phone3" name="phone3">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="emergency_contact" name="emergency_contact">Emergency Contact Name</label>
+        <input type="text" id="emergency_contact" name="emergency_contact">
       </div>
-      <div class="form-field form-row3 nborder" style="--colspan: 1;">
-        <label for="phone3type">Type</label>
-        <select name="phone3type" id="phone3type">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="phone_3" name="phone_3">Emergency Contact Phone</label>
+        <input type="tel" id="phone_3" name="phone_3">
+      </div>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="phone_3_type">Type</label>
+        <select name="phone_3_type" id="phone_3_type">
           <option value="">--Select--</option>
         </select>
       </div>
-      <div class="form-field form-row4 nborder" style="--colspan: 4;">
-        <label for="email" name="email">E-mail Address</label>
-        <input type="email" id="email" name="email" autocomplete="off">
-        <div id="emaailError" class="nborder"></div>
+      <div class="form-field form-row5 nborder" style="--colspan: 4;">
+        <label for="c_email" name="c_email">E-mail Address</label>
+        <input type="email" id="c_email" name="c_email" autocomplete="off">
+        <div id="c_emailError" class="nborder"></div>
       </div>
     </div>
     <div class="container3" id="membershipInfo" name="membershipInfo">
@@ -369,26 +335,25 @@ $('#contact-form').submit(function(e) {
         <h2>Membership Information</h2>
       </legend>
       <div class="form-field form-row1 nborder" style="--colspan:1; size: 2ch;">
-        <input type="checkbox" id="ismember" name="ismember">
-        <label for="ismember">Member</label>
+        <input type="checkbox" id="is_member" name="is_member">
+        <label for="is_member">Member</label>
       </div>
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
-        <label for="dateJoined">Date Joined</label>
-        <input type="date" id="dateJoined" name="dateJoined">
+        <label for="join_date">Date Joined</label>
+        <input type="date" id="join_date" name="join_date">
+      </div>
 
-      </div>
-
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
-        <input type="checkbox" id="isbaptisted" name="isbaptisted">
-        <label for="isbaptisted">Baptized</label>
+        <input type="checkbox" id="is_baptisted" name="is_baptisted">
+        <label for="is_baptisted">Baptized</label>
       </div>
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
-        <label for="baptizedDate">Date Baptized</label>
-        <input type="date" id="baptizedDate" name="baptizedDate">
+        <label for="baptized_date">Date Baptized</label>
+        <input type="date" id="baptized_date" name="baptized_date">
       </div>
       <div class="form-field form-row1 nborder" style="--colspan: 1;">
-        <input type="checkbox" id="isactive" name="isactive">
-        <label for="isactive">Active</label>
+        <input type="checkbox" id="is_active" name="is_active">
+        <label for="is_active">Active</label>
       </div>
     </div>
     <input type="submit" class="nb-btn" name="submitBtn">

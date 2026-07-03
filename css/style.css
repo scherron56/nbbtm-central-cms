@@ -33,7 +33,7 @@ label{
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     justify-items: left;
-
+    align-items: bottom;
     gap: 1rem;
     margin: 1rem;
     padding: 10px;
@@ -108,4 +108,7 @@ input{
 }
 h2{
     border:none;
+}
+.text-danger {
+    color: #dc3545; /* Nice, professional red */
 }
