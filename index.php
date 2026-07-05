@@ -150,7 +150,7 @@
               $('#firstError, #lastError, #emailError, #responseMsg').text('');
 
               let contactId = $('#contact_id').val();
-
+              let curAction = (contactId === "" || contactId === "0") ? 'Adding' : 'Updating';
               // Determine target URL based on whether contactId exists
               let targetUrl = (contactId === "" || contactId === "0") ? 'saveContact.php' : 'updateContact.php';
               $.ajax({
@@ -161,6 +161,14 @@
                   success: function(response) {
                     if (response.status === 'success') {
                       $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
+                      if(curAction=='Adding'){
+                        const $newOption = new Option($('#last_name').val() + ", " + $('#first_name').val(), response.id);
+                        $('#contactID').append($newOption).val(response.id); 
+                        // Add and select the
+                        $('#contact_id').val(response.id);
+                        $('#submitBtn').text('Update Contact/Member');
+                        $('#resetBtn').show();
+                      }
                       // if (targetUrl === 'saveContact.php') {
                       //   $fullname = data.last_name.", ".data.first_name;
                       //   const conSelectName = data.contactId;
@@ -180,9 +188,9 @@
                       let response = xhr.responseJSON;
 
                       if (response && response.errors) {
-                        if (response.errors.firstname) $('#firstError').text(response.errors.firstname).addClass('text-danger');
-                        if (response.errors.lastname) $('#lastError').text(response.errors.lastname).addClass('text-danger');
-                        if (response.errors.c_email) $('#emailError').text(response.errors.c_email).addClass('text-danger');
+                        if (response.errors.firstname) $('#responseMsg').text(response.errors.firstname).addClass('text-danger');
+                        if (response.errors.lastname) $('#responseMsg').text(response.errors.lastname).addClass('text-danger');
+                        if (response.errors.c_email) $('#responseMsg').text(response.errors.c_email).addClass('text-danger');
                       } else if (response && response.message) {
                         $('#responseMsg').html('<p style="color:red;">' + response.message + '</p>');
                       } else {
@@ -201,27 +209,30 @@
 
   <form id="contact-select" name="contact-select" class="nborder">
 
-    <div class="selectContainer nborder" name="conSelect" id="conSelect">
-      <div class="form-field form-row1 nborder" style="--colspan: 1;">
-        <label for="contactID" class="nborder">Members/Contacts</label>
+    <div class="selContact nborder" name="conSelect" id="conSelect">
+      <div class="form-field form-row1 nborder"  style="--colspan: 2;">
+        <label for="contactID" class="nborder selBox" style="color: white;"><h3>Select Member/Contact</label>
         <select name="contactID" id="contactID">
           <option value="">--Select--</option>
         </select>
+        <div><button type="button" id="addMember" class="nb-btn" >Add New Contact/Member</button></div>
       </div>
-    </div>
+      <!-- <input type="button" id="addMember" class="nb-btn" >Add New Contact/Member</input> -->
+  </div>
+
   </form>
-  <form id="contact-form" name="contact-form" class="nborder">
+  <form id="contact-form" name="contact-form" class="nborder" >
     <div id="personalInfo" name="personalInfo">
-      <legend>
+      <legend style="margin: 1rem; padding: 10px;">
         <h2>Personal Information</h2>
       </legend>
-      <div class="selectContainer2 nborder">
+      <input type="hidden" name="contact_id" id="contact_id"></input>
+      <div class="persInform nborder">
        <div class="form-field nborder" style="--colspan: 1;">
-        <input type="hidden" name="contact_id" id="contact_id"></input></div>
-
+        <!-- <input type="hidden" name="contact_id" id="contact_id"></input></div> -->
        <div class="form-field form-row2 nborder" style="--colspan: 1;">
           <label for="title_id">Title</label>
-          <select name="title_id" id="title_id" size="1">
+          <select name="title_id" id="title_id">
             <option value="">--Select--</option>
           </select>
         </div>
@@ -230,7 +241,7 @@
         <div class="form-field form-row2 nborder" style="--colspan: 1;">
           <label for="first_name">First Name</label>
           <input type="text" name="first_name" id="first_name">
-          <div id="firstError" class="nborder"> </div>
+          <!-- <div id="firstError" class="nborder"> </div> -->
         </div>
         <div class="form-field form-row2 nborder" style="--colspan: 1;">
           <label for="middle_name">Middle Name</label>
@@ -240,7 +251,7 @@
         <div class="form-field form-row2 nborder" style="--colspan: 1;">
           <label for="last_name">Last Name</label>
           <input type="text" id="last_name" name="last_name"/></label>
-          <div id="lastError" class="nborder"> </div>
+          <!-- <div id="lastError" class="nborder"> </div> -->
         </div>
 
         <div class="form-field form-row3 nborder" style="--colspan: 1;">
@@ -269,11 +280,11 @@
       </div>
 
     </div>
-    <div class="container3" id="contactInfo" name="contactInfo">
+    <div class="conInform" id="contactInfo" name="contactInfo">
       <legend>
         <h2>Contact Information</h2>
       </legend>
-      <div class="form-field form-row1 nborder" style="--colspan: 5;">
+      <div class="form-field form-row1 nborder" style="--colspan: 4;">
         <label for="address_1">Address</label>
         <input type="text" id="address_1" name="address_1" autocomplete="off" />
       </div>
@@ -330,7 +341,7 @@
         <div id="c_emailError" class="nborder"></div>
       </div>
     </div>
-    <div class="container3" id="membershipInfo" name="membershipInfo">
+    <div class="conInform" id="membershipInfo" name="membershipInfo">
       <legend>
         <h2>Membership Information</h2>
       </legend>

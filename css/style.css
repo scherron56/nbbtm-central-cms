@@ -1,7 +1,7 @@
 *, *::before, *::after {
     box-sizing: border-box;
     border-width: 100%;
-    border-style: ridge;
+    /* border-style: ridge; */
 }
 
 .nborder{
@@ -11,25 +11,19 @@
 label{
     border: none;
 }
-.container{
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    justify-items: left;
-    gap: 1rem;
-    margin: 1rem;
-    padding: 10px;
-}
-.selectContainer{
+.selContact{
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     justify-items: left;
-
     gap: 1rem;
     margin: 1rem;
     padding: 10px;
 }
+.selBox{
+    background-color: rgb(29, 5, 151);
+}
 
-.selectContainer2{
+.persInform{
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     justify-items: left;
@@ -38,27 +32,8 @@ label{
     margin: 1rem;
     padding: 10px;
 }
-.perscontainer{
-    display:grid;
-    justify-items: left;
-    gap:1rem;
-    margin: 1rem;
-    padding: 10px;
-}
-.persconRow1{
-    grid-row: 2
-}
 
-.container2{
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    justify-items: left;
-    gap: 1rem;
-    margin: 1rem;
-    padding: 10px;
-}
-
-.container3{
+.conInform{
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     justify-items: left;
@@ -105,10 +80,16 @@ input{
 }
 .nb-btn{
     border-radius: 6px;
+    width: 125px;
 }
 h2{
     border:none;
 }
 .text-danger {
     color: #dc3545; /* Nice, professional red */
+    font-weight: bold;
+}
+.text-success {
+    color: #15732b; /* Nice, professional green */
+    font-weight: bold;
 }
