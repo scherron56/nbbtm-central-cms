@@ -24,7 +24,7 @@
     $(document).ready(function() {
           // Fire off a single request to get data for both dropdown components
           $.ajax({
-            url: "getLists.php",
+            url: 'getLists.php',
             type: 'POST',
             dataType: 'json',
             success: function(data) {
@@ -169,186 +169,209 @@
                         $('#submitBtn').text('Update Contact/Member');
                         $('#resetBtn').show();
                       }
-
+                      // if (targetUrl === 'saveContact.php') {
+                      //   $fullname = data.last_name.", ".data.first_name;
+                      //   const conSelectName = data.contactId;
+                      //   const dynamicDropdown = document.getElementById('contactID');
+                      //   if (dynamicDropdown) {
+                      //     const newOption = new Option(fullname, data.contactId);
+                      //     dynamicDropdown.add(newOption);
+                      //     dynamicDropdown.value = data.contactId; // Select the newly added option
+                      //   } else {
+                      //     console.error("Could not find contact ID.");
+                      //   }
+                      // }
                     }
                     },
                     error: function(xhr) {
                       // Handles 400 Bad Request (Validation) and 500 Internal Server errors cleanly
                       let response = xhr.responseJSON;
 
-                      // if (response && response.errors) {
-                      //   if (response.errors.firstname) $('#responseMsg').text(response.errors.firstname).addClass('text-danger');
-                      //   if (response.errors.lastname) $('#responseMsg').text(response.errors.lastname).addClass('text-danger');
-                      //   if (response.errors.c_email) $('#responseMsg').text(response.errors.c_email).addClass('text-danger');
-                      // } else {
-                        $('#responseMsg').text('An unexpected error occurred. Please try again.').addClass('text-danger');
-                      // }
+                      if (response && response.errors) {
+                        if (response.errors.firstname) $('#responseMsg').text(response.errors.firstname).addClass('text-danger');
+                        if (response.errors.lastname) $('#responseMsg').text(response.errors.lastname).addClass('text-danger');
+                        if (response.errors.c_email) $('#responseMsg').text(response.errors.c_email).addClass('text-danger');
+                      } else if (response && response.message) {
+                        $('#responseMsg').html('<p style="color:red;">' + response.message + '</p>');
+                      } else {
+                        $('#responseMsg').html('<p style="color:red;">An unexpected system error occurred.</p>');
+                      }
                     }
-              }); // End of form submit ajax
-          }); // End of form submit event
-    }); // End of document ready
+                  });
+              });
+
+          });
   </script>
 </head>
 
-<body>
-    <?php require_once("config/db.php") ?>
-  <header class="site-header">
-    <h1>New Beginnings Baptist Tabernacle Ministries</h1>
-    <h2>Central Management System</h2>
-  </header>
-  <form >
-      <fieldset class="form-grid-section-short nborder">
-      <div class="field-group" style="--colspan: 3; ">
-        <label for="contactID" ><h3>Select Member/Contact</h3></label>
+<body class="nborder">
+  <?php require_once("config/db.php") ?>
+
+  <form id="contact-select" name="contact-select" class="nborder">
+
+    <div class="selContact nborder" name="conSelect" id="conSelect">
+      <div class="form-field form-row1 nborder"  style="--colspan: 2;">
+        <label for="contactID" class="nborder selBox" style="color: white;"><h3>Select Member/Contact</label>
         <select name="contactID" id="contactID">
           <option value="">--Select--</option>
         </select>
-        </div>
-        <div class="field-group" style="--colspan: 2;">
-          <button type="button" id="addNewContact" class="nbtn">Add New </button>
-          </div>
-    </fieldset>
-    <fieldset class="form-grid-section-8">
-    <legend>
-      <h2>Personal Information</h2>
-    </legend><!-- Row 1: Full width (Spans all columns) -->
-    <div class="field-group" style="--colspan: 2;">
-      <label for=" title_id">Salutation</label>
+        <div><button type="button" id="addMember" class="nb-btn" >Add New Contact/Member</button></div>
+      </div>
+      <!-- <input type="button" id="addMember" class="nb-btn" >Add New Contact/Member</input> -->
+  </div>
+
+  </form>
+  <form id="contact-form" name="contact-form" class="nborder" >
+    <div id="personalInfo" name="personalInfo">
+      <legend style="margin: 1rem; padding: 10px;">
+        <h2>Personal Information</h2>
+      </legend>
+      <input type="hidden" name="contact_id" id="contact_id"></input>
+      <div class="persInform nborder">
+       <div class="form-field nborder" style="--colspan: 1;">
+        <!-- <input type="hidden" name="contact_id" id="contact_id"></input></div> -->
+       <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="title_id">Title</label>
           <select name="title_id" id="title_id">
             <option value="">--Select--</option>
           </select>
-    </div>
-    <div class="field-group" style="--colspan: 2;">
-      <label for="first_name">First Name</label>
-      <input type="text" id="first_name" name="first_name">
-    </div>
-    <div class="field-group" style="--colspan: 2;">
-      <label for="middle_name">Middle Name</label>
-      <input type="text" id="middle_name" name="middle_name" />
-    </div>
-    <div class="field-group" style="--colspan: 2;">
-      <label for="last_name">Last Name</label>
-        <input type="text" id="last_name" name="last_name"/>
-    </div>
-    <div class="field-group" style="--colspan: 2; --rowspan: 2;">
+        </div>
+
+
+        <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="first_name">First Name</label>
+          <input type="text" name="first_name" id="first_name">
+          <!-- <div id="firstError" class="nborder"> </div> -->
+        </div>
+        <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="middle_name">Middle Name</label>
+          <input type="text" name="middle_name" id="middle_name" />
+        </div>
+
+        <div class="form-field form-row2 nborder" style="--colspan: 1;">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name"/></label>
+          <!-- <div id="lastError" class="nborder"> </div> -->
+        </div>
+
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
           <label for="date_of_birth">Date of Birth</label>
           <input type="date" id="date_of_birth" name="date_of_birth">
-    </div>
-    <div class="field-group" style="--colspan: 2; ">
-      <label for="gender">Gender</label>
-      <select id="gender" name="gender" size="1">
-        <option value="">Select</option>
-        <option value="F">Female</option>
-        <option value="M">Male</option>
-       </select>
-    </div>
-        <div class="field-group" style="--colspan: 2;">
+        </div>
+
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" size="1">
+            <option value="">Select</option>
+            <option value="F">Female</option>
+            <option value="M">Male</option>
+          </select>
+        </div>
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
           <label for="marital_status">Marital Status</label>
           <select id="marital_status" name="marital_status" size="1">
             <option value="">Select</option>
           </select>
         </div>
-        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+        <div class="form-field form-row3 nborder" style="--colspan: 1;">
           <label for="anniv_date">Anniversary Date</label>
           <input type="date" id="anniv_date" name="anniv_date" />
         </div>
-       </fieldset>
-  
-     <fieldset class="form-grid-section-9">
-    <legend>
-      <h2>Contact Information</h2>
-    </legend><!-- Row 1: Full width (Spans all columns) -->
-      <div class="field-group" style="--colspan: 9;">
+      </div>
+
+    </div>
+    <div class="conInform" id="contactInfo" name="contactInfo">
+      <legend>
+        <h2>Contact Information</h2>
+      </legend>
+      <div class="form-field form-row1 nborder" style="--colspan: 4;">
         <label for="address_1">Address</label>
         <input type="text" id="address_1" name="address_1" autocomplete="off" />
       </div>
-    <div class="field-group" style="--colspan: 3; --rowspan: 1;">
-      <label for="city">City</label>
-      <input type="text" id="city" name="city" autocomplete="off" />
-    </div>
-    <div class="field-group" style="--colspan: 3;">
-      <label for="state">State</label>
-      <input type="text" id="state" name="state" autocomplete="off" />
-    </div>
-    <div class="field-group" style="--colspan: 3;">
-      <label for="zip">Zip Code</label>
-      <input type="text" id="zip" name="zip" autocomplete="off" />
-    </div>
-<div class="field-group" style="--colspan: 2; --rowspan: 1;">
+      <div class="  form-field form-row2 nborder" style="--colspan: 2;">
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" />
+      </div>
+      <div class="form-field form-row2 nborder" style="--colspan: 1;">
+        <label for="state">State</label>
+        <input type="text" id="state" name="state" />
+      </div>
+      <div class="form-field form-row2 nborder" style="--colspan: 1;">
+        <label for="zipcode" name="zipcode">Zip Code</label>
+        <input type="text" id="zipcode" name="zipcode" />
+      </div>
+
+      <div class="form-field form-row3 nborder" style="--colspan: 1;">
         <label for="phone_1" name="phone_1">Primary Phone</label>
         <input type="tel" id="phone_1" name="phone_1">
       </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="phone_1_type">Phone Type</label>
+      <div class="form-field form-row3 nborder" style="--colspan: 1;">
+        <label for="phone_1_type">Type</label>
         <select name="phone_1_type" id="phone_1_type">
           <option value="">--Select--</option>
         </select>
       </div>
-      <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+      <div class="form-field form-row3 nborder" style="--colspan: 1;">
         <label for="phone_2" name="phone_2">Secondary Phone</label>
         <input type="tel" id="phone_2" name="phone_2">
       </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="phone_2_type">Phone Type</label>
+      <div class="form-field form-row3 nborder" style="--colspan: 1;">
+        <label for="phone_2_type">Type</label>
         <select name="phone_2_type" id="phone_2_type">
           <option value="">--Select--</option>
         </select>
       </div>
-   <div class="field-group" style="--colspan: 4; --rowspan: 1;">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
         <label for="emergency_contact" name="emergency_contact">Emergency Contact Name</label>
         <input type="text" id="emergency_contact" name="emergency_contact">
       </div>
-        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
         <label for="phone_3" name="phone_3">Emergency Contact Phone</label>
         <input type="tel" id="phone_3" name="phone_3">
       </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="phone_3_type">Phone Type</label>
+      <div class="form-field form-row4 nborder" style="--colspan: 1;">
+        <label for="phone_3_type">Type</label>
         <select name="phone_3_type" id="phone_3_type">
           <option value="">--Select--</option>
         </select>
       </div>
-      <div class="field-group" style="--colspan: 9;">
+      <div class="form-field form-row5 nborder" style="--colspan: 4;">
         <label for="c_email" name="c_email">E-mail Address</label>
         <input type="email" id="c_email" name="c_email" autocomplete="off">
         <div id="c_emailError" class="nborder"></div>
       </div>
-    </fieldset>
-    <fieldset class="form-grid-section-short">
-       <legend>
+    </div>
+    <div class="conInform" id="membershipInfo" name="membershipInfo">
+      <legend>
         <h2>Membership Information</h2>
       </legend>
-      <div class="field-group" style="--colspan: 1;">
-        <label for="is_baptisted">Baptized</label>
-        <input type="checkbox" id="is_baptisted" name="is_baptisted">
-
-      </div> 
-      <div class="field-group" style="--colspan: 2;">
-        <label for="baptized_date">Date Baptized</label>
-        <input type="date" id="baptized_date" name="baptized_date">
-      </div>
-      <div class="field-group" style="--colspan: 1;">
-        <label for="is_member">Member</label>
+      <div class="form-field form-row1 nborder" style="--colspan:1; size: 2ch;">
         <input type="checkbox" id="is_member" name="is_member">
+        <label for="is_member">Member</label>
       </div>
-      <div class="field-group" style="--colspan: 2;">
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
         <label for="join_date">Date Joined</label>
         <input type="date" id="join_date" name="join_date">
       </div>
-      <div class="field-group" style="--colspan: 1; --rowspan: 1;">
-        <label for="is_active">Active</label>
-        <input type="checkbox" id="is_active" name="is_active">
+
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <input type="checkbox" id="is_baptisted" name="is_baptisted">
+        <label for="is_baptisted">Baptized</label>
       </div>
-      </fieldset>
-      <fieldset class="form-grid-section-short-rght ">
-        <div class="field-group" style="--colspan: 1;">
-          <button type="submit" id="saveContact" class="nbtn">Save</button>
-        </div>
-        <div class="field-group" style="--colspan: 1;">
-          <button type="reset" id="resetForm" class="nbtn">Reset</button>
-        </div>
-        </fieldset> 
-    </form>
- 
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <label for="baptized_date">Date Baptized</label>
+        <input type="date" id="baptized_date" name="baptized_date">
+      </div>
+      <div class="form-field form-row1 nborder" style="--colspan: 1;">
+        <input type="checkbox" id="is_active" name="is_active">
+        <label for="is_active">Active</label>
+      </div>
+    </div>
+    <input type="submit" class="nb-btn" name="submitBtn">
+    <input type="reset" class="nb-btn" name="resetBtn">
+  </form>
+  <div id="responseMsg"></div>
+  </main>
 </body>
+
 </html>
