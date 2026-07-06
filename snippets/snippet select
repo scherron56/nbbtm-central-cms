@@ -1,5 +1,0 @@
-        <?php foreach ($title as $row): ?>
-        <option value="<?= htmlspecialchars($row['title_id'], ENT_QUOTES, 'UTF-8') ?>">
-          <?= htmlspecialchars($row['titleabr'], ENT_QUOTES, 'UTF-8') ?>
-        </option>
-        <?php endforeach; ?>
