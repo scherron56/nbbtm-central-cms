@@ -3,10 +3,9 @@
 require_once 'config/db.php';
 header('Content-Type: application/json; charset=utf-8');
 
-// CRITICAL FIX: Always initialize the errors array, even if validation is commented out
 $errors = [];
 
-// 1. Map and clean inputs
+// 1. Map and clean inputs safely
 $title_id       = isset($_POST['title_id']) ? intval($_POST['title_id']) : 0;
 $first_name     = $_POST['first_name'] ?? '';
 $last_name      = $_POST['last_name'] ?? '';
@@ -27,20 +26,21 @@ $anniv_date     = !empty($_POST['anniv_date']) ? $_POST['anniv_date'] : null;
 $marital_status = isset($_POST['marital_status']) ? intval($_POST['marital_status']) : 0;
 $join_date      = !empty($_POST['join_date']) ? $_POST['join_date'] : null;
 $baptized_date  = !empty($_POST['baptized_date']) ? $_POST['baptized_date'] : null;
-
 $c_email        = $_POST['c_email'] ?? '';
-$is_member      = isset($_POST['is_member']) ? 1 : 0;
-$is_baptized    = isset($_POST['is_baptized']) ? 1 : 0;
-$is_child       = isset($_POST['is_child']) ? 1 : 0;
-$is_head        = isset($_POST['is_head']) ? 1 : 0;
-$is_active      = isset($_POST['is_active']) ? 1 : 0;
+
+// FIX: Handle both standard inputs/dropdowns AND checkbox states safely
+$is_member      = isset($_POST['is_member']) ? intval($_POST['is_member']) : 0;
+$is_baptized    = isset($_POST['is_baptized']) ? intval($_POST['is_baptized']) : 0;
+$is_child       = isset($_POST['is_child']) ? intval($_POST['is_child']) : 0;
+$is_head        = isset($_POST['is_head']) ? intval($_POST['is_head']) : 0;
+$is_active      = isset($_POST['is_active']) ? intval($_POST['is_active']) : 0;
 $contact_id     = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
 
 error_log(print_r($first_name, true));
+
 // Helper function to robustly sanitize ambiguous date strings
 function sanitizeToSqlDate($dateStr) {
     if (!$dateStr) return null;
-    // Replace slashes with dashes to ensure standard interpretation, or use specialized parser
     $timestamp = strtotime(str_replace('/', '-', $dateStr));
     return $timestamp ? date('Y-m-d', $timestamp) : null;
 }
@@ -66,10 +66,6 @@ if (empty($errors)) {
 
     if ($stmt = $db->prepare($sql)) {            
         
-        // CRITICAL FIX: Type mapping string precisely fixed to 27 parameters:
-        // title_id (i), names/address variables (ssssssssss), phone_1 (s), phone_1_type (i), 
-        // phone_2 (s), phone_2_type (i), phone_3 (s), phone_3_type (i), email (s), 
-        // member/baptized/marital integers (iii), dates (sss), child/head/active flags (iii), contact_id (i)
         $types = "issssssssssisisisisisssiiii";
         
         $stmt->bind_param(
@@ -78,7 +74,8 @@ if (empty($errors)) {
             $date_of_birth, $gender, $address_1, $city, $state,
             $zipcode, $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $phone_3, $phone_3_type, $c_email, $is_member, $is_baptized,
-            $marital_status, $anniv_date, $join_date, $baptized_date, $is_child, $is_head, $is_active, 
+            $marital_status, $anniv_date, $join_date, $baptized_date, 
+            $is_child, $is_head, $is_active, 
             $contact_id
         );
        
@@ -117,5 +114,5 @@ if (empty($errors)) {
 }
 
 $db->close();
-exit; // Terminate script to ensure clean AJAX transmission
+exit;
 ?>
