@@ -271,8 +271,8 @@
       <input type="text" id="state" name="state" autocomplete="off" />
     </div>
     <div class="field-group" style="--colspan: 3;">
-      <label for="zip">Zip Code</label>
-      <input type="text" id="zip" name="zip" autocomplete="off" />
+      <label for="zipcode">Zip Code</label>
+      <input type="text" id="zipcode" name="zipcode" autocomplete="off" />
     </div>
 <div class="field-group" style="--colspan: 2; --rowspan: 1;">
         <label for="phone_1" name="phone_1">Primary Phone</label>
@@ -314,38 +314,50 @@
         <div id="c_emailError" class="nborder"></div>
       </div>
     </fieldset>
-    <fieldset class="form-grid-section-short">
-       <legend>
-        <h2>Membership Information</h2>
-      </legend>
-      <div class="field-group" style="--colspan: 1;">
-        <label for="is_baptisted">Baptized</label>
-        <input type="checkbox" id="is_baptisted" name="is_baptisted">
+ <fieldset class="form-grid-section-short">
+   <legend>
+    <h2>Membership Information</h2>
+  </legend>
+  
+  <!-- Hidden fallbacks guarantee 0 is sent if checkbox is unchecked -->
+  <div class="field-group" style="--colspan: 1;">
+    <label for="is_baptized">Baptized</label>
+    <input type="hidden" name="is_baptized" value="0">
+    <input type="checkbox" id="is_baptized" name="is_baptized" value="1">
+  </div> 
+  
+  <div class="field-group" style="--colspan: 2;">
+    <label for="baptized_date">Date Baptized</label>
+    <input type="date" id="baptized_date" name="baptized_date">
+  </div>
+  
+  <div class="field-group" style="--colspan: 1;">
+    <label for="is_member">Member</label>
+    <input type="hidden" name="is_member" value="0">
+    <input type="checkbox" id="is_member" name="is_member" value="1">
+  </div>
+  
+  <div class="field-group" style="--colspan: 2;">
+    <label for="join_date">Date Joined</label>
+    <input type="date" id="join_date" name="join_date">
+  </div>
+  
+  <div class="field-group" style="--colspan: 1; --rowspan: 1;">
+    <label for="is_active">Active</label>
+    <input type="hidden" name="is_active" value="0">
+    <input type="checkbox" id="is_active" name="is_active" value="1">
+  </div>
 
-      </div> 
-      <div class="field-group" style="--colspan: 2;">
-        <label for="baptized_date">Date Baptized</label>
-        <input type="date" id="baptized_date" name="baptized_date">
-      </div>
-      <div class="field-group" style="--colspan: 1;">
-        <label for="is_member">Member</label>
-        <input type="checkbox" id="is_member" name="is_member">
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="join_date">Date Joined</label>
-        <input type="date" id="join_date" name="join_date">
-      </div>
-      <div class="field-group" style="--colspan: 1; --rowspan: 1;">
-        <label for="is_active">Active</label>
-        <input type="checkbox" id="is_active" name="is_active">
-      </div>
-      </fieldset>
+  <!-- Hidden fields to fulfill PHP prepared statement parameter binding requirements -->
+  <input type="hidden" name="is_child" value="0">
+  <input type="hidden" name="is_head" value="0">
+</fieldset>
       <fieldset class="form-grid-section-short-rght ">
         <div class="field-group" style="--colspan: 1;">
-          <button type="submit" id="saveContact" class="nbtn">Save</button>
+          <button type="submit" id="submitBtn" class="nbtn">Save</button>
         </div>
         <div class="field-group" style="--colspan: 1;">
-          <button type="reset" id="resetForm" class="nbtn">Reset</button>
+          <button type="reset" id="resetBtn" class="nbtn">Reset</button>
         </div>
         </fieldset> 
     </form>
