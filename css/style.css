@@ -9,33 +9,54 @@ body {
   justify-content: flex-start;/* Centers horizontally */
  align-items: center;  /*Centers vertically */
   min-height: 100vh;/* Takes up full browser height */
-  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif ;
+  font-family: 'Bespoke Serif', serif;
+  color: #28089a;
   background-color: #fffff;
   
 }
-    /* Header Styling */
+h1{
+  font-size: 2rem;
+  margin: 0.5rem 0;
+  text-align: center;
+}
+h2{ 
+  font-size: 1rem;
+  margin: 0.5rem 0;
+  text-align: center;
+}
+/*Break to next row */
+.break-row {
+  flex-basis: 100%;
+  text-align: center;
+}
+
+/* Header Styling */
 .site-header {
   display: flex;
-  flex-direction: column; /* Stacks logo on top, navigation on bottom */
+  flex-direction: row; /* Stacks logo on top, navigation on bottom */
   align-items: center;    /* Centers items horizontally */
-  justify-content: center;/* Centers items vertically if height changes */
-  gap: 15px;              /* Creates clean spacing between logo and links */
-  padding: 20px 10%;
-  background-color: #043b8f;
+  gap: 10px;              /* Creates clean spacing between logo and links */
+  height: 200px;           /* Fixed height for the header */
+  /* background-color: #043b8f; */
+  background-image: linear-gradient(to right, #043b8f, #0a4b9e);
   color: #ffffff;
-  width: 100%;            /* Spans full width of screen */
+  font-style: bold italic;
 }
-.logo {
-  display: flex;
-  align-items: center;
+.logo-container {
+    width: 100%;   
+    max-width: 150px;          /* Ensures it takes full width of the header */
+
 }
 
 /* Logo Image Constraints */
-.logo img {
-  height: 100px;          /* Controls how tall your header is */
-  width: auto;           /* Maintains correct image aspect ratio */
-  display: block;        /* Removes unwanted default bottom spacing */
-  object-fit: contain;   /* Prevents image squishing or distortion */
+.scaled-svg{
+  width: 100%;
+  height: auto; /* Maintains aspect ratio */  
+display:block; /* Prevents image squishing or distortion */
+}
+
+.hidden { 
+  display: none; 
 }
 /* 1. Center the form relative to the entire screen */
 .field-group{
@@ -55,18 +76,18 @@ body {
     margin: 1rem;
     padding: 10px;
 }
+
 .selBox{
     background-color: rgb(29, 5, 151);
 }
 .nbtn{
-    border-radius: 3px;
-    width: 100px;
+    width: 150px;
     height: 30px;
-    color: rgb(29, 5, 151);
+    background-color: rgb(29, 5, 151);
     font-weight: bold;
-    background-color: rgb(187, 225, 242);
-    border-style: outset;
-}
+    color:#ffffff;
+    align-self: baseline;
+ }
 .nborder{
     border:none;
 }
@@ -108,15 +129,16 @@ form {
 
 .form-grid-section-short {
   display: grid;
-  grid-template-columns: repeat(6, 1fr); /* 12-column grid system */
-  gap: .5rem;
+  grid-template-columns: repeat(4, 1fr); /* 12-column grid system */
+  gap: 2rem;
   width: 50%;
+  margin-right: auto;;
 }
 .form-grid-section-short-rght {
   display: grid;
   grid-template-columns: repeat(6, 1fr); /* 12-column grid system */
   gap: .5rem;
-  width: 15%;
+  width: 40%;
   margin-left:auto
 }
 
@@ -128,3 +150,84 @@ form {
   grid-row: span var(--rowspan);
 }
 
+.btn-primary {
+  background-color: #4f46e5; /* Indigo */
+  color: #ffffff;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-primary:hover {
+  background-color: #3c2de4;
+}
+
+/* Tactile click effect */
+.btn-primary:active {
+  transform: scale(0.96);
+}
+.btn-danger {
+  background-color: #dc2626; /* Crimson Red */
+  color: #ffffff;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+/* Tactile click effect */
+.btn-danger:active {
+  transform: scale(0.96);
+}
+.btn-pulse {
+  background-color: #0ea5e9; Sky Blue
+  color: #ffffff;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.btn-pulse:hover {
+  background-color: #0284c7;
+}
+
+/* Sinks the button and darkens the inside edges instantly on click */
+.btn-pulse:active {
+  transform: scale(0.97);
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+       /* Spinner styles */
+.spinner {
+    display: none;
+    width: 12px;
+    height: 12px;
+    margin-left: 5px;
+    vertical-align: middle;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    100% { transform: rotate(3600deg); }
+}
+/* State when button is processing */
+.delete-btn.loading {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.delete-btn.loading .spinner {
+    display: inline-block;
+}

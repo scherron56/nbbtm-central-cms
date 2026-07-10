@@ -4,214 +4,287 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bootstrap 5 Template</title>
-
-  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"> -->
-  <!-- <link href="https://simplemaps.com/data/us-zips" > -->
+  <title>New Beginnings Baptist Tabernacle Ministries</title>
+<link href="https://api.fontshare.com/v2/css?f[]=bespoke-serif@301,400,500,501,700,701&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-
-  <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <script>
-    //    const express = require('express');
-    // const cors = require('cors'); // Install via: npm install cors
-    // const app = express();
-
-    // app.use(cors({ origin: 'http://localhost:3000' })); // Allow your VS Code frontend port 
-
     $(document).ready(function() {
-          // Fire off a single request to get data for both dropdown components
+  
+    // Initial Load of Dropdown Components
+      updateFormLists();
+
+      function updateMinistries(){
+        
+        $.ajax({
+          url: "getMinistries.php",
+          type: 'POST',
+          dataType: 'json',
+          data: { contact_id: contactId }, // Sends the selected contact ID to PHP
+          success: function(data) {
+            $('#checkbox-container').empty(); // Clear existing checkboxes
+            $.each(data.ministries, function(index, item) {
+              const checkbox = $('<input>').attr({
+                type: 'checkbox',
+                id: 'ministry_id' + item.ministry_id,
+                name: 'ministries[]',
+                value: item.ministry_id
+              });
+              const label = $('<label>').attr('for', 'ministry_' + item.ministry_id).text(item.ministry_name);
+              $('#checkbox-container').append(checkbox).append(label).append('<br>');
+            });
+          },
+          error: function(xhr, status, error) {
+            console.error("Error loading ministries: " + error);
+          }
+        });
+      }
+      
+      function updateContactList(){
+        $.ajax({
+          url: "getLists.php",
+          type: 'POST',
+          dataType: 'json',
+          success: function(data) {
+            $.each(data.contacts, function(index, item) {
+              $('#contactID').append($('<option></option>').val(item.contact_id).text(item.fullname));
+            });
+          },
+          error: function(xhr, status, error) {
+            console.error("Error loading lists: " + error);
+          }
+        });
+      }
+
+      function updateFormLists(){
+        $.ajax({
+          url: "getLists.php",
+          type: 'POST',
+          dataType: 'json',
+          success: function(data) {
+            $.each(data.contacts, function(index, item) {
+              $('#contactID').append($('<option></option>').val(item.contact_id).text(item.fullname));
+            });
+            $.each(data.titles, function(index, item) {
+              $('#title_id').append($('<option></option>').val(item.title_id).text(item.titleabr));
+            });
+            $.each(data.marital, function(index, item) {
+              $('#marital_status').append($('<option></option>').val(item.marital_status_id).text(item.marital_status));
+            });
+            $.each(data.phonetype, function(index, item) {
+              $('#phone_1_type').append($('<option></option>').val(item.phone_type_id).text(item.phone_type_desc));
+              $('#phone_2_type').append($('<option></option>').val(item.phone_type_id).text(item.phone_type_desc));
+              $('#phone_3_type').append($('<option></option>').val(item.phone_type_id).text(item.phone_type_desc));
+            });
+          },
+          error: function(xhr, status, error) {
+            console.error("Error loading lists: " + error);
+          }
+        });
+        }
+
+      // 2. Fetch Contact/Member data on dropdown change
+      $('#contactID').change(function() {
+        let contactid = $(this).val();
+
+        if (contactid !== "") {
           $.ajax({
-            url: "getLists.php",
+            url: 'getContact.php',
             type: 'POST',
+            data: { contactid: contactid },
             dataType: 'json',
             success: function(data) {
-
-              //  $('#contacts').empty();
-              //  $('#title').empty()
-
-              $.each(data.contacts, function(index, item) {
-                $('#contactID').append(
-                  $('<option></option>').val(item.contact_id).text(item.fullname)
-                );
-              });
-              // 2. Process and append title records
-              $.each(data.titles, function(index, item) {
-                $('#title_id').append(
-                  $('<option></option>').val(item.title_id).text(item.titleabr)
-                );
-              });
-              $.each(data.marital, function(index, item) {
-                $('#marital_status').append(
-                  $('<option></option>').val(item.marital_status_id).text(item.marital_status)
-                );
-              });
-              $.each(data.phonetype, function(index, item) {
-                $('#phone_1_type').append(
-                  $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
-                );
-              });
-
-              $.each(data.phonetype, function(index, item) {
-                $('#phone_2_type').append(
-                  $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
-                );
-              });
-              $.each(data.phonetype, function(index, item) {
-                $('#phone_3_type').append(
-                  $('<option></option>').val(item.phone_type_id).text(item.phone_type_desc)
-                );
-              });
-            }, //error message
-            error: function(xhr, status, error) {
-              console.error("Error loading lists  " + error)
+              if (data.error) {
+                console.error("Server Error: " + data.error);
+                return;
+              }
+              // Populate form fields
+              $('#contact_id').val(contactid || '');
+              $('#title_id').val(data.title_id || '');
+              $('#first_name').val(data.first_name || '');
+              $('#middle_name').val(data.middle_name || '');
+              $('#last_name').val(data.last_name || '');
+              $('#address_1').val(data.address_1 || '');
+              $('#city').val(data.city || '');
+              $('#state').val(data.state || '');
+              $('#zipcode').val(data.zipcode || '');
+              $('#date_of_birth').val(data.date_of_birth || '');
+              $('#gender').val(data.gender || '');
+              $('#marital_status').val(data.marital_status || '');
+              $('#anniv_date').val(data.anniv_date || '');
+              $('#phone_1').val(data.phone_1 || '');
+              $('#phone_2').val(data.phone_2 || '');
+              $('#emergency_contact').val(data.emergency_contact || '');
+              $('#phone_3').val(data.phone_3 || '');
+              $('#phone_1_type').val(data.phone_1_type || '');
+              $('#phone_2_type').val(data.phone_2_type || '');
+              $('#phone_3_type').val(data.phone_3_type || '');
+              $('#c_email').val(data.c_email || '');
+              $('#is_member').val(data.is_member || '');
+              $('#join_date').val(data.join_date || '');
+              $('#is_baptized').val(data.is_baptized || '');
+              $('#baptized_date').val(data.baptized_date || '');
+              $('#is_active').val(data.is_active || '');
+              
+              // if (4('#is_member').val() === "1") { $('#submitBtn').text('Save & Continue'); } else { $('#submitBtn').text('Update Contact'); }
+              // updateContactList(); // Refresh the contact list after loading a contact
+              // Update button text and show reset button
+              $('#submitBtn').text('Update Contact/Member');
+              $('#resetBtn').show();
             }
-
-          }); // End of ajax
-
-
-          // Fetch Contact/Member data
-          $('#contactID').change(function() {
-            let contactid = $(this).val();
-                        // let contactid = 3004;
-            // console.log(contactid);
-
-            if (contactid !== "") {
-
-              $.ajax({
-                url: 'getContact.php',
-                type: 'POST',
-                data: {
-                  contactid: contactid
-                },
-                dataType: 'json',
-                success: function(data) {
-                  // Populate the form fields with the returned JSON
-                   if (data.error) {
-                      console.error("Server Error: " + data.error);
-                      return;
-                    }
-
-                  $('#contact_id').val(contactid || '');
-                  $('#title_id').val(data.title_id || '');
-                  $('#first_name').val(data.first_name || '');
-                  $('#middle_name').val(data.middle_name || '');
-                  $('#last_name').val(data.last_name || '');
-                  $('#address_1').val(data.address_1 || '');
-                  $('#city').val(data.city || '');
-                  $('#state').val(data.state || '');
-                  $('#zipcode').val(data.zipcode || '');
-                  $('#date_of_birth').val(data.date_of_birth || '');
-                  $('#gender').val(data.gender || '');
-                  $('#marital_status').val(data.marital_status || '');
-                  $('#anniv_date').val(data.anniv_date || '');
-                  $('#phone_1').val(data.phone_1 || '');
-                  $('#phone_2').val(data.phone_2 || '');
-                  $('#emergency_contact').val(data.emergency_contact || '');
-                  $('#phone_3').val(data.phone_3 || '');
-                  $('#phone_1_type').val(data.phone_1_type || '');
-                  $('#phone_2_type').val(data.phone_2_type || '');
-                  $('#phone_3_type').val(data.phone_3_type || '');
-                  $('#c_email').val(data.c_email || '');
-                  $('#is_member').val(data.is_member || '');
-                  $('#join_date').val(data.join_date || '');
-                  $('#is_baptized').val(data.is_baptized || '');
-                  $('#baptized_date').val(data.baptized_date || '');
-                  $('#is_active').val(data.is_active || '');
-                  $('#submitBtn').text('Update Contact/Member');
-                  $('#resetBtn').show();
-                }
-              }); //end of ajax
-            } else {
-              // Reset form if "--Add New Contact/Member --" is chosen
-              $('#contact-form')[0].reset();
-              $('#contact_id').val('');
-              $('#submitBtn').text('Add Contact/Member');
-              $('#resetBtn').hide();
-            }
-          }); //End of Onchange
-
-
-          // Reset button functionality
-         $('#resetBtn').click(function() {
-            $('#contact-form')[0].reset();
-            $('#contact_id').val('');
-            $('#submitBtn').text('Add Contact/Member');
-            $(this).hide();
           });
+        } else {
+          // Reset form if New member chosen
+          $('#contact-form')[0].reset();
+          $('#contact_id').val('');
+          $('#submitBtn').text('Add Contact/Member');
+          $('#resetBtn').hide();
+        }
+      });
 
-          // Handle Insert/Updates via AJAX
-          $('#contact-form').submit(function(e) {
-              e.preventDefault(); // Prevent standard page reload
+      // 3. Reset button functionality
+      $('#resetBtn').click(function() {
+        $('#contact-form')[0].reset();
+        updateContactList();
+        $('#contact_id').val('');
+        $('#submitBtn').text('Add Contact/Member');
+        $(this).hide();
+      });
 
-              // Clear previous error messages before making the call
-              $('#firstError, #lastError, #emailError, #responseMsg').text('');
+$(document).on('click', '.delete-btn', function() {
+    const button = $(this);
+    
+    // Pull the active ID directly from the form field
+    const contact_id = $('#contact_id').val();
 
-              let contactId = $('#contact_id').val();
-              let curAction = (contactId === "" || contactId === "0") ? 'Adding' : 'Updating';
-              // Determine target URL based on whether contactId exists
-              let targetUrl = (contactId === "" || contactId === "0") ? 'saveContact.php' : 'updateContact.php';
-              $.ajax({
-                  url: targetUrl,
-                  type: 'POST',
-                  data: $(this).serialize(), // Automatically packs all populated form elements
-                  dataType: 'json',
-                  success: function(response) {
-                    if (response.status === 'success') {
-                      $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
-                      if(curAction=='Adding'){
-                        const $newOption = new Option($('#last_name').val() + ", " + $('#first_name').val(), response.id);
-                        $('#contactID').append($newOption).val(response.id); 
-                        // Add and select the
-                        $('#contact_id').val(response.id);
-                        $('#submitBtn').text('Update Contact/Member');
-                        $('#resetBtn').show();
-                      }
+    // Guard rail: Stop if no record is currently loaded
+    if (!contact_id || contact_id === "0" || contact_id === "") {
+        alert("No contact is currently selected to delete.");
+        return;
+    }
 
-                    }
-                    },
-                    error: function(xhr) {
-                      // Handles 400 Bad Request (Validation) and 500 Internal Server errors cleanly
-                      let response = xhr.responseJSON;
+    // Prevent double-clicking if already loading
+    if (button.hasClass('loading')) return;
+    if (!confirm("Are you sure you want to delete this record?")) return;
 
-                      // if (response && response.errors) {
-                      //   if (response.errors.firstname) $('#responseMsg').text(response.errors.firstname).addClass('text-danger');
-                      //   if (response.errors.lastname) $('#responseMsg').text(response.errors.lastname).addClass('text-danger');
-                      //   if (response.errors.c_email) $('#responseMsg').text(response.errors.c_email).addClass('text-danger');
-                      // } else {
-                        $('#responseMsg').text('An unexpected error occurred. Please try again.').addClass('text-danger');
-                      // }
-                    }
-              }); // End of form submit ajax
-          }); // End of form submit event
-    }); // End of document ready
+    // UI Feedback: Show spinner, change text, and disable button
+    button.addClass('loading').prop('disabled', true);
+    button.find('.btn-text').text('Deleting...');
+
+    $.ajax({
+        url: 'deleteContact.php',
+        type: 'POST',
+        data: { contact_id: contact_id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.status === 'success') {
+                // Clear the form elements since the record is gone
+                $('#contact-form')[0].reset();
+                $('#contact_id').val('');
+                $('#submitBtn').text('Add Contact/Member');
+                $('#resetBtn').hide();
+                
+                // Remove the item from the dropdown list
+                $("#contactID option[value='" + contact_id + "']").remove();
+                
+                alert("Record deleted successfully.");
+            } else {
+                alert("Error: " + response.message);
+            }
+        },
+        error: function() {
+            alert("An unexpected error occurred.");
+        },
+        complete: function() {
+            // Remove loading state when request finishes
+            button.removeClass('loading').prop('disabled', false);
+            button.find('.btn-text').text('Delete'); // Or whatever your original text is
+        }
+    });
+});
+
+
+
+      // 4. Handle Insert/Updates via AJAX (FIXED BRACKETS)
+      $('#contact-form').submit(function(e) {
+        e.preventDefault(); 
+
+        $('#firstError, #lastError, #emailError, #responseMsg').text('');
+
+        let contactId = $('#contact_id').val();
+        let curAction = (contactId === "" || contactId === "0") ? 'Adding' : 'Updating';
+        let targetUrl = (contactId === "" || contactId === "0") ? 'saveContact.php' : 'updateContact.php';
+
+        $.ajax({
+          url: targetUrl,
+          type: 'POST',
+          data: $(this).serialize(),
+          dataType: 'json',
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
+              
+              if (curAction === 'Adding') {
+                const fullName = $('#last_name').val() + ", " + $('#first_name').val();
+                const $newOption = new Option(fullName, response.id);
+                const $is_member = $('#is_member').val() === "1" ? " (Member)" : "";
+
+                $('#contactID').append($newOption).val(response.id);
+                $('#contact_id').val(response.id);
+                // if (response.is_member === "1") { $(submitBtn).text('Continue'); } else { $(submitBtn).text('Update Contact'); }
+                $('#submitBtn').text('Update Contact/Member');
+                $('#resetBtn').show();
+              }
+            } else {
+              $('#responseMsg').html('<p style="color:red;">' + response.message + '</p>');
+            }
+          },
+          error: function(xhr) {
+            let response = xhr.responseJSON;
+            if (response && response.errors) {
+              if (response.errors.firstname) $('#firstError').text(response.errors.firstname).addClass('text-danger');
+              if (response.errors.lastname) $('#lastError').text(response.errors.lastname).addClass('text-danger');
+              if (response.errors.c_email) $('#emailError').text(response.errors.c_email).addClass('text-danger');
+            } else {
+              $('#responseMsg').text("An error occurred on the server.").addClass('text-danger');
+            }
+          }
+        });
+      });
+    });
   </script>
 </head>
-
 <body>
     <?php require_once("config/db.php") ?>
   <header class="site-header">
+    <div class="logo-container">
+      <svg viewBox="0 0 250 250" width="100%" height="auto" class="scaled-svg" alt="Logo">
+        <use href="assets/img/nbbtm-logo-white.svg" alt="#logo" />
+      </svg>
+    </div>
     <h1>New Beginnings Baptist Tabernacle Ministries</h1>
-    <h2>Central Management System</h2>
+      <h2 class="break-row">Central Management System</h2>
   </header>
-  <form >
-      <fieldset class="form-grid-section-short nborder">
-      <div class="field-group" style="--colspan: 3; ">
-        <label for="contactID" ><h3>Select Member/Contact</h3></label>
+  <form id="contact-form" name="contact-form">
+      <fieldset class="form-grid-section-short">
+        <div class="field-group" style="--colspan: 1;">
+          <button id="addNewContact" class="btn-pulse nbtn">Add Contact </button>
+        </div>
+      <div class="field-group" style="--colspan: 2; ">
+        <label for="contactID" ><h3 style="color :blue;">Select Member/Contact</h3></label>
         <select name="contactID" id="contactID">
           <option value="">--Select--</option>
         </select>
         </div>
-        <div class="field-group" style="--colspan: 2;">
-          <button type="button" id="addNewContact" class="nbtn">Add New </button>
-          </div>
+
     </fieldset>
     <fieldset class="form-grid-section-8">
     <legend>
       <h2>Personal Information</h2>
-    </legend><!-- Row 1: Full width (Spans all columns) -->
+    </legend>
+    <input type="hidden" id="contact_id" name="contact_id">
     <div class="field-group" style="--colspan: 2;">
       <label for=" title_id">Salutation</label>
           <select name="title_id" id="title_id">
@@ -354,10 +427,18 @@
 </fieldset>
       <fieldset class="form-grid-section-short-rght ">
         <div class="field-group" style="--colspan: 1;">
-          <button type="submit" id="submitBtn" class="nbtn">Save</button>
+          <button type="submit" id="submitBtn" class="btn-pulse">Save</button>
         </div>
-        <div class="field-group" style="--colspan: 1;">
-          <button type="reset" id="resetBtn" class="nbtn">Reset</button>
+         <div class="field-group" style="--colspan: 1;">
+          <button id="deleteBtn" class="delete-btn"> <span class="btn-text">Delete</span>
+                        <!-- SVG Loading Spinner -->
+            <svg class="spinner" viewBox="0 0 50 50" stroke="currentColor" stroke-width="5" fill="none">
+                <circle cx="25" cy="25" r="20" stroke-dasharray="80, 200"></circle>
+            </svg>
+          </button>
+        </div>
+       <div class="field-group" style="--colspan: 1;">
+          <button type="reset" id="resetBtn" class="btn-pulse">Reset</button>
         </div>
         </fieldset> 
     </form>
