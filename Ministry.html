@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Checkboxes with jQuery AJAX</title>
+   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-serif@301,400,500,501,700,701&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+ <!-- Include jQuery via CDN -->
+    <!-- <script src="https://jquery.com"></script> -->
+ </head>
+<body>
+    <form>
+        <fieldset   class="form-grid-section-8 hidden">
+        <h3>Check Ministry Involvement</h3>
+        
+        <div name="checkbox-container" id="checkbox-container" class="field-group" style="--colspan: 2;">Loading options...</div>
+  <!-- jQuery will dump the dynamic checkboxes inside this container -->
+       <br>
+        <button type="submit" name="submit">Save Selections</button>
+    </fieldset>
+    </form> 
+    <script>
+    $(document).ready(function() {
+        // 1. Fire the AJAX call to get data from PHP
+        $.ajax({
+            url: 'get_categories.php',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                // Clear the "Loading..." placeholder text
+                $('#checkbox-container').empty();
+
+                // 2. Loop through the array returned from the server
+                $.each(data, function(index, item) {
+                    
+                    // Build the raw HTML string using the unique ID
+                    let htmlRow = `
+                        <div class="form-row">
+                            <label>
+                                <input type="checkbox" class="category-check" name="categories[${item.id}]" value="${item.id}"> 
+                                ${item.name}
+                            </label>
+                            
+                            <select name="positions[${item.id}]" class="position-select">
+                                <option value="Primary">Primary</option>
+                                <option value="Secondary">Secondary</option>
+                                <option value="Observer">Observer</option>
+                            </select>
+                        </div>
+                    `;
+                    
+                    // Inject the row directly into the DOM container
+                    $('#checkbox-container').append(htmlRow);
+                });
+            },
+            error: function(xhr, status, error) {
+                $('#checkbox-container').html('<p style="color:red;">Error loading items.</p>');
+                console.error("AJAX Error: ", error);
+            }
+        });
+
+        // 3. Dynamic UI Behavior: Show/Hide dropdown when checkbox is toggled
+        // Note: We use .on() delegation because elements are added dynamically
+        $('#checkbox-container').on('change', '.category-check', function() {
+            // Find the dropdown that sits right next to this checkbox
+            let assocDropdown = $(this).closest('.form-row').find('.position-select');
+            
+            if ($(this).is(':checked')) {
+                assocDropdown.fadeIn(200);  // Show smoothly
+            } else {
+                assocDropdown.fadeOut(200); // Hide smoothly
+            }
+        });
+    });
+    </script>
+
+</body>
+</html>
