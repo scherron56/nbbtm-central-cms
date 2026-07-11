@@ -128,7 +128,47 @@
               $('#baptized_date').val(data.baptized_date || '');
               $('#is_active').val(data.is_active || '');
               
-              // if (4('#is_member').val() === "1") { $('#submitBtn').text('Save & Continue'); } else { $('#submitBtn').text('Update Contact'); }
+                if ($('#is_member').val() === "1") {
+                  if (!empty(data.ministries)) {
+                    // Populate ministries checkboxes
+                    $('#checkbox-container').empty(); // Clear existing checkboxes
+                    $.each(data.ministryList, function(index, item) {
+                      const checkbox = $('<input>').attr({
+                        type: 'checkbox',
+                        id: 'ministry_id' + item.group_id,
+                        name: 'ministries[]',
+                        value: item.group_id,
+                        checked: recordsArray.some(function(data.ministries) {
+                          return data.ministries.group_id === item.group_id});//find group_id in $ministries if found check box
+                      });
+                      const label = $('<label>').attr('for', 'ministry_' + item.group_id).text(item.group_name);
+                      $('#checkbox-container').append(checkbox).append(label).append('<br>');
+                      
+                      //add dropdown for role selectiion and match ministries.role_id to ministryLis.role_
+                      $.each(data.roleList, function(index, roleItem) {
+                        const roleSelect = $('<select>').attr({
+                          id: 'role_id' + item.group_id,
+                          name: 'roles[' + item.group_id + ']'
+                        });
+                        $.each(data.roleList, function(index, roleOption) {
+                          const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_name);
+                          if (data.ministries.some(function(ministry) {
+                            return ministry.group_id === item.group_id && ministry.role_id === roleOption.role_id;
+                          })) {
+                            option.attr('selected', 'selected');
+                          }
+                          roleSelect.append(option);
+                        });
+                        $('#checkbox-container').append(roleSelect).append('<br>');
+                      });
+                    });
+   
+                  }
+                  $('#submitBtn').text('Save & Continue');
+                } else {
+                  $('#submitBtn').text('Update Contact');
+                }
+              }
               // updateContactList(); // Refresh the contact list after loading a contact
               // Update button text and show reset button
               $('#submitBtn').text('Update Contact/Member');

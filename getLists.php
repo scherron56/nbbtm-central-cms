@@ -23,12 +23,18 @@ $titlestmt=$db->query("SELECT title_id, titleabr FROM title ORDER BY titleabr");
 $constmnt=$db->query("SELECT contact_id, CONCAT(last_name, ', ', first_name ) as fullname FROM contacts ORDER BY last_name, first_name");
 $contacts = $constmnt->fetch_all(MYSQLI_ASSOC);
 
+// fetch all ministries
+$minStmt= $db->query("SELECT group_id, group_name FROM groups ORDER BY group_name");
+$ministries = $minStmt->fetch_all(MYSQLI_ASSOC);   
+
 $response = [ 
     "phonetype"  => $phonetype,
 "titles"  => $titles,
 "marital" => $marital,
-"contacts" => $contacts
+"contacts" => $contacts,
+"ministries" => $ministries
 ];
+
 header('Content-Type: application/json');
 echo json_encode($response);
 exit;
