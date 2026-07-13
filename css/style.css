@@ -6,25 +6,27 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;/* Centers horizontally */
- align-items: center;  /*Centers vertically */
-  min-height: 100vh;/* Takes up full browser height */
+  justify-content: flex-start; /* Centers horizontally */
+  align-items: center;         /* Centers vertically */
+  min-height: 100vh;           /* Takes up full browser height */
   font-family: 'Bespoke Serif', serif;
   color: #28089a;
-  background-color: #fffff;
-  
+  background-color: #ffffff;   /* FIXED: Added missing 'f' to valid 6-char hex */
 }
-h1{
+
+h1 {
   font-size: 2rem;
   margin: 0.5rem 0;
   text-align: center;
 }
-h2{ 
+
+h2 { 
   font-size: 1rem;
   margin: 0.5rem 0;
   text-align: center;
 }
-/*Break to next row */
+
+/* Break to next row */
 .break-row {
   flex-basis: 100%;
   text-align: center;
@@ -37,119 +39,157 @@ h2{
   align-items: center;    /* Centers items horizontally */
   gap: 10px;              /* Creates clean spacing between logo and links */
   height: 200px;           /* Fixed height for the header */
-  /* background-color: #043b8f; */
   background-image: linear-gradient(to right, #043b8f, #0a4b9e);
   color: #ffffff;
-  font-style: bold italic;
+  font-style: italic;     /* FIXED: 'bold italic' is not a valid font-style. Apply font-weight separately if needed. */
+  font-weight: bold;
 }
-.logo-container {
-    width: 100%;   
-    max-width: 150px;          /* Ensures it takes full width of the header */
 
+.logo-container {
+  width: 100%;   
+  max-width: 150px;       /* Ensures it takes full width of the header */
 }
 
 /* Logo Image Constraints */
-.scaled-svg{
+.scaled-svg {
   width: 100%;
-  height: auto; /* Maintains aspect ratio */  
-display:block; /* Prevents image squishing or distortion */
+  height: auto;           /* Maintains aspect ratio */  
+  display: block;         /* Prevents image squishing or distortion */
 }
 
 .hidden { 
   display: none; 
 }
-/* 1. Center the form relative to the entire screen */
-.field-group{
-    display: grid;
-    /* background-color: rgb(139, 122, 224); */
-    grid-column: span var(--colspan);
-    grid-row: span var(--rowspan, 1); /* Default to 1 if not specified */
-    inline-size: 100%;
-    gap: .5rem; 
- }
 
-.selContact{
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    justify-items: left;
-    gap: 1rem;
-    margin: 1rem;
-    padding: 10px;
+/* Field Group Setup */
+.field-group {
+  display: grid;
+  grid-column: span var(--colspan);
+  grid-row: span var(--rowspan, 1); /* Default to 1 if not specified */
+  inline-size: 100%;
+  gap: .5rem; 
 }
 
-.selBox{
-    background-color: rgb(29, 5, 151);
+.selContact {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  justify-items: left;
+  gap: 1rem;
+  margin: 1rem;
+  padding: 10px;
 }
-.nbtn{
-    width: 150px;
-    height: 30px;
-    background-color: rgb(29, 5, 151);
-    font-weight: bold;
-    color:#ffffff;
-    align-self: baseline;
- }
-.nborder{
-    border:none;
+
+.selBox {
+  background-color: rgb(29, 5, 151);
+}
+
+.nbtn {
+  width: 150px;
+  height: 30px;
+  background-color: rgb(29, 5, 151);
+  font-weight: bold;
+  color: #ffffff;
+  align-self: baseline;
+}
+
+.nborder {
+  border: none;
 }
 
 form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  
   width: 100%;             /* Fills space up to the max-width boundary */
-  max-width: 1000px;        /* Prevents the form from expanding past 900px */
+  max-width: 1000px;       /* Prevents the form from expanding past 1000px */
   padding: 2rem;           /* Internal spacing */
   background: white;       /* Contrast against the gray background */
   border-radius: 8px;      /* Rounded corners */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow */
   box-sizing: border-box;  /* Ensures padding doesn't break max-width */
 }
-/* 1. Base Grid (Changes from 2 to 12 columns for maximum flexibility) */
+
+/* Base Grid Section Elements */
 .form-grid-section-8 {
   display: grid;
-  grid-template-columns: repeat(8, 1fr); /* 12-column grid system */
+  grid-template-columns: repeat(8, 1fr); 
   gap: .5rem;
   width: 100%;
 }
 
 .form-grid-section-9 {
   display: grid;
-  grid-template-columns: repeat(9, 1fr); /* 12-column grid system */
+  grid-template-columns: repeat(9, 1fr); 
   gap: .5rem;
   width: 100%;
 }
 
 .form-grid-section-12 {
   display: grid;
-  grid-template-columns: repeat(12); /* 12-column grid system */
+  grid-template-columns: repeat(12, 1fr); /* FIXED: Added missing '1fr' repeat tracker argument */
   gap: .5rem;
   width: 100%;
 }
 
 .form-grid-section-short {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 12-column grid system */
+  grid-template-columns: repeat(4, 1fr); 
   gap: 2rem;
   width: 50%;
-  margin-right: auto;;
-}
-.form-grid-section-short-rght {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr); /* 12-column grid system */
-  gap: .5rem;
-  width: 40%;
-  margin-left:auto
+  margin-right: auto;
 }
 
-.gcol{
+.form-grid-section-short-rght {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr); 
+  gap: .5rem;
+  width: 40%;
+  margin-left: auto;
+}
+
+.gcol {
   grid-column: span var(--colspan);
 }
 
-.grow{
+.grow {
   grid-row: span var(--rowspan);
 }
 
+/* ==========================================================================
+   MINISTRY TWO-COLUMN GRID SYSTEM DESIGN (NEW)
+   ========================================================================== */
+#ministry-section {
+  width: 100%;
+  display: none;
+}
+
+#checkbox-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Default desktop view: Two Columns */
+  gap: 15px 30px;
+  width: 100%;
+}
+
+.ministry-card select {
+  width: 100%;
+  max-width: 240px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #28089a;
+  padding: 0 5px;
+}
+
+/* Text validation styles for script error callbacks */
+.text-danger {
+  color: #dc2626 !important;
+  font-size: 0.85rem;
+  margin-top: 2px;
+  display: block;
+}
+
+/* Button UI Components */
 .btn-primary {
   background-color: #4f46e5; /* Indigo */
   color: #ffffff;
@@ -166,10 +206,10 @@ form {
   background-color: #3c2de4;
 }
 
-/* Tactile click effect */
 .btn-primary:active {
   transform: scale(0.96);
 }
+
 .btn-danger {
   background-color: #dc2626; /* Crimson Red */
   color: #ffffff;
@@ -186,12 +226,12 @@ form {
   background-color: #b91c1c;
 }
 
-/* Tactile click effect */
 .btn-danger:active {
   transform: scale(0.96);
 }
+
 .btn-pulse {
-  background-color: #0ea5e9; Sky Blue
+  background-color: #0ea5e9; /* FIXED: Added missing comment slashes to clear syntax crash */
   color: #ffffff;
   padding: 10px 20px;
   font-size: 14px;
@@ -206,28 +246,74 @@ form {
   background-color: #0284c7;
 }
 
-/* Sinks the button and darkens the inside edges instantly on click */
 .btn-pulse:active {
   transform: scale(0.97);
   box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.25);
 }
-       /* Spinner styles */
+
+.btn-secondary {
+  background-color: #64748b;
+  color: #ffffff;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Spinner styles */
 .spinner {
-    display: none;
-    width: 12px;
-    height: 12px;
-    margin-left: 5px;
-    vertical-align: middle;
-    animation: spin 1s linear infinite;
+  display: none;
+  width: 12px;
+  height: 12px;
+  margin-left: 5px;
+  vertical-align: middle;
+  animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
-    100% { transform: rotate(3600deg); }
+  100% { transform: rotate(360deg); } /* FIXED: Corrected rotation value to 360deg for standard looping */
 }
+
 /* State when button is processing */
 .delete-btn.loading {
-    opacity: 0.6;
-    cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
+
 .delete-btn.loading .spinner {
-    display: inline-block;
+  display: inline-block;
+}
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS (NEW)
+   ========================================================================== */
+@media screen and (max-width: 768px) {
+  form {
+    padding: 1rem;
+  }
+  
+  /* Collapses multi-column grid layouts into a single stack on mobile viewports */
+  .form-grid-section-8,
+  .form-grid-section-9,
+  .form-grid-section-12,
+  #checkbox-container {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+  
+  .form-grid-section-short,
+  .form-grid-section-short-rght {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+  
+  .selContact {
+    grid-template-columns: 1fr;
+  }
+  
+  .ministry-card select {
+    max-width: 100%; /* Dropdowns take up full width on mobile devices */
+  }
 }

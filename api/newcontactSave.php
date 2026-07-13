@@ -57,16 +57,30 @@ try {
     $delStmt->close();
 
     // Re-link selection data if active church credentials match explicitly
+    // FIX 1: If the user is un-checked as a member, we skip re-linking (leaving their clean slate deletion active)
     if ($is_member === 1 && !empty($ministries)) {
-        $insAllSql = "INSERT INTO member_alliance (contact_id, group_id, role_id, is_active) VALUES (?, ?, ?, 1)";
+        
+        // FIX 2: Changed 'group_id' to 'min_comm_id' to accurately reflect the member_alliance database schema
+        $insAllSql = "INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)";
         $allStmt = $db->prepare($insAllSql);
 
-        foreach ($ministries as $group_id) {
-            $group_id_int = intval($group_id);
-            $role_id_int  = isset($roles[$group_id_int]) ? intval($roles[$group_id_int]) : 0;
+        foreach ($ministries as $min_comm_id) {
+            $min_comm_id_int = intval($min_comm_id);
+            
+            // FIX 3: Check if a role was genuinely picked. If it's empty, use NULL (or default ID) 
+            // depending on if your role_id column allows nulls. If it doesn't allow nulls, change this to a default ID like 1.
+            $role_id_raw = isset($roles[$min_comm_id_int]) ? trim($roles[$min_comm_id_int]) : '';
+            $role_id_value = ($role_id_raw !== '') ? intval($role_id_raw) : null;
 
-            if ($group_id_int > 0) {
-                $allStmt->bind_param("iii", $target_id, $group_id_int, $role_id_int);
+            if ($min_comm_id_int > 0) {
+                // If role_id is null, bind param expects types to accommodate it correctly
+                if ($role_id_value === null) {
+                    // Using a separate query or binding structure if your DB requires strict integer inputs:
+                    $null_role = null;
+                    $allStmt->bind_param("iis", $target_id, $min_comm_id_int, $null_role);
+                } else {
+                    $allStmt->bind_param("iii", $target_id, $min_comm_id_int, $role_id_value);
+                }
                 $allStmt->execute();
             }
         }

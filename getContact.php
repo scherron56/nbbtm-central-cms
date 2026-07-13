@@ -29,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $ministries = [];
                 
                 // 2. Fetch Associated Ministry Alliances
-                $minquery = "SELECT member_id, contact_id, group_id, role_id, is_active 
+                $minquery = "SELECT member_id, contact_id, min_comm_id, role_id, is_active 
                              FROM member_alliance WHERE contact_id = ?";
                              
                 if ($minstmt = mysqli_prepare($db, $minquery)) {
@@ -44,10 +44,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     mysqli_stmt_close($minstmt);
                 }
 
-                $minStmt= $db->query("SELECT group_id group_name FROM groups ORDER BY group_name");
+                $minStmt= $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
                 $ministryList = $minStmt->fetch_all(MYSQLI_ASSOC);
 
-                $roleStmt= $db->query("SELECT role_id role_name FROM roles ORDER BY role_name");
+                $roleStmt= $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc");
                 $roleList = $roleStmt->fetch_all(MYSQLI_ASSOC);
 
                 // FIX: Added quotes to array keys
