@@ -1,131 +1,105 @@
-
- <?php
- error_log(print_r($_POST, true));
-  ini_set('display_errors', 1);
- // $db is provided by db.php; do not overwrite it here.
+<?php
+// $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
-
-// 1. Force the response header to be JSON
 header('Content-Type: application/json; charset=utf-8');
 
 $errors = [];
-$contactSelect = $_POST['contactID'] ?? ''; 
-// 2. Map and clean inputs (Fixed $_POST typos and missing array quotes)
-$contact_id     = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
-$title_id       = isset($_POST['title_id']) ? intval($_POST['title_id']) : 0;
-$first_name     = $_POST['first_name'] ?? '';
-$last_name      = $_POST['last_name'] ?? '';
-$middle_name    = $_POST['middle_name'] ?? ''; 
-$date_of_birth  = !empty($_POST['date_of_birth']) ? $_POST['date_of_birth'] : null;
-$gender         = $_POST['gender'] ?? '';      
-$address_1      = $_POST['address_1'] ?? '';
-$city           = $_POST['city'] ?? '';
-$state          = $_POST['state'] ?? '';
-$zipcode        = $_POST['zipcode'] ?? '';
-$phone_1        = $_POST['phone_1'] ?? '';
-$phone_1_type   = isset($_POST['phone_1_type']) ? intval($_POST['phone_1_type']) : 0;
-$phone_2        = $_POST['phone_2'] ?? '';
-$phone_2_type   = isset($_POST['phone_2_type']) ? intval($_POST['phone_2_type']) : 0;
-$emergency_contact = $_POST['emergency_contact'] ?? '';
-$phone_3        = $_POST['phone_3'] ?? '';
-$phone_3_type   = isset($_POST['phone_3_type']) ? intval($_POST['phone_3_type']) : 0;
-$anniv_date     = !empty($_POST['anniv_date']) ? $_POST['anniv_date'] : null;
-$marital_status = isset($_POST['marital_status']) ? intval($_POST['marital_status']) : 0;
-$join_date      = !empty($_POST['join_date']) ? $_POST['join_date'] : null;
-$baptized_date  = !empty($_POST['baptized_date']) ? $_POST['baptized_date'] : null;
 
-$c_email       = $_POST['c_email'] ?? '';
-$is_member     = isset($_POST['is_member']) ? 1 : 0;
-$is_baptized   = isset($_POST['is_baptized']) ? 1 : 0;
-$is_child      = isset($_POST['is_child']) ? 1 : 0;
-$is_head       = isset($_POST['is_head']) ? 1 : 0;
-$is_active     = isset($_POST['is_active']) ? 1 : 0;
+// Sanitize incoming baseline parameter metrics safely
+$contact_id  = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
+$first_name  = $_POST['first_name'] ?? '';
+$last_name   = $_POST['last_name'] ?? '';
+$c_email     = $_POST['c_email'] ?? '';
+$is_member   = (!empty($_POST['is_member']) && $_POST['is_member'] != '0') ? 1 : 0;
 
-// Helper function to robustly sanitize ambiguous date strings
-function sanitizeToSqlDate($dateStr) {
-    if (!$dateStr) return null;
-    // Replace slashes with dashes to ensure standard interpretation, or use specialized parser
-    $timestamp = strtotime(str_replace('/', '-', $dateStr));
-    return $timestamp ? date('Y-m-d', $timestamp) : null;
-}
+// Sub-arrays mapped directly from serialize() payloads
+$ministries  = $_POST['ministries'] ?? []; 
+$roles       = $_POST['roles'] ?? [];      
 
-$date_of_birth = sanitizeToSqlDate($date_of_birth);
-$anniv_date    = sanitizeToSqlDate($anniv_date);
-$join_date     = sanitizeToSqlDate($join_date);
-$baptized_date = sanitizeToSqlDate($baptized_date);
+// Data Validation Routines
+if (empty(trim($first_name))) { $errors['firstname'] = 'First Name is required.'; }
+if (empty(trim($last_name))) { $errors['lastname'] = 'Last Name is required.'; }
+if (!empty($c_email) && !filter_var($c_email, FILTER_VALIDATE_EMAIL)) { $errors['c_email'] = 'Please enter a valid email address.'; }
 
-// Validate entries
-if (!isset($_POST['first_name']) || empty(trim($_POST['first_name']))) {
-    $errors['firstname'] = 'First Name is required.';
-}
-if (!isset($_POST['last_name']) || empty(trim($_POST['last_name']))) {
-    $errors['lastname'] = 'Last Name is required.';
-}
-if (!empty($c_email) && !filter_var($c_email, FILTER_VALIDATE_EMAIL)){
-    $errors['c_email'] = 'Please enter a valid email';
-}
-
-// 3. Handle Validation Failures (Crucial: Send errors back to AJAX)
-if(!empty($errors)) {
-    http_response_code(400); // Bad Request
-    echo json_encode([
-        "status" => "error",
-        "message" => "Validation failed.",
-        "errors" => $errors
-    ]);
+if (!empty($errors)) {
+    http_response_code(400);
+    echo json_encode(["status" => "error", "message" => "Validation tracking failure.", "errors" => $errors]);
     exit;
 }
 
-// 4. Prepare SQL Statement
-$sql = "INSERT INTO contacts (
-            title_id, first_name, last_name, middle_name, 
-            date_of_birth, gender, address_1, city, state, 
-            zipcode, phone_1, phone_1_type, phone_2, phone_2_type, 
-            emergency_contact, phone_3, phone_3_type, c_email, is_member, is_baptized, 
-            marital_status, anniv_date, join_date, baptized_date, is_child, is_head, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+// Open Database Isolation Boundary safely to run structural updates concurrently
+$db->begin_transaction();
 
-if ($stmt = $db->prepare($sql)) {
-    
-    // Fixed type mapping string to exactly 27 characters matching the 27 variables
-    $types = "issssssssssisisisssiiisssiii";
-
-    $stmt->bind_param(
-        $types, 
-        $title_id, $first_name, $last_name, $middle_name,
-        $date_of_birth, $gender, $address_1, $city, $state,
-        $zipcode, $phone_1, $phone_1_type, $phone_2, $phone_2_type,
-        $emergency_contact, $phone_3, $phone_3_type, $c_email, $is_member, $is_baptized,
-        $marital_status, $anniv_date, $join_date, $baptized_date, $is_child, $is_head, $is_active
-    );
-    
-    // 5. Handle Execution Response
-    if ($stmt->execute()) {
-        http_response_code(200);
-        echo json_encode([
-            "status"  => "success",
-            "message" => "Contact saved successfully.",
-            "id"      => $stmt->insert_id
-        ]);
+try {
+    if ($contact_id > 0) {
+        // UPDATE MODE
+        $sql = "UPDATE contacts SET first_name = ?, last_name = ?, c_email = ?, is_member = ? WHERE contact_id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param("sssii", $first_name, $last_name, $c_email, $is_member, $contact_id);
+        $stmt->execute();
+        $stmt->close();
+        $target_id = $contact_id;
     } else {
-        http_response_code(500);
-        echo json_encode([
-            "status"  => "error",
-            "message" => "Database execution failed.",
-            "error"   => $stmt->error
-        ]);
+        // INSERT MODE
+        $sql = "INSERT INTO contacts (first_name, last_name, c_email, is_member, is_active) VALUES (?, ?, ?, ?, 1)";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param("sssi", $first_name, $last_name, $c_email, $is_member);
+        $stmt->execute();
+        $target_id = $stmt->insert_id;
+        $stmt->close();
     }
-    $stmt->close();
-    
-} else {
-    http_response_code(500);
-    echo json_encode([
-        "status"  => "error",
-        "message" => "SQL statement preparation failed.",
-        "error"   => $db->error
-    ]);
-}
 
-$db->close();
+    // Synchronize the Junction Table (`member_alliance`) safely
+    $delSql = "DELETE FROM member_alliance WHERE contact_id = ?";
+    $delStmt = $db->prepare($delSql);
+    $delStmt->bind_param("i", $target_id);
+    $delStmt->execute();
+    $delStmt->close();
+
+    // Re-link selection data if active church credentials match explicitly
+    // FIX 1: If the user is un-checked as a member, we skip re-linking (leaving their clean slate deletion active)
+    if ($is_member === 1 && !empty($ministries)) {
+        
+        // FIX 2: Changed 'group_id' to 'min_comm_id' to accurately reflect the member_alliance database schema
+        $insAllSql = "INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)";
+        $allStmt = $db->prepare($insAllSql);
+
+        foreach ($ministries as $min_comm_id) {
+            $min_comm_id_int = intval($min_comm_id);
+            
+            // FIX 3: Check if a role was genuinely picked. If it's empty, use NULL (or default ID) 
+            // depending on if your role_id column allows nulls. If it doesn't allow nulls, change this to a default ID like 1.
+            $role_id_raw = isset($roles[$min_comm_id_int]) ? trim($roles[$min_comm_id_int]) : '';
+            $role_id_value = ($role_id_raw !== '') ? intval($role_id_raw) : null;
+
+            if ($min_comm_id_int > 0) {
+                // If role_id is null, bind param expects types to accommodate it correctly
+                if ($role_id_value === null) {
+                    // Using a separate query or binding structure if your DB requires strict integer inputs:
+                    $null_role = null;
+                    $allStmt->bind_param("iis", $target_id, $min_comm_id_int, $null_role);
+                } else {
+                    $allStmt->bind_param("iii", $target_id, $min_comm_id_int, $role_id_value);
+                }
+                $allStmt->execute();
+            }
+        }
+        $allStmt->close();
+    }
+
+    // Persist all data changes securely
+    $db->commit();
+
+    http_response_code(200);
+    echo json_encode([
+        "status"  => "success",
+        "message" => ($contact_id > 0) ? "Record updated successfully." : "Record saved successfully.",
+        "id"      => $target_id
+    ]);
+
+} catch (Exception $e) {
+    $db->rollback(); // Revert on failure to maintain database integrity
+    http_response_code(500);
+    echo json_encode(["status" => "error", "message" => "Database processing failure.", "error" => $e->getMessage()]);
+}
 exit;
-?>

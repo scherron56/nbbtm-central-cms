@@ -12,27 +12,28 @@
 
   <script>
     $(document).ready(function() {
-  
-    // Initial Load of Dropdown Components
+
+      // Initial Load of Dropdown Components
       updateFormLists();
 
-      function updateMinistries(){
-        
+      // FIXED: Added contactId parameter so the function knows what to request
+      function updateMinistries(contactId) {
         $.ajax({
           url: "getMinistries.php",
           type: 'POST',
           dataType: 'json',
-          data: { contact_id: contactId }, // Sends the selected contact ID to PHP
+          data: { contact_id: contactId }, 
           success: function(data) {
-            $('#checkbox-container').empty(); // Clear existing checkboxes
+            $('#checkbox-container').empty(); 
             $.each(data.ministries, function(index, item) {
+              const checkboxId = 'ministry_id' + item.ministry_id; // FIXED: Unified naming
               const checkbox = $('<input>').attr({
                 type: 'checkbox',
-                id: 'ministry_id' + item.ministry_id,
+                id: checkboxId,
                 name: 'ministries[]',
                 value: item.ministry_id
               });
-              const label = $('<label>').attr('for', 'ministry_' + item.ministry_id).text(item.ministry_name);
+              const label = $('<label>').attr('for', checkboxId).text(item.ministry_name); // FIXED: Label match
               $('#checkbox-container').append(checkbox).append(label).append('<br>');
             });
           },
@@ -41,8 +42,29 @@
           }
         });
       }
-      
-      function updateContactList(){
+
+// 1. The helper function that toggles the section
+function toggleMinistrySection(shouldShow) {
+  if (shouldShow) {
+    $('#ministry-section').show();
+  } else {
+    $('#ministry-section').hide();
+  }
+}
+
+$('#is_member').change(function() {
+  toggleMinistrySection($(this).is(':checked'));
+});
+
+$('#addNewContact, #resetBtn').click(function(e) {
+  // If it's a real button submit action prevent default form actions if needed
+  // Form fields get cleared...
+  
+  // CRITICAL: Force hide the ministry section because a new contact starts fresh
+  toggleMinistrySection(false);
+});
+
+      function updateContactList() {
         $.ajax({
           url: "getLists.php",
           type: 'POST',
@@ -58,7 +80,7 @@
         });
       }
 
-      function updateFormLists(){
+      function updateFormLists() {
         $.ajax({
           url: "getLists.php",
           type: 'POST',
@@ -83,7 +105,7 @@
             console.error("Error loading lists: " + error);
           }
         });
-        }
+      }
 
       // 2. Fetch Contact/Member data on dropdown change
       $('#contactID').change(function() {
@@ -100,199 +122,157 @@
                 console.error("Server Error: " + data.error);
                 return;
               }
+
+              let contact= data.contact || {};
               // Populate form fields
               $('#contact_id').val(contactid || '');
-              $('#title_id').val(data.title_id || '');
-              $('#first_name').val(data.first_name || '');
-              $('#middle_name').val(data.middle_name || '');
-              $('#last_name').val(data.last_name || '');
-              $('#address_1').val(data.address_1 || '');
-              $('#city').val(data.city || '');
-              $('#state').val(data.state || '');
-              $('#zipcode').val(data.zipcode || '');
-              $('#date_of_birth').val(data.date_of_birth || '');
-              $('#gender').val(data.gender || '');
-              $('#marital_status').val(data.marital_status || '');
-              $('#anniv_date').val(data.anniv_date || '');
-              $('#phone_1').val(data.phone_1 || '');
-              $('#phone_2').val(data.phone_2 || '');
-              $('#emergency_contact').val(data.emergency_contact || '');
-              $('#phone_3').val(data.phone_3 || '');
-              $('#phone_1_type').val(data.phone_1_type || '');
-              $('#phone_2_type').val(data.phone_2_type || '');
-              $('#phone_3_type').val(data.phone_3_type || '');
-              $('#c_email').val(data.c_email || '');
-              $('#is_member').val(data.is_member || '');
-              $('#join_date').val(data.join_date || '');
-              $('#is_baptized').val(data.is_baptized || '');
-              $('#baptized_date').val(data.baptized_date || '');
-              $('#is_active').val(data.is_active || '');
-              
-                if ($('#is_member').val() === "1") {
-                  if (!empty(data.ministries)) {
-                    // Populate ministries checkboxes
-                    $('#checkbox-container').empty(); // Clear existing checkboxes
-                    $.each(data.ministryList, function(index, item) {
-                      const checkbox = $('<input>').attr({
-                        type: 'checkbox',
-                        id: 'ministry_id' + item.group_id,
-                        name: 'ministries[]',
-                        value: item.group_id,
-                        checked: recordsArray.some(function(data.ministries) {
-                          return data.ministries.group_id === item.group_id});//find group_id in $ministries if found check box
-                      });
-                      const label = $('<label>').attr('for', 'ministry_' + item.group_id).text(item.group_name);
-                      $('#checkbox-container').append(checkbox).append(label).append('<br>');
-                      
-                      //add dropdown for role selectiion and match ministries.role_id to ministryLis.role_
-                      $.each(data.roleList, function(index, roleItem) {
-                        const roleSelect = $('<select>').attr({
-                          id: 'role_id' + item.group_id,
-                          name: 'roles[' + item.group_id + ']'
-                        });
-                        $.each(data.roleList, function(index, roleOption) {
-                          const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_name);
-                          if (data.ministries.some(function(ministry) {
-                            return ministry.group_id === item.group_id && ministry.role_id === roleOption.role_id;
-                          })) {
-                            option.attr('selected', 'selected');
-                          }
-                          roleSelect.append(option);
-                        });
-                        $('#checkbox-container').append(roleSelect).append('<br>');
-                      });
-                    });
-   
-                  }
-                  $('#submitBtn').text('Save & Continue');
-                } else {
-                  $('#submitBtn').text('Update Contact');
-                }
+              $('#title_id').val(contact.title_id || '');
+              $('#first_name').val(contact.first_name || '');
+              $('#middle_name').val(contact.middle_name || '');
+              $('#last_name').val(contact.last_name || '');
+              $('#address_1').val(contact.address_1 || '');
+              $('#city').val(contact.city || '');
+              $('#state').val(contact.state || '');
+              $('#zipcode').val(contact.zipcode || '');
+              $('#date_of_birth').val(contact.date_of_birth || '');
+              $('#gender').val(contact.gender || '');
+              $('#marital_status').val(contact.marital_status || '');
+              $('#anniv_date').val(contact.anniv_date || '');
+              $('#phone_1').val(contact.phone_1 || '');
+              $('#phone_2').val(contact.phone_2 || '');
+              $('#emergency_contact').val(contact.emergency_contact || '');
+              $('#phone_3').val(contact.phone_3 || '');
+              $('#phone_1_type').val(contact.phone_1_type || '');
+              $('#phone_2_type').val(contact.phone_2_type || '');
+              $('#phone_3_type').val(contact.phone_3_type || '');
+              $('#c_email').val(contact.c_email || '');
+              $('#is_member').val(contact.is_member || '');
+              $('#join_date').val(contact.join_date || '');
+              $('#is_baptized').val(contact.is_baptized || '');
+              $('#baptized_date').val(contact.baptized_date || '');
+              $('#is_active').val(contact.is_active || '');
+
+
+              if (data.ministryList && data.ministryList.length > 0) {
+                $('#checkbox-container').empty(); 
+                
+                $.each(data.ministryList, function(index, item) {
+                  // 1. Look up if this contact has a saved allocation row for this specific ministry
+                  let savedAlliance = data.ministries.find(function(minObj) {
+                    return minObj.min_comm_id === item.min_comm_id;
+                  });
+                  
+                  let isChecked = !!savedAlliance;
+                  
+                  // 2. This is the role_id from your member_alliance table!
+                  let allianceRoleId = savedAlliance ? savedAlliance.role_id : ''; 
+
+                  const checkboxId = 'ministry_id' + item.min_comm_id;
+                  const checkbox = $('<input>').attr({
+                    type: 'checkbox',
+                    id: checkboxId,
+                    name: 'ministries[]',
+                    value: item.min_comm_id
+                  }).prop('checked', isChecked);
+                  
+                  const label = $('<label>').attr('for', checkboxId).text(' ' + item.min_comm_name);
+                  
+                  const rowDiv = $('<div>').css('margin-bottom', '10px');
+                  rowDiv.append(checkbox).append(label).append(' ');
+
+                  // 3. Build the drop-down element
+                  const roleSelect = $('<select>').attr({
+                    id: 'role_id_' + item.min_comm_id, 
+                    name: 'roles[' + item.min_comm_id + ']'
+                  });
+                  
+                  roleSelect.append($('<option>').val('').text('--Select Role--'));
+
+                  // 4. Loop through Master Roles to construct options
+                  $.each(data.roleList, function(rIndex, roleOption) {
+                    const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_desc);
+                    
+                    // CRITICAL MATCHING STEP:
+                    // Compares the master list role_id against the role_id retrieved from member_alliance
+                    if (savedAlliance && String(roleOption.role_id) === String(allianceRoleId)) {
+                      option.attr('selected', 'selected');
+                    }
+                    
+                    roleSelect.append(option);
+                  });                 
+
+                  rowDiv.append(roleSelect);
+                  $('#checkbox-container').append(rowDiv);
+                });
               }
-              // updateContactList(); // Refresh the contact list after loading a contact
-              // Update button text and show reset button
-              $('#submitBtn').text('Update Contact/Member');
+         // --- NEW INITIAL TOGGLE ACTION ---
+        // Checks the database evaluation value directly to show/hide immediately on load
+        toggleMinistrySection(String(contact.is_member) === "1");     
+              
+              $('#submitBtn').text('Update Contact');
               $('#resetBtn').show();
+            },
+            error: function(xhr, status, error) {
+              console.error("Error fetching contact: " + error);
             }
           });
-        } else {
-          // Reset form if New member chosen
-          $('#contact-form')[0].reset();
-          $('#contact_id').val('');
-          $('#submitBtn').text('Add Contact/Member');
-          $('#resetBtn').hide();
         }
-      });
+      }); // FIXED: Properly closed the change handler, functions, script, and HTML body tags
 
-      // 3. Reset button functionality
-      $('#resetBtn').click(function() {
-        $('#contact-form')[0].reset();
+// Listen for form submissions
+$('#contact-form').on('submit', function(e) {
+  e.preventDefault(); // Stop standard page redirects
+
+  // 1. Gather all inputs (handles our array formatting natively)
+  let formData = $(this).serialize();
+
+  // Disable button to prevent double-clicks
+  let submitBtn = $('#submitBtn');
+  submitBtn.prop('disabled', true).text('Processing...');
+
+  // 2. Dispatch data payload to back-end controllers
+  $.ajax({
+    url: 'saveContact.php', // Replace with the actual filename of your save script
+    type: 'POST',
+    data: formData,
+    dataType: 'json',
+    success: function(response) {
+      if (response.status === 'success') {
+        alert(response.message);
+        
+        // If it was a new contact, save the returned target ID to the hidden input fields
+        if (response.id) {
+          $('#contact_id').val(response.id);
+        }
+        
+        // Refresh the main choice dropdown array lists to reflect new metrics
         updateContactList();
-        $('#contact_id').val('');
-        $('#submitBtn').text('Add Contact/Member');
-        $(this).hide();
-      });
-
-$(document).on('click', '.delete-btn', function() {
-    const button = $(this);
-    
-    // Pull the active ID directly from the form field
-    const contact_id = $('#contact_id').val();
-
-    // Guard rail: Stop if no record is currently loaded
-    if (!contact_id || contact_id === "0" || contact_id === "") {
-        alert("No contact is currently selected to delete.");
-        return;
+      }
+    },
+    error: function(xhr, status, error) {
+      let response = xhr.responseJSON || {};
+      
+      if (response.errors) {
+        // Validation Errors matching your PHP array trackers
+        let errorMsg = "Please address the following inputs:\n";
+        $.each(response.errors, function(key, text) {
+          errorMsg += "- " + text + "\n";
+        });
+        alert(errorMsg);
+      } else {
+        // System / Database level tracking connection drops
+        console.error("Critical Runtime System Exception: " + error);
+        alert("An error occurred while saving. Please try again.");
+      }
+    },
+    complete: function() {
+      // Re-enable interactive elements when complete execution settles
+      submitBtn.prop('disabled', false);
+        submitBtn.text('Save');
     }
-
-    // Prevent double-clicking if already loading
-    if (button.hasClass('loading')) return;
-    if (!confirm("Are you sure you want to delete this record?")) return;
-
-    // UI Feedback: Show spinner, change text, and disable button
-    button.addClass('loading').prop('disabled', true);
-    button.find('.btn-text').text('Deleting...');
-
-    $.ajax({
-        url: 'deleteContact.php',
-        type: 'POST',
-        data: { contact_id: contact_id },
-        dataType: 'json',
-        success: function(response) {
-            if (response.status === 'success') {
-                // Clear the form elements since the record is gone
-                $('#contact-form')[0].reset();
-                $('#contact_id').val('');
-                $('#submitBtn').text('Add Contact/Member');
-                $('#resetBtn').hide();
-                
-                // Remove the item from the dropdown list
-                $("#contactID option[value='" + contact_id + "']").remove();
-                
-                alert("Record deleted successfully.");
-            } else {
-                alert("Error: " + response.message);
-            }
-        },
-        error: function() {
-            alert("An unexpected error occurred.");
-        },
-        complete: function() {
-            // Remove loading state when request finishes
-            button.removeClass('loading').prop('disabled', false);
-            button.find('.btn-text').text('Delete'); // Or whatever your original text is
-        }
-    });
+  });
 });
 
-
-
-      // 4. Handle Insert/Updates via AJAX (FIXED BRACKETS)
-      $('#contact-form').submit(function(e) {
-        e.preventDefault(); 
-
-        $('#firstError, #lastError, #emailError, #responseMsg').text('');
-
-        let contactId = $('#contact_id').val();
-        let curAction = (contactId === "" || contactId === "0") ? 'Adding' : 'Updating';
-        let targetUrl = (contactId === "" || contactId === "0") ? 'saveContact.php' : 'updateContact.php';
-
-        $.ajax({
-          url: targetUrl,
-          type: 'POST',
-          data: $(this).serialize(),
-          dataType: 'json',
-          success: function(response) {
-            if (response.status === 'success') {
-              $('#responseMsg').html('<p style="color:green;">' + response.message + '</p>');
-              
-              if (curAction === 'Adding') {
-                const fullName = $('#last_name').val() + ", " + $('#first_name').val();
-                const $newOption = new Option(fullName, response.id);
-                const $is_member = $('#is_member').val() === "1" ? " (Member)" : "";
-
-                $('#contactID').append($newOption).val(response.id);
-                $('#contact_id').val(response.id);
-                // if (response.is_member === "1") { $(submitBtn).text('Continue'); } else { $(submitBtn).text('Update Contact'); }
-                $('#submitBtn').text('Update Contact/Member');
-                $('#resetBtn').show();
-              }
-            } else {
-              $('#responseMsg').html('<p style="color:red;">' + response.message + '</p>');
-            }
-          },
-          error: function(xhr) {
-            let response = xhr.responseJSON;
-            if (response && response.errors) {
-              if (response.errors.firstname) $('#firstError').text(response.errors.firstname).addClass('text-danger');
-              if (response.errors.lastname) $('#lastError').text(response.errors.lastname).addClass('text-danger');
-              if (response.errors.c_email) $('#emailError').text(response.errors.c_email).addClass('text-danger');
-            } else {
-              $('#responseMsg').text("An error occurred on the server.").addClass('text-danger');
-            }
-          }
-        });
-      });
     });
   </script>
 </head>
@@ -465,6 +445,16 @@ $(document).on('click', '.delete-btn', function() {
   <input type="hidden" name="is_child" value="0">
   <input type="hidden" name="is_head" value="0">
 </fieldset>
+    <!-- DYNAMIC MINISTRY ALLIANCES AREA (Two-Column Layout Layout) -->
+<fieldset id="ministry-section">
+  <legend>
+    <h2>Ministry Involvement </h2>
+    </legend>
+       <!-- CSS Grid Container splitting items into 2 equal-width tracks -->
+    <div id="checkbox-container" >
+      <!-- jQuery dynamically drops card rows in here -->
+    </div>
+  </fieldset>
       <fieldset class="form-grid-section-short-rght ">
         <div class="field-group" style="--colspan: 1;">
           <button type="submit" id="submitBtn" class="btn-pulse">Save</button>

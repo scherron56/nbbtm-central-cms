@@ -24,7 +24,7 @@ $constmnt=$db->query("SELECT contact_id, CONCAT(last_name, ', ', first_name ) as
 $contacts = $constmnt->fetch_all(MYSQLI_ASSOC);
 
 // fetch all ministries
-$minStmt= $db->query("SELECT group_id, group_name FROM groups ORDER BY group_name");
+$minStmt= $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
 $ministries = $minStmt->fetch_all(MYSQLI_ASSOC);   
 
 $response = [ 
