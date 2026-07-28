@@ -86,15 +86,27 @@ $('#addNewContact, #resetBtn').click(function(e) {
           type: 'POST',
           dataType: 'json',
           success: function(data) {
+            $('#contactID').empty();
+            $('#contactID').html('<option value="">--select--</option>');
             $.each(data.contacts, function(index, item) {
               $('#contactID').append($('<option></option>').val(item.contact_id).text(item.fullname));
             });
+            $('#title_id').empty();
+            $('#title_id').html('<option value="">--select--</option>');
             $.each(data.titles, function(index, item) {
               $('#title_id').append($('<option></option>').val(item.title_id).text(item.titleabr));
             });
+            $('#marital_status').empty();
+            $('#marital_status').html('<option value="">--select--</option>');
             $.each(data.marital, function(index, item) {
               $('#marital_status').append($('<option></option>').val(item.marital_status_id).text(item.marital_status));
             });
+            $('#phone_1_type').empty();
+            $('#phone_2_type').empty();
+            $('#phone_3_type').empty();
+            $('#phone_1_type').html('<option value="">--select--</option>');
+            $('#phone_2_type').html('<option value="">--select--</option>');
+            $('#phone_3_type').html('<option value="">--select--</option>');
             $.each(data.phonetype, function(index, item) {
               $('#phone_1_type').append($('<option></option>').val(item.phone_type_id).text(item.phone_type_desc));
               $('#phone_2_type').append($('<option></option>').val(item.phone_type_id).text(item.phone_type_desc));

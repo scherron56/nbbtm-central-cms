@@ -5,21 +5,44 @@ header('Content-Type: application/json; charset=utf-8');
 
 $errors = [];
 
-// Sanitize incoming baseline parameter metrics safely
-$contact_id  = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
-$first_name  = $_POST['first_name'] ?? '';
-$last_name   = $_POST['last_name'] ?? '';
-$c_email     = $_POST['c_email'] ?? '';
-$is_member   = (!empty($_POST['is_member']) && $_POST['is_member'] != '0') ? 1 : 0;
+// Sanitize incoming POST parameters safely
+$contact_id        = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
+$title_id          = isset($_POST['title_id']) ? intval($_POST['title_id']) : 0;
+$first_name        = trim($_POST['first_name'] ?? '');
+$middle_name       = trim($_POST['middle_name'] ?? '');
+$last_name         = trim($_POST['last_name'] ?? '');
+$date_of_birth     = $_POST['date_of_birth'] ?? null;
+$gender            = $_POST['gender'] ?? '';
+$address_1         = $_POST['address_1'] ?? '';
+$city              = $_POST['city'] ?? '';
+$state             = $_POST['state'] ?? '';
+$zipcode           = $_POST['zipcode'] ?? '';
+$phone_1           = $_POST['phone_1'] ?? '';
+$phone_1_type      = intval($_POST['phone_1_type'] ?? 0);
+$phone_2           = $_POST['phone_2'] ?? '';
+$phone_2_type      = intval($_POST['phone_2_type'] ?? 0);
+$emergency_contact = $_POST['emergency_contact'] ?? '';
+$phone_3           = $_POST['phone_3'] ?? '';
+$phone_3_type      = intval($_POST['phone_3_type'] ?? 0);
+$c_email           = trim($_POST['c_email'] ?? '');
+$is_member         = (!empty($_POST['is_member']) && $_POST['is_member'] != '0') ? 1 : 0;
+$is_baptized       = (!empty($_POST['is_baptized']) && $_POST['is_baptized'] != '0') ? 1 : 0;
+$anniv_date        = !empty($_POST['anniv_date']) ? $_POST['anniv_date'] : null;
+$marital_status    = $_POST['marital_status'] ?? '';
+$join_date         = !empty($_POST['join_date']) ? $_POST['join_date'] : null;
+$baptized_date     = !empty($_POST['baptized_date']) ? $_POST['baptized_date'] : null;
+$is_active         = (!empty($_POST['is_active']) && $_POST['is_active'] != '0') ? 1 : 0;
 
 // Sub-arrays mapped directly from serialize() payloads
 $ministries  = $_POST['ministries'] ?? []; 
 $roles       = $_POST['roles'] ?? [];      
 
 // Data Validation Routines
-if (empty(trim($first_name))) { $errors['firstname'] = 'First Name is required.'; }
-if (empty(trim($last_name))) { $errors['lastname'] = 'Last Name is required.'; }
-if (!empty($c_email) && !filter_var($c_email, FILTER_VALIDATE_EMAIL)) { $errors['c_email'] = 'Please enter a valid email address.'; }
+if (empty($first_name)) { $errors['first_name'] = 'First Name is required.'; }
+if (empty($last_name))  { $errors['last_name']  = 'Last Name is required.'; }
+if (!empty($c_email) && !filter_var($c_email, FILTER_VALIDATE_EMAIL)) { 
+    $errors['c_email'] = 'Please enter a valid email address.'; 
+}
 
 if (!empty($errors)) {
     http_response_code(400);
@@ -33,17 +56,53 @@ $db->begin_transaction();
 try {
     if ($contact_id > 0) {
         // UPDATE MODE
-        $sql = "UPDATE contacts SET first_name = ?, last_name = ?, c_email = ?, is_member = ? WHERE contact_id = ?";
+        $sql = "UPDATE contacts SET 
+                    title_id = ?, first_name = ?, middle_name = ?, last_name = ?, 
+                    date_of_birth = ?, gender = ?, address_1 = ?, city = ?, state = ?, zipcode = ?, 
+                    phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
+                    emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
+                    is_member = ?, is_baptized = ?, anniv_date = ?, marital_status = ?, 
+                    join_date = ?, baptized_date = ?, is_active = ? 
+                WHERE contact_id = ?";
+                
         $stmt = $db->prepare($sql);
-        $stmt->bind_param("sssii", $first_name, $last_name, $c_email, $is_member, $contact_id);
+        
+        // 26 parameters bound (25 columns + contact_id)
+        $stmt->bind_param(
+            "issssssssssisissisiissssii", 
+            $title_id, $first_name, $middle_name, $last_name, 
+            $date_of_birth, $gender, $address_1, $city, $state, $zipcode, 
+            $phone_1, $phone_1_type, $phone_2, $phone_2_type, 
+            $emergency_contact, $phone_3, $phone_3_type, $c_email, 
+            $is_member, $is_baptized, $anniv_date, $marital_status, 
+            $join_date, $baptized_date, $is_active, $contact_id
+        );
         $stmt->execute();
         $stmt->close();
         $target_id = $contact_id;
     } else {
         // INSERT MODE
-        $sql = "INSERT INTO contacts (first_name, last_name, c_email, is_member, is_active) VALUES (?, ?, ?, ?, 1)";
+        $sql = "INSERT INTO contacts (
+                    title_id, first_name, middle_name, last_name, 
+                    date_of_birth, gender, address_1, city, state, zipcode, 
+                    phone_1, phone_1_type, phone_2, phone_2_type, 
+                    emergency_contact, phone_3, phone_3_type, c_email, 
+                    is_member, is_baptized, anniv_date, marital_status, 
+                    join_date, baptized_date, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                
         $stmt = $db->prepare($sql);
-        $stmt->bind_param("sssi", $first_name, $last_name, $c_email, $is_member);
+        
+        // 25 parameters bound
+        $stmt->bind_param(
+            "issssssssssisissisiissssi", 
+            $title_id, $first_name, $middle_name, $last_name, 
+            $date_of_birth, $gender, $address_1, $city, $state, $zipcode, 
+            $phone_1, $phone_1_type, $phone_2, $phone_2_type, 
+            $emergency_contact, $phone_3, $phone_3_type, $c_email, 
+            $is_member, $is_baptized, $anniv_date, $marital_status, 
+            $join_date, $baptized_date, $is_active
+        );
         $stmt->execute();
         $target_id = $stmt->insert_id;
         $stmt->close();
@@ -56,31 +115,20 @@ try {
     $delStmt->execute();
     $delStmt->close();
 
-    // Re-link selection data if active church credentials match explicitly
-    // FIX 1: If the user is un-checked as a member, we skip re-linking (leaving their clean slate deletion active)
+    // Re-link selection data if member is checked
     if ($is_member === 1 && !empty($ministries)) {
-        
-        // FIX 2: Changed 'group_id' to 'min_comm_id' to accurately reflect the member_alliance database schema
         $insAllSql = "INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)";
         $allStmt = $db->prepare($insAllSql);
 
         foreach ($ministries as $min_comm_id) {
             $min_comm_id_int = intval($min_comm_id);
             
-            // FIX 3: Check if a role was genuinely picked. If it's empty, use NULL (or default ID) 
-            // depending on if your role_id column allows nulls. If it doesn't allow nulls, change this to a default ID like 1.
             $role_id_raw = isset($roles[$min_comm_id_int]) ? trim($roles[$min_comm_id_int]) : '';
             $role_id_value = ($role_id_raw !== '') ? intval($role_id_raw) : null;
 
             if ($min_comm_id_int > 0) {
-                // If role_id is null, bind param expects types to accommodate it correctly
-                if ($role_id_value === null) {
-                    // Using a separate query or binding structure if your DB requires strict integer inputs:
-                    $null_role = null;
-                    $allStmt->bind_param("iis", $target_id, $min_comm_id_int, $null_role);
-                } else {
-                    $allStmt->bind_param("iii", $target_id, $min_comm_id_int, $role_id_value);
-                }
+                // Pass parameter using "i" for null values in integer columns
+                $allStmt->bind_param("iii", $target_id, $min_comm_id_int, $role_id_value);
                 $allStmt->execute();
             }
         }

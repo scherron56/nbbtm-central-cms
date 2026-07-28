@@ -1,13 +1,13 @@
 <?php
-define('HOST', '172.24.90.189');
+define('HOST', 'localhost');
 define('DB_NAME', 'nbbtm_central');
 define('USER', 'nbadmin');
-define('PASSWORD', 'dAfvod4');
-$host = '172.24.90.189';
+define('PASSWORD', 'w3C@n');
+$host = 'localhost';
 $port = 3306;
 $dbname = 'nbbtm_central';
-$user = 'nbadmin';
-$pswd = 'dAfvod4';
+$user = 'root';
+$pswd = 'w3C@n';
 $charset = 'utf8mb4';
 
 mysqli_report(MYSQLI_REPORT_ERROR|MYSQLI_REPORT_STRICT);
