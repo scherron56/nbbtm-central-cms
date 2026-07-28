@@ -29,17 +29,17 @@ if (!empty($errors)) {
 $contact_id = intval($_POST['contact_id']);
 
 try {
-    // 4. Execute the Prepared Statement (Hard Delete Pattern)
-    // This permanently removes the record from the database table
+    // 4. Execute Prepared Statement
+    // Foreign key CASCADE will automatically delete linked ministry rows
     $stmt = $db->prepare("DELETE FROM contacts WHERE contact_id = ?");
     $stmt->bind_param("i", $contact_id);
     $stmt->execute();
 
-    // 5. Check if the Row Was Successfully Modified
+    // 5. Check if the contact was successfully deleted
     if ($stmt->affected_rows > 0) {
         echo json_encode([
             'status' => 'success',
-            'message' => 'Record successfully deleted from the database.'
+            'message' => 'Contact and associated records successfully deleted.'
         ]);
     } else {
         echo json_encode([
@@ -49,10 +49,11 @@ try {
     }
 
     $stmt->close();
+
 } catch (mysqli_sql_exception $e) {
     echo json_encode([
         'status' => 'error',
-        'message' => 'Database operation failed.'
+        'message' => 'Database operation failed: ' . $e->getMessage()
     ]);
 }
 

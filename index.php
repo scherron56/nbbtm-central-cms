@@ -70,6 +70,8 @@ $('#addNewContact, #resetBtn').click(function(e) {
           type: 'POST',
           dataType: 'json',
           success: function(data) {
+           $('#contactID').empty();
+            $('#contactID').html('<option value="">--select--</option>');
             $.each(data.contacts, function(index, item) {
               $('#contactID').append($('<option></option>').val(item.contact_id).text(item.fullname));
             });
@@ -231,6 +233,63 @@ $('#addNewContact, #resetBtn').click(function(e) {
         }
       }); // FIXED: Properly closed the change handler, functions, script, and HTML body tags
 
+// --- DELETE CONTACT HANDLER ---
+$('#deleteBtn').click(function(e) {
+  e.preventDefault(); // Stop standard form submission or page reloads
+
+  // Get the contact ID from the hidden field or select dropdown
+  let contactId = $('#contact_id').val();
+
+  // 1. Validation: Ensure a contact is selected before trying to delete
+  if (!contactId) {
+    alert("Please select a contact to delete.");
+    return;
+  }
+
+  // 2. Safety Prompt: Always confirm destructive actions
+  let contactName = $('#first_name').val() + " " + $('#last_name').val();
+  if (!confirm("Are you sure you want to delete " + contactName.trim() + "? This action cannot be undone.")) {
+    return;
+  }
+
+  let deleteBtn = $(this);
+  deleteBtn.prop('disabled', true); // Prevent double clicks
+
+  // 3. Send Ajax request to deleteContact.php
+  $.ajax({
+    url: 'deleteContact.php',
+    type: 'POST',
+    data: { contact_id: contactId },
+    dataType: 'json',
+    success: function(response) {
+      if (response.status === 'success') {
+        alert(response.message || "Contact deleted successfully.");
+
+        // Clear/Reset the form fields
+        $('#contact-form')[0].reset();
+        $('#contact_id').val('');
+        toggleMinistrySection(false);
+
+        // Reset submit button text back to default if it was set to "Update Contact"
+        $('#submitBtn').text('Save');
+
+        // Refresh dropdown lists so the deleted contact is removed
+        updateContactList();
+      } else {
+        alert(response.message || "Failed to delete contact.");
+      }
+    },
+    error: function(xhr, status, error) {
+      let response = xhr.responseJSON || {};
+      alert(response.message || "An error occurred while attempting to delete the contact.");
+      console.error("Delete Exception: " + error);
+    },
+    complete: function() {
+      deleteBtn.prop('disabled', false);
+    }
+  });
+});
+
 // Listen for form submissions
 $('#contact-form').on('submit', function(e) {
   e.preventDefault(); // Stop standard page redirects
@@ -293,7 +352,7 @@ $('#contact-form').on('submit', function(e) {
   <header class="site-header">
     <div class="logo-container">
       <svg viewBox="0 0 250 250" width="100%" height="auto" class="scaled-svg" alt="Logo">
-        <use href="assets/img/nbbtm-logo-white.svg" alt="#logo" />
+        <use href="/assets/img/nbbtm-logo-white.svg" alt="#logo" />
       </svg>
     </div>
     <h1>New Beginnings Baptist Tabernacle Ministries</h1>
@@ -472,7 +531,8 @@ $('#contact-form').on('submit', function(e) {
           <button type="submit" id="submitBtn" class="btn-pulse">Save</button>
         </div>
          <div class="field-group" style="--colspan: 1;">
-          <button id="deleteBtn" class="delete-btn"> <span class="btn-text">Delete</span>
+          <button type="button" id="deleteBtn" class="delete-btn"> 
+            <span class="btn-text">Delete</span>
                         <!-- SVG Loading Spinner -->
             <svg class="spinner" viewBox="0 0 50 50" stroke="currentColor" stroke-width="5" fill="none">
                 <circle cx="25" cy="25" r="20" stroke-dasharray="80, 200"></circle>
