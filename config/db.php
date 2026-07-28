@@ -1,12 +1,12 @@
 <?php
-define('HOST', '172.24.90.189');
+define('HOST', 'localhost');
 define('DB_NAME', 'nbbtm_central');
 define('USER', 'nbadmin');
 define('PASSWORD', 'CHANGE_ME');
-$host = '172.24.90.189';
+$host = 'localhost';
 $port = 3306;
 $dbname = 'nbbtm_central';
-$user = 'nbadmin';
+$user = 'root';
 $pswd = 'CHANGE_ME';
 $charset = 'utf8mb4';
 
