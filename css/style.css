@@ -2,60 +2,181 @@
   box-sizing: border-box;
 }
 
+/* Body Setup */
 body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Centers horizontally */
-  align-items: center;         /* Centers vertically */
-  min-height: 100vh;           /* Takes up full browser height */
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 100vh;
   font-family: 'Bespoke Serif', serif;
+  font-family: 'Bespoke Sans', sans-serif;
   color: #28089a;
-  background-color: #fff;   /* FIXED: Added missing 'f' to valid 6-char hex */
+  background-color: #fff;
 }
 
-h1 {
-  font-size: 2rem;
-  margin: 0.5rem 0;
-  text-align: center;
-}
-
-h2 { 
-  font-size: 1rem;
-  margin: 0.5rem 0;
-  text-align: center;
-}
-
-/* Break to next row */
-.break-row {
-  flex-basis: 100%;
-  text-align: center;
-}
-
-/* Header Styling */
+/* Header Container */
 .site-header {
   display: flex;
-  flex-direction: row; /* Stacks logo on top, navigation on bottom */
-  align-items: center;    /* Centers items horizontally */
-  gap: 10px;              /* Creates clean spacing between logo and links */
-  height: 200px;           /* Fixed height for the header */
+  flex-direction: column;
+  min-height: 200px;
+  width: 100%; /* Ensures header spans full browser width */
   background-image: linear-gradient(to right, #043b8f, #0a4b9e);
   color: #ffffff;
-  font-style: italic;     /* FIXED: 'bold italic' is not a valid font-style. Apply font-weight separately if needed. */
+  font-style: italic;
   font-weight: bold;
 }
 
-.logo-container {
-  width: 100%;   
-  max-width: 150px;       /* Ensures it takes full width of the header */
+/* Top Branding Area */
+.header-content {
+  padding: 20px 30px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
 }
 
-/* Logo Image Constraints */
+/* Logo Sizing */
+.logo-container {
+  width: 100px;
+  flex-shrink: 0;
+}
+
 .scaled-svg {
   width: 100%;
-  height: auto;           /* Maintains aspect ratio */  
-  display: block;         /* Prevents image squishing or distortion */
+  height: auto;
+  display: block;
 }
+
+/* Typography Layout */
+h1 {
+  font-size: 3rem;
+  margin: 0;
+  flex-grow: 1;
+  text-align: left;
+}
+
+.break-row {
+  flex-basis: 100%;
+  margin: 0 0 0 115px; /* Matches logo width (100px) + gap (15px) */
+  text-align: left;
+  font-size: 1rem;
+}
+
+/* Base Navbar Styling */ 
+.navbar { 
+  margin-top: auto; 
+  padding: 15px 30px; 
+} 
+
+.nav-links { 
+  display: flex; 
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+  gap: 25px; 
+} 
+
+.nav-links a { 
+  color: #fff; 
+  text-decoration: none; 
+  position: relative; /* Required for absolute indicator line placement */ 
+  padding-bottom: 6px; /* Space between text and indicator line */ 
+  transition: color 0.2s ease; 
+} 
+
+/* Hover State color change */ 
+.nav-links a:hover { 
+  color: #ff8400; 
+} 
+
+/* Active Link Indicator Line */ 
+.nav-links a.active::after { 
+  content: ''; 
+  position: absolute; 
+  left: 0; 
+  bottom: 0; 
+  width: 100%; 
+  height: 3px; /* Thickness of the active line */ 
+  background-color: #ff8400; /* Vibrant orange line */ 
+  border-radius: 2px; 
+}
+
+/* ==========================================================================
+   ADDED: Submenu & Dropdown Styles
+   ========================================================================== */
+
+/* Gives the parent VBS item a positioning context for the submenu */
+.nav-links > .dropdown {
+  position: relative;
+}
+
+/* Base submenu setup: Hidden by default and stacked vertically */
+.nav-links .submenu {
+  display: none;
+  position: absolute;
+  top: 100%; /* Sits exactly below the parent text */
+  left: 0;
+  background-color: #222; /* Dark background to contrast with white text */
+  min-width: 160px;
+  list-style: none;
+  padding: 10px 0;
+  margin: 0;
+  border-radius: 4px;
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+}
+
+/* Format the links specifically inside the dropdown menu */
+.nav-links .submenu a {
+  display: block;
+  padding: 8px 16px;
+  color: #fff;
+  white-space: nowrap; /* Prevents text from wrapping awkwardly */
+}
+
+/* Removes the active bottom border line from inside the submenu links */
+.nav-links .submenu a::after {
+  display: none;
+}
+
+/* Smooth background highlight on submenu item hover */
+.nav-links .submenu a:hover {
+  background-color: #333;
+  color: #ff8400;
+}
+
+/* Triggers the dropdown visibility on hover */
+.nav-links .dropdown:hover .submenu {
+  display: block;
+}
+
+
+/* --- MOBILE RESPONSIVENESS REFINEMENTS --- */
+/* @media (max-width: 768px) {
+  .site-header {
+    min-height: auto; /* Allow growth based on content stacking */
+  } */
+
+  .header-content {
+    flex-direction: column; /* Stack logo, H1, and H2 vertically */
+    text-align: center;
+    padding: 20px 15px;
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 1.5rem; /* Scale down heading font sizes */
+    text-align: center;
+  }
+
+  .break-row {
+    margin-left: 0; /* Reset indentation since logo is centered above text */
+    text-align: center;
+  }
+
+
 
 .hidden { 
   display: none; 
