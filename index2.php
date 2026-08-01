@@ -5,13 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>New Beginnings Baptist Tabernacle Ministries</title>
-<link href="https://api.fontshare.com/v2/css?f[]=bespoke-serif@301,400,500,501,700,701&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <script>
-    $(document).ready(function() {
+
+      $(document).ready(function() {
 
       // Initial Load of Dropdown Components
       updateFormLists();
@@ -121,6 +122,18 @@ $('#addNewContact, #resetBtn').click(function(e) {
         });
       }
 
+
+      $('#addNewContact, #resetBtn').click(function(e) {
+          // Clear checkboxes explicitly
+          $('#is_member, #is_baptized, #is_active').prop('checked', false);
+          
+          // Hide the ministry section
+          toggleMinistrySection(false);
+          
+          // Reset submit button text if needed
+          $('#submitBtn').text('Save');
+        });
+
       // 2. Fetch Contact/Member data on dropdown change
       $('#contactID').change(function() {
         let contactid = $(this).val();
@@ -138,7 +151,7 @@ $('#addNewContact, #resetBtn').click(function(e) {
               }
 
               let contact= data.contact || {};
-              // Populate form fields
+              // --- POPULATE FORM FIELDS ---
               $('#contact_id').val(contactid || '');
               $('#title_id').val(contact.title_id || '');
               $('#first_name').val(contact.first_name || '');
@@ -160,11 +173,17 @@ $('#addNewContact, #resetBtn').click(function(e) {
               $('#phone_2_type').val(contact.phone_2_type || '');
               $('#phone_3_type').val(contact.phone_3_type || '');
               $('#c_email').val(contact.c_email || '');
-              $('#is_member').val(contact.is_member || '');
               $('#join_date').val(contact.join_date || '');
-              $('#is_baptized').val(contact.is_baptized || '');
               $('#baptized_date').val(contact.baptized_date || '');
-              $('#is_active').val(contact.is_active || '');
+
+              // --- FIX: PROPERLY SET CHECKBOX CHECKED STATES ---
+              $('#is_baptized').prop('checked', String(contact.is_baptized) === "1" || contact.is_baptized === true);
+              $('#is_active').prop('checked', String(contact.is_active) === "1" || contact.is_active === true);
+
+              // Setting 'is_member' and triggering its change event automatically handles show/hide logic
+              $('#is_member')
+                .prop('checked', String(contact.is_member) === "1" || contact.is_member === true)
+                .trigger('change');
 
 
               if (data.ministryList && data.ministryList.length > 0) {
@@ -346,19 +365,22 @@ $('#contact-form').on('submit', function(e) {
 
     });
   </script>
-</head>
-<body>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Beginnings Baptist Tabernacle Ministries</title>
+<link href="https://api.fontshare.com/v2/css?f[]=bespoke-serif@301,400,500,501,700,701&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
     <?php require_once("config/db.php") ?>
-  <header class="site-header">
-    <div class="logo-container">
-      <svg viewBox="0 0 250 250" width="100%" height="auto" class="scaled-svg" alt="Logo">
-        <use href="/assets/img/nbbtm-logo-white.svg" alt="#logo" />
-      </svg>
-    </div>
-    <h1>New Beginnings Baptist Tabernacle Ministries</h1>
-      <h2 class="break-row">Central Management System</h2>
-  </header>
-  <form id="contact-form" name="contact-form">
+    <?php include 'header.php'?>
+    <h1>Member/Contact Information</h1>
+    <form id="contact-form" name="contact-form">
       <fieldset class="form-grid-section-short">
         <div class="field-group" style="--colspan: 1;">
           <button id="addNewContact" class="btn-pulse nbtn">Add Contact </button>
