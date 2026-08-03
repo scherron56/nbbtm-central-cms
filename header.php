@@ -11,7 +11,7 @@
 <nav class="navbar"> 
   <ul class="nav-links"> 
     <li><a href="#" class="active">Home</a></li> 
-    <li><a href="#">Contacts</a></li> 
+    <li><a href="contacts.php">Contacts</a></li> 
     
     <!-- Parent Menu Item -->
     <li class="dropdown">
@@ -19,7 +19,7 @@
       <!-- Submenu Starts Here -->
       <ul class="submenu">
         <li><a href="#">Registration</a></li>
-        <li><a href="vbs-sessions.php">Sessions</a></li>
+        <li><a href="vbs_sessions.php">Sessions</a></li>
          <li><a href="#">Attendance</a></li>
        <li><a href="#">Volunteers</a></li>
       </ul>

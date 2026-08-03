@@ -2,6 +2,9 @@
 // $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
 
+// Set JSON response header at the top before any output
+header('Content-Type: application/json');
+
 $response = [];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -37,25 +40,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     mysqli_stmt_execute($minstmt);
                     $result2 = mysqli_stmt_get_result($minstmt);
 
-                    // FIX: Loop through all rows since a contact can have multiple alliances
                     while ($row = mysqli_fetch_assoc($result2)) {
                         $ministries[] = $row;
                     }
                     mysqli_stmt_close($minstmt);
                 }
 
-                $minStmt= $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
-                $ministryList = $minStmt->fetch_all(MYSQLI_ASSOC);
+                $minStmt = $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
+                $ministryList = $minStmt ? $minStmt->fetch_all(MYSQLI_ASSOC) : [];
 
-                $roleStmt= $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc");
-                $roleList = $roleStmt->fetch_all(MYSQLI_ASSOC);
+                $roleStmt = $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc");
+                $roleList = $roleStmt ? $roleStmt->fetch_all(MYSQLI_ASSOC) : [];
 
-                // FIX: Added quotes to array keys
                 $response = [ 
-                    'contact'    => $contact,
-                    'ministries' => $ministries,
+                    'contact'      => $contact,
+                    'ministries'   => $ministries,
                     'ministryList' => $ministryList,
-                    'roleList' => $roleList 
+                    'roleList'     => $roleList 
                 ];
 
             } else {
@@ -72,11 +73,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $response = ['error' => 'Invalid request method'];
 }
 
-// Ensure clean JSON output by setting headers before any execution tracking
-header('Content-Type: application/json');
 echo json_encode($response);     
 
-// OPTIONAL: Only close if this script completely owns the lifecycle of $db
 if (isset($db) && $db instanceof mysqli) {
     mysqli_close($db);
 }
+?>

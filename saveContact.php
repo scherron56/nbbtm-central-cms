@@ -1,39 +1,56 @@
 <?php
+//saveContacts5.php
 // $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $errors = [];
 
-// Sanitize incoming POST parameters safely
-$contact_id        = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
-$title_id          = isset($_POST['title_id']) ? intval($_POST['title_id']) : 0;
-$first_name        = trim($_POST['first_name'] ?? '');
-$middle_name       = trim($_POST['middle_name'] ?? '');
-$last_name         = trim($_POST['last_name'] ?? '');
-$date_of_birth     = $_POST['date_of_birth'] ?? null;
-$gender            = $_POST['gender'] ?? '';
-$address_1         = $_POST['address_1'] ?? '';
-$city              = $_POST['city'] ?? '';
-$state             = $_POST['state'] ?? '';
-$zipcode           = $_POST['zipcode'] ?? '';
-$phone_1           = $_POST['phone_1'] ?? '';
-$phone_1_type      = intval($_POST['phone_1_type'] ?? 0);
-$phone_2           = $_POST['phone_2'] ?? '';
-$phone_2_type      = intval($_POST['phone_2_type'] ?? 0);
-$emergency_contact = $_POST['emergency_contact'] ?? '';
-$phone_3           = $_POST['phone_3'] ?? '';
-$phone_3_type      = intval($_POST['phone_3_type'] ?? 0);
-$c_email           = trim($_POST['c_email'] ?? '');
-$is_member         = (!empty($_POST['is_member']) && $_POST['is_member'] != '0') ? 1 : 0;
-$is_baptized       = (!empty($_POST['is_baptized']) && $_POST['is_baptized'] != '0') ? 1 : 0;
-$anniv_date        = !empty($_POST['anniv_date']) ? $_POST['anniv_date'] : null;
-$marital_status    = $_POST['marital_status'] ?? '';
-$join_date         = !empty($_POST['join_date']) ? $_POST['join_date'] : null;
-$baptized_date     = !empty($_POST['baptized_date']) ? $_POST['baptized_date'] : null;
-$is_active         = (!empty($_POST['is_active']) && $_POST['is_active'] != '0') ? 1 : 0;
+// Helper function to turn empty strings/zeros into SQL NULL
+function nullify($val, $isInt = false) {
+    if ($val === '' || $val === null) return null;
+    if ($isInt && intval($val) === 0) return null;
+    return $isInt ? intval($val) : trim($val);
+}
 
-// Sub-arrays mapped directly from serialize() payloads
+// Sanitize & Normalizing POST Parameters
+$contact_id        = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
+$title_id          = nullify($_POST['title_id'] ?? null, true);
+$first_name        = trim($_POST['first_name'] ?? '');
+$middle_name       = nullify($_POST['middle_name'] ?? null);
+$last_name         = trim($_POST['last_name'] ?? '');
+$date_of_birth     = !empty($_POST['date_of_birth']) ? $_POST['date_of_birth'] : null;
+$gender            = nullify($_POST['gender'] ?? null);
+$address_1         = nullify($_POST['address_1'] ?? null);
+$city              = nullify($_POST['city'] ?? null);
+$state             = nullify($_POST['state'] ?? null);
+$zipcode           = nullify($_POST['zipcode'] ?? null);
+$phone_1           = nullify($_POST['phone_1'] ?? null);
+$phone_1_type      = nullify($_POST['phone_1_type'] ?? null, true);
+$phone_2           = nullify($_POST['phone_2'] ?? null);
+$phone_2_type      = nullify($_POST['phone_2_type'] ?? null, true);
+$emergency_contact = nullify($_POST['emergency_contact'] ?? null);
+$phone_3           = nullify($_POST['phone_3'] ?? null);
+$phone_3_type      = nullify($_POST['phone_3_type'] ?? null, true);
+$c_email           = nullify($_POST['c_email'] ?? null);
+$anniv_date        = !empty($_POST['anniv_date']) ? $_POST['anniv_date'] : null;
+$marital_status    = nullify($_POST['marital_status'] ?? null);
+
+// Determine Member status
+$is_member = (!empty($_POST['is_member']) && $_POST['is_member'] != '0') ? 1 : 0;
+
+if ($is_member === 1) {
+    $is_baptized   = (!empty($_POST['is_baptized']) && $_POST['is_baptized'] != '0') ? 1 : 0;
+    $baptized_date = !empty($_POST['baptized_date']) ? $_POST['baptized_date'] : null;
+    $join_date     = !empty($_POST['join_date']) ? $_POST['join_date'] : null;
+    $is_active     = (!empty($_POST['is_active']) && $_POST['is_active'] != '0') ? 1 : 0;
+} else {
+    $is_baptized   = 0;
+    $baptized_date = null;
+    $join_date     = null;
+    $is_active     = 0;
+}
+
 $ministries  = $_POST['ministries'] ?? []; 
 $roles       = $_POST['roles'] ?? [];      
 
@@ -50,7 +67,6 @@ if (!empty($errors)) {
     exit;
 }
 
-// Open Database Isolation Boundary safely to run structural updates concurrently
 $db->begin_transaction();
 
 try {
@@ -66,8 +82,6 @@ try {
                 WHERE contact_id = ?";
                 
         $stmt = $db->prepare($sql);
-        
-        // 26 parameters bound (25 columns + contact_id)
         $stmt->bind_param(
             "issssssssssisissisiissssii", 
             $title_id, $first_name, $middle_name, $last_name, 
@@ -92,8 +106,6 @@ try {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
         $stmt = $db->prepare($sql);
-        
-        // 25 parameters bound
         $stmt->bind_param(
             "issssssssssisissisiissssi", 
             $title_id, $first_name, $middle_name, $last_name, 
@@ -108,26 +120,24 @@ try {
         $stmt->close();
     }
 
-    // Synchronize the Junction Table (`member_alliance`) safely
+    // Always clear existing alliances to rebuild cleanly
     $delSql = "DELETE FROM member_alliance WHERE contact_id = ?";
     $delStmt = $db->prepare($delSql);
     $delStmt->bind_param("i", $target_id);
     $delStmt->execute();
     $delStmt->close();
 
-    // Re-link selection data if member is checked
+    // Re-link ministry alliances ONLY IF Member is checked
     if ($is_member === 1 && !empty($ministries)) {
         $insAllSql = "INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)";
         $allStmt = $db->prepare($insAllSql);
 
         foreach ($ministries as $min_comm_id) {
             $min_comm_id_int = intval($min_comm_id);
-            
-            $role_id_raw = isset($roles[$min_comm_id_int]) ? trim($roles[$min_comm_id_int]) : '';
-            $role_id_value = ($role_id_raw !== '') ? intval($role_id_raw) : null;
+            $role_id_raw     = isset($roles[$min_comm_id_int]) ? trim($roles[$min_comm_id_int]) : '';
+            $role_id_value   = ($role_id_raw !== '') ? intval($role_id_raw) : null;
 
             if ($min_comm_id_int > 0) {
-                // Pass parameter using "i" for null values in integer columns
                 $allStmt->bind_param("iii", $target_id, $min_comm_id_int, $role_id_value);
                 $allStmt->execute();
             }
@@ -135,7 +145,6 @@ try {
         $allStmt->close();
     }
 
-    // Persist all data changes securely
     $db->commit();
 
     http_response_code(200);
@@ -146,7 +155,7 @@ try {
     ]);
 
 } catch (Exception $e) {
-    $db->rollback(); // Revert on failure to maintain database integrity
+    $db->rollback();
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => "Database processing failure.", "error" => $e->getMessage()]);
 }

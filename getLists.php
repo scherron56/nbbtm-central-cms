@@ -1,42 +1,69 @@
 <?php
-
-
-// $db is provided by db.php; do not overwrite it here.
+// Include DB Connection
 require_once 'config/db.php';
 
- /* Fetch all phone types.
- */
-$phonestmt= $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER by phone_type_desc");
-$phonetype = $phonestmt->fetch_all(MYSQLI_ASSOC);
+// Set JSON headers
+header('Content-Type: application/json; charset=utf-8');
 
-// Fetch Titles
+$response = [];
 
-$titlestmt=$db->query("SELECT title_id, titleabr FROM title ORDER BY titleabr");
- $titles = $titlestmt->fetch_all(MYSQLI_ASSOC);
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    
+    // Check if filtering for members only
+    $membersOnly = isset($_POST['members_only']) ? (int)$_POST['members_only'] : 0;
 
- //fetch Marital status
- $maritstmt=$db->query("SELECT marital_status_id, marital_status FROM marital_status ORDER BY marital_status");
- $marital = $maritstmt->fetch_all(MYSQLI_ASSOC);
-/**
- * Fetch all contacts.
- */
-$constmnt=$db->query("SELECT contact_id, CONCAT(last_name, ', ', first_name ) as fullname FROM contacts ORDER BY last_name, first_name");
-$contacts = $constmnt->fetch_all(MYSQLI_ASSOC);
+    try {
+        // 1. Fetch Contacts (Filtered or All)
+        if ($membersOnly === 1) {
+            $contactQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
+                             FROM contacts 
+                             WHERE is_member = 1 
+                             ORDER BY last_name ASC, first_name ASC";
+        } else {
+            $contactQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
+                             FROM contacts 
+                             ORDER BY last_name ASC, first_name ASC";
+        }
 
-// fetch all ministries
-$minStmt= $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee WHERE min_comm_type_id=5100 ORDER BY min_comm_name ASC");
-$ministries = $minStmt->fetch_all(MYSQLI_ASSOC);   
+        $contactsResult = $db->query($contactQuery);
+        $contacts = $contactsResult ? $contactsResult->fetch_all(MYSQLI_ASSOC) : [];
 
-$response = [ 
-    "phonetype"  => $phonetype,
-"titles"  => $titles,
-"marital" => $marital,
-"contacts" => $contacts,
-"ministries" => $ministries
-];
+        // 2. Fetch Titles/Salutations
+        $titleResult = $db->query("SELECT title_id, titleabr FROM title ORDER BY titleabr ASC");
+        $titles = $titleResult ? $titleResult->fetch_all(MYSQLI_ASSOC) : [];
 
-header('Content-Type: application/json');
+        // 3. Fetch Marital Status Options
+        $maritalResult = $db->query("SELECT marital_id, marital_status FROM marital_status ORDER BY marital_status ASC");
+        $marital = $maritalResult ? $maritalResult->fetch_all(MYSQLI_ASSOC) : [];
+
+        // 4. Fetch Phone Types
+        $phoneTypeResult = $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER BY phone_type_desc ASC");
+        $phonetype = $phoneTypeResult ? $phoneTypeResult->fetch_all(MYSQLI_ASSOC) : [];
+
+        $response = [
+            'contacts'  => $contacts,
+            'titles'    => $titles,
+            'marital'   => $marital,
+            'phonetype' => $phonetype
+        ];
+
+    } catch (mysqli_sql_exception $e) {
+        // Return 500 status code with JSON message so jQuery receives the exact error reason
+        http_response_code(500);
+        $response = [
+            'status'  => 'error',
+            'message' => 'Database Query Error: ' . $e->getMessage()
+        ];
+    }
+
+} else {
+    http_response_code(400);
+    $response = ['error' => 'Invalid request method'];
+}
+
 echo json_encode($response);
-exit;
 
+if (isset($db) && $db instanceof mysqli) {
+    mysqli_close($db);
+}
 ?>

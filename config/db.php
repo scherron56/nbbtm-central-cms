@@ -28,6 +28,7 @@ try {
 
 } catch (mysqli_sql_exception $e) {
     // Return clean JSON instead of crashing with raw HTML/PHP traces
+    http_response_code(500); // <-- ADD THIS LINE
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'status'  => 'error',
@@ -35,6 +36,7 @@ try {
     ]);
     exit;
 }
+
 
 // Clean up unused configuration variables
 unset($host, $dbname, $user, $pswd, $charset, $port);

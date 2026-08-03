@@ -13,7 +13,8 @@ body {
   font-family: 'Bespoke Serif', serif;
   font-family: 'Bespoke Sans', sans-serif;
   color: #28089a;
-  background-color: #fff;
+  /* background-color: #fff; */
+  background-image: linear-gradient(to right, #a1bde7, #4b80c6, #ffff);  background-color: #fff;
 }
 
 /* Header Container */
@@ -156,7 +157,7 @@ h1 {
 /* --- MOBILE RESPONSIVENESS REFINEMENTS --- */
 /* @media (max-width: 768px) {
   .site-header {
-    min-height: auto; /* Allow growth based on content stacking */
+    min-height: auto; /* Allow growth based on content stacking 
   } */
 
   .header-content {
@@ -167,7 +168,15 @@ h1 {
   }
 
   h1 {
+    font-size: 2rem; /* Scale down heading font sizes */
+    text-align: center;
+  }
+    h2 {
     font-size: 1.5rem; /* Scale down heading font sizes */
+    text-align: center;
+  }
+    h3 {
+    font-size: 1rem; /* Scale down heading font sizes */
     text-align: center;
   }
 
@@ -254,9 +263,9 @@ form {
 
 .form-grid-section-short {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); 
+  grid-template-columns: repeat(6, 1fr); 
   gap: 2rem;
-  width: 50%;
+  width: 60%;
   margin-right: auto;
 }
 

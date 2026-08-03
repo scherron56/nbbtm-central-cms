@@ -365,7 +365,7 @@ $('#contact-form').on('submit', function(e) {
 
     });
   </script>
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -375,7 +375,7 @@ $('#contact-form').on('submit', function(e) {
 <link href="https://api.fontshare.com/v2/css?f[]=bespoke-serif@301,400,500,501,700,701&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script> -->
 
     <?php require_once("config/db.php") ?>
     <?php include 'header.php'?>
