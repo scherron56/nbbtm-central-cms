@@ -78,8 +78,8 @@ switch ($action) {
             $session_id = intval($_POST['vbs_sessions_id']);
         } elseif (!empty($_POST['vbs_class_session_id'])) {
             $session_id = intval($_POST['vbs_class_session_id']);
-        } elseif (!empty($_POST['SessionID'])) {
-            $session_id = intval($_POST['SessionID']);
+        } elseif (!empty($_POST['vbs_sessions_id'])) {
+            $session_id = intval($_POST['vbs_sessions_id']);
         }
 
         $vbs_year = trim($_POST['vbs_year']);
@@ -207,32 +207,31 @@ switch ($action) {
         $stmt->close();
         break;
 
-    case 'update':
-        $class_id = intval($_POST['vbs_class_id']);
+case 'update':
+    $class_id = intval($_POST['vbs_class_id']);
 
-        // Accept either session variable name sent by frontend
-        $session_id = 0;
-        if (!empty($_POST['vbs_class_session_id'])) {
-            $session_id = intval($_POST['vbs_class_session_id']);
-        } elseif (!empty($_POST['vbs_sessions_id'])) {
-            $session_id = intval($_POST['vbs_sessions_id']);
-        }
+    $session_id = 0;
+    if (!empty($_POST['vbs_class_session_id'])) {
+        $session_id = intval($_POST['vbs_class_session_id']);
+    } elseif (!empty($_POST['vbs_sessions_id'])) {
+        $session_id = intval($_POST['vbs_sessions_id']);
+    }
 
-        $description = trim($_POST['vbs_class_desc']);
-        $age_start = intval($_POST['vbs_class_age_start']);
-        $age_end = intval($_POST['vbs_class_age_end']);
-        $teacher_id = !empty($_POST['vbs_class_teacher_id']) ? intval($_POST['vbs_class_teacher_id']) : null;
+    $description = trim($_POST['vbs_class_desc']);
+    $age_start = intval($_POST['vbs_class_age_start']);
+    $age_end = intval($_POST['vbs_class_age_end']);
+    $teacher_id = !empty($_POST['vbs_class_teacher_id']) ? intval($_POST['vbs_class_teacher_id']) : null;
 
-        $stmt = $db->prepare("UPDATE vbs_classes SET vbs_sessions_id = ?, vbs_class_desc = ?, vbs_class_age_start = ?, vbs_class_age_end = ?, vbs_class_teacher_id = ? WHERE vbs_class_id = ?");
-        $stmt->bind_param("isiiii", $session_id, $description, $age_start, $age_end, $teacher_id, $class_id);
+    $stmt = $db->prepare("UPDATE vbs_classes SET vbs_class_session_id = ?, vbs_class_desc = ?, vbs_class_age_start = ?, vbs_class_age_end = ?, vbs_class_teacher_id = ? WHERE vbs_class_id = ?");
+    $stmt->bind_param("isiiii", $session_id, $description, $age_start, $age_end, $teacher_id, $class_id);
 
-        if ($stmt->execute()) {
-            echo json_encode(["success" => true]);
-        } else {
-            echo json_encode(["success" => false, "message" => $stmt->error]);
-        }
-        $stmt->close();
-        break;
+    if ($stmt->execute()) {
+        echo json_encode(["success" => true]);
+    } else {
+        echo json_encode(["success" => false, "message" => $stmt->error]);
+    }
+    $stmt->close();
+    break;
     case 'delete':
         $class_id = intval($_POST['vbs_class_id']);
         $stmt = $db->prepare("DELETE FROM vbs_classes WHERE vbs_class_id = ?");
