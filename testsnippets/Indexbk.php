@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Beginnings Baptist Tabernacle Ministries</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+  <style>
+    /* Data grid container formatting */
+    .table-container {
+      width: 100%;
+      max-width: 1000px;
+      margin: 2rem auto;
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      color: #28089a;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .data-table th {
+      background-color: #043b8f;
+      color: #fff;
+    }
+
+    .action-flex {
+      display: flex;
+      gap: 8px;
+      margin-top: 1rem;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 5px;
+    }
+  </style>
+
+  <script>
+    $(document).ready(function() {
+      // Initialize setup dropdown data fields 
+      populateDropdowns();
+      // Get the current active Session ID from either the dropdown or hidden field
+      function getActiveSessionId() {
+        return $('#SessionID').val() || $('#vbs_class_session_id').val() || '';
+      }
+
+      // Keep all Session ID indicators synchronized in one place
+      function setActiveSessionId(id) {
+        $('#SessionID').val(id);
+        $('#vbs_class_session_id').val(id);
+      }
+      // Clear error styles when a user fixes the content typing
+      $('#vbs-form').on('input change', 'input, select', function() {
+        $(this).removeClass('input-error');
+        $(this).siblings('.error-message-text').remove();
+      });
+
+      // Track session drop-down updates 
+      // Track session drop-down updates 
+      $('#SessionID').on('change', function() {
+        const sessionId = $(this).val();
+
+        // Set the hidden field FIRST
+        $('#vbs_class_session_id').val(sessionId);
+
+        // Clear class fields (make sure resetClassFormFields doesn't wipe vbs_class_session_id!)
+        resetClassFormFields();
+
+        if (sessionId) {
+          $('#class-table-container').removeClass('hidden');
+          fetchClasses(sessionId);
+          fetchSessionDetails(sessionId);
+        } else {
+          $('#class-table-container').addClass('hidden');
+          $('#class-table-body').html('<tr><td colspan="4">Please choose a session year to examine records.</td></tr>');
+          resetSessionFormFields();
+        }
+      });
+
+      // Fetch Session details via AJAX
+      function fetchSessionDetails(sessionId) {
+        $.ajax({
+          url: 'class_controller.php',
+          type: 'GET',
+          data: {
+            action: 'get_session',
+            vbs_sessions_id: sessionId
+          },
+          dataType: 'json',
+          success: function(res) {
+            if (res.success && res.data) {
+              $('#vbs_year').val(res.data.vbs_year || '');
+              $('#vbs_start_date').val(res.data.vbs_start_date || '');
+              $('#vbs_end_date').val(res.data.vbs_end_date || '');
+              $('#vbs_theme').val(res.data.vbs_theme || '');
+              $('#vbs_theme_scripture').val(res.data.vbs_theme_scripture || '');
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Fetch session error:", xhr.responseText);
+          }
+        });
+      }
+
+      // Clear Session details inputs
+      function resetSessionFormFields() {
+        $('#vbs_year').val('');
+        $('#vbs_start_date').val('');
+        $('#vbs_end_date').val('');
+        $('#vbs_theme').val('');
+        $('#vbs_theme_scripture').val('');
+      }
+
+      // Save/update Session metadata on field changes
+      function saveSessionDetails() {
+        const sessionId = $('#SessionID').val() || $('#vbs_class_session_id').val();
+        const yearVal = $('#vbs_year').val().trim();
+
+        if (!yearVal) return;
+
+        $.ajax({
+          url: 'class_controller.php',
+          type: 'POST',
+          data: {
+            action: 'save_session',
+            vbs_sessions_id: sessionId,
+            vbs_year: yearVal,
+            vbs_start_date: $('#vbs_start_date').val(),
+            vbs_end_date: $('#vbs_end_date').val(),
+            vbs_theme: $('#vbs_theme').val(),
+            vbs_theme_scripture: $('#vbs_theme_scripture').val()
+          },
+          dataType: 'json',
+          success: function(res) {
+            if (res.success && res.vbs_sessions_id) {
+              const newId = res.vbs_sessions_id;
+
+              // Force both values to match the newly saved session ID
+              if ($(`#SessionID option[value="${newId}"]`).length === 0) {
+                $('#SessionID').append(new Option(yearVal, newId));
+              }
+
+              $('#SessionID').val(newId);
+              $('#vbs_class_session_id').val(newId); // <-- CRITICAL: Sets hidden field for class saving
+
+              $('#class-table-container').removeClass('hidden');
+            }
+          }
+        });
+      }
+      // Automatically save session details when fields change
+      $('#vbs_year, #vbs_start_date, #vbs_end_date, #vbs_theme, #vbs_theme_scripture').on('change', function() {
+        saveSessionDetails();
+      });
+
+      // Add Session button handler
+      $('#addSession').on('click', function() {
+        // Clear dropdown selection and active session fields
+        $('#SessionID').val('');
+        $('#vbs_sessions_id').val('');
+
+        // Clear Session metadata fields
+        resetSessionFormFields();
+
+        // Hide classes table until a session is selected or saved
+        $('#class-table-container').addClass('hidden');
+
+        // Focus on the year field so the user can start typing the new session
+        $('#vbs_year').focus();
+
+        alert('Form cleared! Fill out the Session details below to create a new session.');
+      });
+
+      // Form submission intercept tracking
+      $('#vbs-form').on('submit', function(e) {
+        console.log("Current dropdown SessionID:", $('#SessionID').val());
+        
+        $('#vbs_sessions_id').val($('#SessionID').val());
+        
+        console.log("Current hidden vbs_sessions_id:", $('#vbs_sessions_id').val());
+        console.log("Current hidden vbs_class_session_id:", $('#vbs_class_session_id').val());
+
+
+        e.preventDefault();
+
+        $('.input-error').removeClass('input-error');
+        $('.error-message-text').remove();
+
+        const sessionId = $('#vbs_class_session_id').val();
+        console.log("Active session ID for class save:", sessionId);
+        const $descField = $('#vbs_class_desc');
+        const $startAgeField = $('#vbs_class_age_start');
+        const $endAgeField = $('#vbs_class_age_end');
+
+        const classDesc = $descField.val().trim();
+        const ageStart = parseInt($startAgeField.val(), 10);
+        const ageEnd = parseInt($endAgeField.val(), 10);
+        let hasError = false;
+
+        if (!sessionId) {
+          alert('Please select a valid Session Year before saving class records.');
+          return;
+        }
+        if (classDesc === '') {
+          showFieldError($descField, 'Class Description is required.');
+          hasError = true;
+        }
+        if (isNaN(ageStart)) {
+          showFieldError($startAgeField, 'Please enter a valid start age.');
+          hasError = true;
+        }
+        if (isNaN(ageEnd)) {
+          showFieldError($endAgeField, 'Please enter a valid end age.');
+          hasError = true;
+        }
+        if (!isNaN(ageStart) && !isNaN(ageEnd) && ageStart > ageEnd) {
+          showFieldError($startAgeField, 'Start age cannot exceed end age bounds.');
+          showFieldError($endAgeField, 'End age cannot be smaller than start age bounds.');
+          hasError = true;
+        }
+
+        if (hasError) return;
+
+        const isUpdate = $('#vbs_class_id').val() !== '';
+        const actionType = isUpdate ? 'update' : 'create';
+        $.ajax({
+          url: 'class_controller.php?action=' + actionType,
+          type: 'POST',
+          data: $('#vbs-form').serialize(),
+          dataType: 'json',
+          success: function(response) {
+            if (response.success) {
+              resetClassFormFields();
+              fetchClasses(sessionId);
+            } else {
+              alert('Operation failed: ' + response.message);
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Save class error:", xhr.responseText);
+            alert('An error occurred during communication processing pipelines.');
+          }
+        });
+      });
+
+      $('#cancel-edit-btn').on('click', function() {
+        resetClassFormFields();
+      });
+
+      function showFieldError($element, message) {
+        $element.addClass('input-error');
+        $element.after(`<span class="error-message-text">${message}</span>`);
+      }
+
+      // Populate dynamic select structures seamlessly on boot sequence 
+      function populateDropdowns() {
+        $.ajax({
+          url: 'class_controller.php',
+          type: 'GET',
+          data: {
+            action: 'get_dropdowns'
+          },
+          dataType: 'json',
+          success: function(data) {
+            const sessionSelect = $('#SessionID');
+            if (data.sessions) {
+              data.sessions.forEach(function(sess) {
+                sessionSelect.append(new Option(sess.vbs_year, sess.vbs_sessions_id));
+              });
+            }
+
+            const teacherSelect = $('#vbs_class_teacher_id');
+            if (data.teachers) {
+              data.teachers.forEach(function(teach) {
+                teacherSelect.append(new Option(teach.teacher_name, teach.vbs_class_teacher_id));
+              });
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Dropdown load error:", xhr.responseText);
+            alert('Failed to load initial dropdown data. Check PHP controller output.');
+          }
+        });
+      }
+
+      // Dynamic processing engine fetching table row data safely
+      function fetchClasses(sessionId) {
+        $.ajax({
+          url: 'class_controller.php',
+          type: 'GET',
+          data: {
+            action: 'read',
+            vbs_class_session_id: sessionId
+          },
+          dataType: 'json',
+          success: function(res) {
+            const tbody = $('#class-table-body');
+            tbody.empty();
+
+            // Check if 'data' array exists inside the returned response object
+            const classesList = (res && res.data && Array.isArray(res.data)) ? res.data : [];
+
+            if (classesList.length === 0) {
+              tbody.html('<tr><td colspan="4">No classes setup found matching this session timeline parameters.</td></tr>');
+              return;
+            }
+
+            classesList.forEach(function(cls) {
+              const $tr = $('<tr>');
+              $tr.append(`<td><b>${cls.vbs_class_desc || ''}</b></td>`);
+              $tr.append(`<td>Ages ${cls.vbs_class_age_start || ''} - ${cls.vbs_class_age_end || ''}</td>`);
+              $tr.append(`<td>${cls.teacher_name || 'Unassigned'}</td>`);
+
+              const $actionsTd = $('<td class="row-actions">');
+
+              const $editBtn = $('<button type="button" class="btn-pulse">Edit</button>')
+                .data('classData', cls)
+                .on('click', function() {
+                  populateEditClass($(this).data('classData'));
+                });
+
+              const $deleteBtn = $(`<button type="button" class="btn-danger">Delete</button>`)
+                .on('click', function() {
+                  deleteClass(cls.vbs_class_id);
+                });
+
+              $actionsTd.append($editBtn).append($deleteBtn);
+              $tr.append($actionsTd);
+              tbody.append($tr);
+            });
+          },
+          error: function(xhr, status, error) {
+            console.error("Fetch classes error:", xhr.responseText);
+            $('#class-table-body').html('<tr><td colspan="4" style="color:red;">Error fetching data from server. Check console for output.</td></tr>');
+          }
+        });
+      }
+
+      function populateEditClass(cls) {
+        $('.input-error').removeClass('input-error');
+        $('.error-message-text').remove();
+
+        $('#vbs_class_id').val(cls.vbs_class_id);
+        $('#vbs_class_desc').val(cls.vbs_class_desc);
+        $('#vbs_class_age_start').val(cls.vbs_class_age_start);
+        $('#vbs_class_age_end').val(cls.vbs_class_age_end);
+        $('#vbs_class_teacher_id').val(cls.vbs_class_teacher_id || '');
+        $('#class-form-title').text('Modify VBS Class Details');
+        $('#submit-class-btn').text('Update Class');
+        $('#cancel-edit-btn').removeClass('hidden');
+      }
+
+      function deleteClass(classId) {
+        if (!confirm('Are you sure you want to permanently delete this class entry?')) return;
+        const sessionId = $('#vbs_class_session_id').val();
+        $.ajax({
+          url: 'class_controller.php',
+          type: 'POST',
+          data: {
+            action: 'delete',
+            vbs_class_id: classId
+          },
+          dataType: 'json',
+          success: function(response) {
+            if (response.success) {
+              fetchClasses(sessionId);
+            } else {
+              alert('Delete failed: ' + response.message);
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Delete error:", xhr.responseText);
+            alert('Server error occurred while deleting.');
+          }
+        });
+      }
+
+      function resetClassFormFields() {
+        // Grab current active session ID from dropdown
+        const activeSessionId = $('#SessionID').val();
+
+        $('#vbs_class_id').val('');
+        $('#vbs_class_desc').val('');
+        $('#vbs_class_age_start').val('');
+        $('#vbs_class_age_end').val('');
+        $('#vbs_class_teacher_id').val('');
+        $('#class-form-title').text('Add VBS Class');
+        $('#submit-class-btn').text('Save Class');
+        $('#cancel-edit-btn').addClass('hidden');
+
+        // Re-assign active session ID to the hidden input!
+        $('#vbs_class_session_id').val(activeSessionId);
+      }
+    });
+  </script>
+
+</head>
+
+<body>
+  <?php require_once("config/db.php"); ?>
+  <?php include 'header.php'; ?>
+
+  <h1>Vacation Bible School Session</h1>
+
+  <form id="vbs-form" name="vbs-form">
+    <!-- Session Selector Row Area Component -->
+    <fieldset class="form-grid-section-short">
+      <div class="field-group" style="--colspan: 1;">
+        <button type="button" id="addSession" class="btn-pulse nbtn">Add Session</button>
+      </div>
+      <div class="field-group" style="--colspan: 2;">
+        <label for="SessionID">
+          <h3 style="color: blue; margin: 0;">Select Session Year</h3>
+        </label>
+        <select name="sessionID" id="SessionID">
+          <option value="">--Select--</option>
+          <!-- Populated dynamically via initial load AJAX -->
+        </select>
+      </div>
+    </fieldset>
+
+    <fieldset class="form-grid-section-9">
+        <input type="hidden" id="vbs_sessions_id" name="vbs_sessions_id">
+      <div class="field-group" style="--colspan: 1;">
+   <label for="vbs_year">Session Year</label>
+        <input type="text" id="vbs_year" name="vbs_year">
+      </div>
+      <div class="field-group" style="--colspan: 2;">
+        <label for="vbs_start_date">Start Date</label>
+        <input type="date" id="vbs_start_date" name="vbs_start_date" value="<?= htmlspecialchars($row['vbs_start_date']); ?>">
+      </div>
+      <div class="field-group" style="--colspan: 2;">
+        <label for="vbs_end_date">End Date</label>
+        <input type="date" id="vbs_end_date" name="vbs_end_date" value="<?= htmlspecialchars($row['vbs_end_date']); ?>">
+      </div>
+      <div class="field-group" style="--colspan: 3;">
+        <label for="vbs_theme">Session Theme</label>
+        <input type="text" id="vbs_theme" name="vbs_theme">
+      </div>
+      <div class="field-group" style="--colspan: 3;">
+        <label for="vbs_theme_scripture">Theme Scripture</label>
+        <input type="text" id="vbs_theme_scripture" name="vbs_theme_scripture">
+      </div>
+    </fieldset>
+
+    <!-- Dynamic Data Grid Element to view active configurations -->
+    <div id="class-table-container" class="table-container hidden">
+      <h3>Active Classes for Selected Session</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Ages</th>
+            <th>Teacher</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="class-table-body">
+          <tr>
+            <td colspan="4">Please choose a session year to examine records.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Class Modification Form Block -->
+    <fieldset class="form-grid-section-9">
+      <legend>
+        <h2 id="class-form-title">Add VBS Class</h2>
+      </legend>
+
+      <input type="hidden" id="vbs_class_session_id" name="vbs_class_session_id">
+      <input type="hidden" id="vbs_class_id" name="vbs_class_id">
+
+      <div class="field-group" style="--colspan: 3">
+        <label for="vbs_class_desc">Class Description</label>
+        <input type="text" id="vbs_class_desc" name="vbs_class_desc">
+      </div>
+
+      <div class="field-group" style="--colspan: 2">
+        <label for="vbs_class_age_start">Class Starting Age</label>
+        <input type="text" id="vbs_class_age_start" name="vbs_class_age_start">
+      </div>
+
+      <div class="field-group" style="--colspan: 2">
+        <label for="vbs_class_age_end">Class Ending Age</label>
+        <input type="text" id="vbs_class_age_end" name="vbs_class_age_end">
+      </div>
+
+      <div class="field-group" style="--colspan: 2">
+        <label for="vbs_class_teacher_id">Class Teacher</label>
+        <select name="vbs_class_teacher_id" id="vbs_class_teacher_id">
+          <option value="">--Select--</option>
+          <!-- Populated dynamically via initial load AJAX -->
+        </select>
+      </div>
+    </fieldset>
+
+    <div class="action-flex">
+      <button type="submit" class="btn-primary nbtn" id="submit-class-btn">Save Class</button>
+      <button type="button" class="btn-secondary nbtn hidden" id="cancel-edit-btn">Cancel Edit</button>
+    </div>
+  </form>
+</body>
+
+</html>
