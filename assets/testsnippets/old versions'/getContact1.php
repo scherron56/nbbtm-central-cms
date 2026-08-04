@@ -1,6 +1,8 @@
 <?php
+// $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
 
+// Set JSON response header at the top before any output
 header('Content-Type: application/json');
 
 $response = [];
@@ -26,21 +28,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             
             if ($contact = mysqli_fetch_assoc($result)) {
                 
-                // 2. Fetch Family Link (if exists in Families table)
-                $family_id = null;
-                $famQuery = "SELECT family_id FROM Families WHERE contact_id = ?";
-                if ($famStmt = mysqli_prepare($db, $famQuery)) {
-                    mysqli_stmt_bind_param($famStmt, "i", $contactid);
-                    mysqli_stmt_execute($famStmt);
-                    $famResult = mysqli_stmt_get_result($famStmt);
-                    if ($famRow = mysqli_fetch_assoc($famResult)) {
-                        $family_id = $famRow['family_id'];
-                    }
-                    mysqli_stmt_close($famStmt);
-                }
-
-                // 3. Fetch Associated Ministry Alliances
+                // Initialize ministries array to hold multiple rows
                 $ministries = [];
+                
+                // 2. Fetch Associated Ministry Alliances
                 $minquery = "SELECT member_id, contact_id, min_comm_id, role_id, is_active 
                              FROM member_alliance WHERE contact_id = ?";
                              
@@ -63,7 +54,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 $response = [ 
                     'contact'      => $contact,
-                    'family_id'    => $family_id,
                     'ministries'   => $ministries,
                     'ministryList' => $ministryList,
                     'roleList'     => $roleList 

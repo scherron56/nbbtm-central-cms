@@ -38,6 +38,7 @@ $(document).ready(function() {
   // Initial Load of Dropdown Components
   updateFormLists();
 
+  // Helper function that toggles BOTH Membership and Ministry sections
   function toggleMemberSections(shouldShow) {
     if (shouldShow) {
       $('#membership-section, #ministry-section').show();
@@ -50,14 +51,7 @@ $(document).ready(function() {
     toggleMemberSections($(this).is(':checked'));
   });
 
-  // Toggle Family dropdown based on Head of Household status
-  $('#is_head').change(function() {
-    if ($(this).is(':checked')) {
-      // If contact is Head of Household, disable or reset family picker
-      $('#family_id').val('');
-    }
-  });
-
+  // Fetches contact dropdown list based on current radio filter
   function updateContactList() {
     let membersOnly = $('input[name="contact_filter"]:checked').val();
 
@@ -80,6 +74,7 @@ $(document).ready(function() {
     });
   }
 
+  // Initial form populate + populating dropdown options
   function updateFormLists() {
     let membersOnly = $('input[name="contact_filter"]:checked').val();
 
@@ -94,14 +89,6 @@ $(document).ready(function() {
         if (data.contacts && Array.isArray(data.contacts)) {
           $.each(data.contacts, function(index, item) {
             $('#contactID').append($('<option>', { value: item.contact_id, text: item.fullname }));
-          });
-        }
-
-        // Populate Family Dropdown (Heads of Household)
-        $('#family_id').empty().append($('<option>', { value: '', text: '--Select--' }));
-        if (data.heads && Array.isArray(data.heads)) {
-          $.each(data.heads, function(index, item) {
-            $('#family_id').append($('<option>', { value: item.contact_id, text: item.fullname }));
           });
         }
 
@@ -139,21 +126,23 @@ $(document).ready(function() {
     });
   }
 
+  // Refresh contact dropdown when filter radio selection changes
   $(document).on('change', 'input[name="contact_filter"]', function() {
     updateContactList();
   });
 
+  // Reset form and UI state when adding new contact or clicking reset
   $('#addNewContact, #resetBtn').click(function(e) {
     $('#contact-form')[0].reset();
     $('#contact_id').val('');
     $('#contactID').val('');
     $('#checkbox-container').empty();
-    $('#is_member, #is_baptized, #is_active, #is_head').prop('checked', false);
+    $('#is_member, #is_baptized, #is_active').prop('checked', false);
     toggleMemberSections(false);
     $('#submitBtn').text('Save');
   });
 
-  // Fetch Contact Data on Selection
+  // Fetch Contact data on dropdown change
   $('#contactID').change(function() {
     let contactid = $(this).val();
 
@@ -203,19 +192,7 @@ $(document).ready(function() {
         $('#join_date').val(contact.join_date || '');
         $('#baptized_date').val(contact.baptized_date || '');
 
-        // Checkboxes & Head of Household / Family logic
-        let isHead = String(contact.is_head) === "1" || contact.is_head === true;
-        $('#is_head').prop('checked', isHead);
-
-        // Populate Family Dropdown selection
-        if (isHead) {
-          // If Head of Household, the contact IS the family head
-          $('#family_id').val(contactid);
-        } else {
-          // Otherwise, set to the linked family_id from the Families table
-          $('#family_id').val(data.family_id || '');
-        }
-
+        // Set Checkboxes
         $('#is_baptized').prop('checked', String(contact.is_baptized) === "1" || contact.is_baptized === true);
         $('#is_active').prop('checked', String(contact.is_active) === "1" || contact.is_active === true);
 
@@ -224,7 +201,7 @@ $(document).ready(function() {
         
         toggleMemberSections(isMember);
 
-        // Build Ministry Checkboxes
+        // Build Ministry Checkboxes dynamically
         $('#checkbox-container').empty(); 
         if (data.ministryList && data.ministryList.length > 0) {
           $.each(data.ministryList, function(index, item) {
@@ -278,7 +255,52 @@ $(document).ready(function() {
     });
   });
 
-  // Save & Delete handlers remain as configured...
+  // Delete Contact Handler
+  $('#deleteBtn').click(function(e) {
+    e.preventDefault();
+
+    let contactId = $('#contact_id').val();
+    if (!contactId) {
+      alert("Please select a contact to delete.");
+      return;
+    }
+
+    let contactName = $('#first_name').val() + " " + $('#last_name').val();
+    if (!confirm("Are you sure you want to delete " + contactName.trim() + "? This action cannot be undone.")) {
+      return;
+    }
+
+    let deleteBtn = $(this);
+    deleteBtn.prop('disabled', true);
+
+    $.ajax({
+      url: 'deleteContact.php',
+      type: 'POST',
+      data: { contact_id: contactId },
+      dataType: 'json',
+      success: function(response) {
+        if (response.status === 'success') {
+          alert(response.message || "Contact deleted successfully.");
+          $('#contact-form')[0].reset();
+          $('#contact_id').val('');
+          toggleMemberSections(false);
+          $('#submitBtn').text('Save');
+          updateContactList();
+        } else {
+          alert(response.message || "Failed to delete contact.");
+        }
+      },
+      error: function(xhr, status, error) {
+        let response = xhr.responseJSON || {};
+        alert(response.message || "An error occurred while attempting to delete the contact.");
+      },
+      complete: function() {
+        deleteBtn.prop('disabled', false);
+      }
+    });
+  });
+
+  // Save Form Handler
   $('#contact-form').on('submit', function(e) {
     e.preventDefault();
 
@@ -297,7 +319,7 @@ $(document).ready(function() {
           if (response.id) {
             $('#contact_id').val(response.id);
           }
-          updateFormLists();
+          updateContactList();
         }
       },
       error: function(xhr, status, error) {
@@ -318,9 +340,10 @@ $(document).ready(function() {
     });
   });
 
+  // Initialize default hidden state on fresh load
   toggleMemberSections($('#is_member').is(':checked'));
 });
- </script>
+  </script>
 </head>
 
 <body>
