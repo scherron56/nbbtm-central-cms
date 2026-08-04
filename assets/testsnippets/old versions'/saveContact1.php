@@ -1,5 +1,5 @@
 <?php
-// saveContact.php
+//saveContacts5.php
 // $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
 header('Content-Type: application/json; charset=utf-8');
@@ -35,10 +35,6 @@ $phone_3_type      = nullify($_POST['phone_3_type'] ?? null, true);
 $c_email           = nullify($_POST['c_email'] ?? null);
 $anniv_date        = !empty($_POST['anniv_date']) ? $_POST['anniv_date'] : null;
 $marital_status    = nullify($_POST['marital_status'] ?? null);
-
-// Head of Household & Family ID
-$is_head   = (!empty($_POST['is_head']) && $_POST['is_head'] != '0') ? 1 : 0;
-$family_id = nullify($_POST['family_id'] ?? null, true);
 
 // Determine Member status
 $is_member = (!empty($_POST['is_member']) && $_POST['is_member'] != '0') ? 1 : 0;
@@ -82,18 +78,18 @@ try {
                     phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
                     emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
                     is_member = ?, is_baptized = ?, anniv_date = ?, marital_status = ?, 
-                    join_date = ?, baptized_date = ?, is_active = ?, is_head = ? 
+                    join_date = ?, baptized_date = ?, is_active = ? 
                 WHERE contact_id = ?";
                 
         $stmt = $db->prepare($sql);
         $stmt->bind_param(
-            "issssssssssisissisiissssiii", 
+            "issssssssssisissisiissssii", 
             $title_id, $first_name, $middle_name, $last_name, 
             $date_of_birth, $gender, $address_1, $city, $state, $zipcode, 
             $phone_1, $phone_1_type, $phone_2, $phone_2_type, 
             $emergency_contact, $phone_3, $phone_3_type, $c_email, 
             $is_member, $is_baptized, $anniv_date, $marital_status, 
-            $join_date, $baptized_date, $is_active, $is_head, $contact_id
+            $join_date, $baptized_date, $is_active, $contact_id
         );
         $stmt->execute();
         $stmt->close();
@@ -106,43 +102,24 @@ try {
                     phone_1, phone_1_type, phone_2, phone_2_type, 
                     emergency_contact, phone_3, phone_3_type, c_email, 
                     is_member, is_baptized, anniv_date, marital_status, 
-                    join_date, baptized_date, is_active, is_head
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    join_date, baptized_date, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
         $stmt = $db->prepare($sql);
         $stmt->bind_param(
-            "issssssssssisissisiissssii", 
+            "issssssssssisissisiissssi", 
             $title_id, $first_name, $middle_name, $last_name, 
             $date_of_birth, $gender, $address_1, $city, $state, $zipcode, 
             $phone_1, $phone_1_type, $phone_2, $phone_2_type, 
             $emergency_contact, $phone_3, $phone_3_type, $c_email, 
             $is_member, $is_baptized, $anniv_date, $marital_status, 
-            $join_date, $baptized_date, $is_active, $is_head
+            $join_date, $baptized_date, $is_active
         );
         $stmt->execute();
         $target_id = $stmt->insert_id;
         $stmt->close();
     }
 
-    // --- MANAGE FAMILIES TABLE LINK ---
-    // 1. Clear existing family records for this contact
-    $delFam = $db->prepare("DELETE FROM Families WHERE contact_id = ?");
-    $delFam->bind_param("i", $target_id);
-    $delFam->execute();
-    $delFam->close();
-
-    // 2. Resolve family_id target (If head of household, family_id IS contact_id)
-    $target_family_id = ($is_head === 1) ? $target_id : $family_id;
-
-    // 3. Insert into Families table if a valid family ID exists
-    if (!empty($target_family_id)) {
-        $insFam = $db->prepare("INSERT INTO Families (contact_id, family_id) VALUES (?, ?)");
-        $insFam->bind_param("ii", $target_id, $target_family_id);
-        $insFam->execute();
-        $insFam->close();
-    }
-
-    // --- MANAGE MINISTRY ALLIANCES ---
     // Always clear existing alliances to rebuild cleanly
     $delSql = "DELETE FROM member_alliance WHERE contact_id = ?";
     $delStmt = $db->prepare($delSql);

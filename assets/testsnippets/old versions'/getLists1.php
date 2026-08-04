@@ -28,35 +28,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $contactsResult = $db->query($contactQuery);
         $contacts = $contactsResult ? $contactsResult->fetch_all(MYSQLI_ASSOC) : [];
 
-        // 2. Fetch Heads of Household for the Family Dropdown
-        $headQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
-                      FROM contacts 
-                      WHERE is_head = 1 
-                      ORDER BY last_name ASC, first_name ASC";
-        $headResult = $db->query($headQuery);
-        $heads = $headResult ? $headResult->fetch_all(MYSQLI_ASSOC) : [];
-
-        // 3. Fetch Titles/Salutations
+        // 2. Fetch Titles/Salutations
         $titleResult = $db->query("SELECT title_id, titleabr FROM title ORDER BY titleabr ASC");
         $titles = $titleResult ? $titleResult->fetch_all(MYSQLI_ASSOC) : [];
 
-        // 4. Fetch Marital Status Options
+        // 3. Fetch Marital Status Options
         $maritalResult = $db->query("SELECT marital_id, marital_status FROM marital_status ORDER BY marital_status ASC");
         $marital = $maritalResult ? $maritalResult->fetch_all(MYSQLI_ASSOC) : [];
 
-        // 5. Fetch Phone Types
+        // 4. Fetch Phone Types
         $phoneTypeResult = $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER BY phone_type_desc ASC");
         $phonetype = $phoneTypeResult ? $phoneTypeResult->fetch_all(MYSQLI_ASSOC) : [];
 
         $response = [
             'contacts'  => $contacts,
-            'heads'     => $heads,
             'titles'    => $titles,
             'marital'   => $marital,
             'phonetype' => $phonetype
         ];
 
     } catch (mysqli_sql_exception $e) {
+        // Return 500 status code with JSON message so jQuery receives the exact error reason
         http_response_code(500);
         $response = [
             'status'  => 'error',
