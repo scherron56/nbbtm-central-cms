@@ -269,6 +269,14 @@ form {
   margin-right: auto;
 }
 
+.form-grid-section-short-40{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 2rem;
+  width: 40%;
+  margin-right: auto;
+}
+
 .form-grid-section-short-rght {
   display: grid;
   grid-template-columns: repeat(6, 1fr); 

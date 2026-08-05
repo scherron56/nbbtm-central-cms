@@ -18,10 +18,9 @@
       <a href="#">VBS</a>
       <!-- Submenu Starts Here -->
       <ul class="submenu">
-        <li><a href="#">Registration</a></li>
         <li><a href="vbs_sessions.php">Sessions</a></li>
-         <li><a href="#">Attendance</a></li>
-       <li><a href="#">Volunteers</a></li>
+        <li><a href="vbs_manager.php">Registration</a></li>
+        <li><a href="vbs_attendance.php">Attendance</a></li>
       </ul>
     </li>
   </ul>

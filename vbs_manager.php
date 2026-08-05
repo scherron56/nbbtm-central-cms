@@ -9,185 +9,330 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <style>
-    .vbs-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1.25rem;
-      margin-top: 1rem;
-    }
-    .student-card {
-      background: #ffffff;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-    .student-card.checked-in {
-      border-color: #16a34a;
-      background-color: #f0fdf4;
-    }
-    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
-    .card-header h3 { margin: 0; font-size: 1.15rem; color: #0f172a; }
-    .badge-class { background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; }
-    .alert-badge { font-size: 0.85rem; padding: 0.4rem 0.6rem; border-radius: 4px; margin-top: 0.5rem; }
-    .alert-badge.allergy { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
-    .alert-badge.food { background-color: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
-    .card-actions { display: flex; gap: 0.5rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; }
-    
-    /* Modal Styling */
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: white; padding: 1.5rem; border-radius: 8px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; }
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.25rem; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .class-desc { font-size: 0.95rem; font-weight: 600; color: #1e293b; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: #fff; }
+    th, td { padding: 0.75rem; border: 1px solid #e2e8f0; text-align: left; }
+    th { background: #f8fafc; font-weight: 700; }
+    tr:nth-child(even) { background-color: #f9fafb; }
+    
+    .btn-action { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 0.85rem; }
+    .btn-checkin { background-color: #2563eb; }
+    .btn-checkout { background-color: #16a34a; }
+    .btn-edit { background-color: #64748b; }
+    .btn-delete { background-color: #ef4444; }
+    .add-contact-link { font-size: 0.75rem; color: #2563eb; text-decoration: none; font-weight: 600; }
+    .add-contact-link:hover { text-decoration: underline; }
   </style>
 
   <script>
 $(document).ready(function() {
-  loadDropdownLists();
+  // Initial Page Load
+  loadSessions();
+  loadClassesForSession(''); // Load all available classes by default
+  loadStudentDropdown();
   loadRoster();
 
-  // Load contacts into student/parent select fields
-  function loadDropdownLists() {
-    $.post("getLists.php", { members_only: 0 }, function(data) {
-      $('#contact_id, #parent_id').empty().append($('<option>', { value: '', text: '--Select Contact--' }));
-      if (data.contacts && Array.isArray(data.contacts)) {
-        $.each(data.contacts, function(i, item) {
-          $('#contact_id, #parent_id').append($('<option>', { value: item.contact_id, text: item.fullname }));
-        });
+  // Load Sessions into top dropdown using $.ajax
+  function loadSessions() {
+    $.ajax({
+      url: 'vbs_api.php',
+      type: 'GET',
+      data: { action: 'fetch_sessions' },
+      dataType: 'json',
+      success: function(res) {
+        if (res.success && Array.isArray(res.data)) {
+          const select = $('#sessionSelect').empty().append('<option value="">--Select--</option>');
+          res.data.forEach(session => {
+            select.append($('<option>', { 
+              value: session.vbs_sessions_id, 
+              text: session.vbs_year + ' (Session #' + session.vbs_sessions_id + ')' 
+            }));
+          });
+        } else {
+          console.error("fetch_sessions API error:", res.message);
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.error("AJAX Error in loadSessions:", textStatus, jqXHR.responseText);
       }
-    }, 'json');
+    });
   }
 
-  // Load VBS Roster Cards
+  // Session selection change handler
+  $('#sessionSelect').on('change', function() {
+    const sessionId = $(this).val();
+    console.log('Current Session ID:', sessionId);
+    $('#form_vbs_sessions_id').val(sessionId);
+    loadClassesForSession(sessionId);
+    loadRoster();
+  });
+
+  // Load classes dropdown based on vbs_sessions_id using $.ajax
+  function loadClassesForSession(sessionId, callback) {
+    console.log('Loading classes for session ID:', sessionId);
+    $.ajax({
+      url: 'vbs_api.php',
+      type: 'GET',
+      data: { action: 'fetch_classes', vbs_sessions_id: sessionId },
+      dataType: 'json',
+      success: function(res) {
+        const select = $('#vbs_class_id').empty().append('<option value="">--Select--</option>');
+        if (res.success && Array.isArray(res.data)) {
+          res.data.forEach(cls => {
+            select.append($('<option>', { value: cls.vbs_class_id, text: cls.vbs_class_desc }));
+          });
+        } else {
+          console.error("fetch_classes API error:", res.message);
+        }
+        if (typeof callback === 'function') {
+          callback();
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.error("AJAX Error in loadClassesForSession:", textStatus, jqXHR.responseText);
+      }
+    });
+  }
+
+  // Load contacts into student select field using $.ajax
+  function loadStudentDropdown() {
+    $.ajax({
+      url: 'getLists.php',
+      type: 'POST',
+      data: { members_only: 0 },
+      dataType: 'json',
+      success: function(data) {
+        const select = $('#contact_id').empty().append('<option value="">--Select Contact--</option>');
+        
+        let list = [];
+        if (Array.isArray(data)) {
+          list = data;
+        } else if (data && Array.isArray(data.contacts)) {
+          list = data.contacts;
+        } else if (data && Array.isArray(data.data)) {
+          list = data.data;
+        }
+
+        if (list.length > 0) {
+          $.each(list, function(i, item) {
+            const id = item.contact_id || item.id;
+            const text = item.fullname || item.name || ((item.first_name || '') + ' ' + (item.last_name || '')).trim();
+            if (id && text) {
+              select.append($('<option>', { value: id, text: text }));
+            }
+          });
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.error("Failed to load contacts from getLists.php:", textStatus, jqXHR.responseText);
+      }
+    });
+  }
+
+  // Fetch VBS Roster Table using $.ajax
   function loadRoster() {
-    $.get('vbs_api.php', { action: 'fetch_roster' }, function(res) {
-      if (res.success) {
-        renderRoster(res.data);
+    const selectedSession = $('#sessionSelect').val();
+    $.ajax({
+      url: 'vbs_api.php',
+      type: 'GET',
+      data: { action: 'fetch_roster', vbs_sessions_id: selectedSession },
+      dataType: 'json',
+      success: function(res) {
+        if (res.success) {
+          renderRosterTable(res.data);
+        } else {
+          console.error("fetch_roster API error:", res.message);
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.error("AJAX Error in loadRoster:", textStatus, jqXHR.responseText);
       }
-    }, 'json');
+    });
   }
 
-  function renderRoster(students) {
-    const grid = $('#studentGrid').empty();
+  // Render Roster Table
+  function renderRosterTable(students) {
+    const tbody = $('#studentTable tbody').empty();
     if (!students || students.length === 0) {
-      grid.html('<p>No VBS students registered yet.</p>');
+      tbody.append('<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:#64748b;">No VBS students registered for this session.</td></tr>');
       return;
     }
 
     students.forEach(student => {
       const isCheckedIn = parseInt(student.is_checked_in) === 1;
-      const allergyHtml = student.allergies ? `<div class="alert-badge allergy">⚠️ <strong>Allergies:</strong> ${escapeHtml(student.allergies)}</div>` : '';
-      const foodHtml = student.food_restrictions ? `<div class="alert-badge food">🍎 <strong>Food:</strong> ${escapeHtml(student.food_restrictions)}</div>` : '';
+      const classDesc = student.vbs_class_desc ? student.vbs_class_desc : ('Class #' + student.class_id);
 
-      const cardHtml = `
-        <div class="student-card ${isCheckedIn ? 'checked-in' : ''}" 
-             data-id="${student.contact_id}" 
-             data-vbs-id="${student.vbs_id}"
-             data-session-id="${student.vbs_sessions_id}">
-          <div>
-            <div class="card-header">
-              <h3>${escapeHtml(student.child_name)}</h3>
-              <span class="badge-class">Class #${student.class_id}</span>
+      const rowHtml = `
+        <tr data-id="${student.contact_id}" data-vbs-id="${student.vbs_id}" data-session-id="${student.vbs_sessions_id}" data-class-id="${student.class_id}">
+          <td><strong>${escapeHtml(student.child_name)}</strong></td>
+          <td><span class="class-desc">${escapeHtml(classDesc)}</span></td>
+          <td>
+            <span style="color:${isCheckedIn ? '#16a34a' : '#64748b'}; font-weight:bold;">
+              ${isCheckedIn ? 'Checked In ✓' : 'Not Checked In'}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex; gap:0.4rem;">
+              <button class="btn-action ${isCheckedIn ? 'btn-checkout' : 'btn-checkin'} btn-toggle-checkin">
+                ${isCheckedIn ? 'Check Out' : 'Check In'}
+              </button>
+              <button class="btn-action btn-edit">Edit</button>
+              <button class="btn-action btn-delete">✕</button>
             </div>
-            <div style="font-size:0.9rem; color:#475569;">
-              <strong>Parent:</strong> ${escapeHtml(student.parent_name || 'N/A')}<br>
-              ${student.parent_phone ? `<strong>Phone:</strong> ${escapeHtml(student.parent_phone)}` : ''}
-            </div>
-            ${allergyHtml}
-            ${foodHtml}
-          </div>
-          <div class="card-actions">
-            <button class="btn-pulse btn-toggle-checkin" style="background:${isCheckedIn ? '#16a34a' : '#2563eb'}; color:white;">
-              ${isCheckedIn ? 'Checked In ✓' : 'Check In'}
-            </button>
-            <button class="btn-pulse btn-edit" style="background:#64748b; color:white;">Edit</button>
-            <button class="delete-btn btn-delete" style="padding: 4px 8px;">✕</button>
-          </div>
-        </div>
+          </td>
+        </tr>
       `;
-      grid.append(cardHtml);
+      tbody.append(rowHtml);
     });
   }
 
-  // Check-In / Check-Out Toggle Action
+  // Attendance Toggle using $.ajax
   $(document).on('click', '.btn-toggle-checkin', function() {
-    const card = $(this).closest('.student-card');
-    const isCheckedIn = card.hasClass('checked-in');
+    const row = $(this).closest('tr');
+    const isCheckedIn = row.find('.btn-toggle-checkin').hasClass('btn-checkout');
 
-    $.post('vbs_api.php', {
-      action: 'toggle_attendance',
-      student_id: card.data('id'),
-      vbs_session_id: card.data('session-id'),
-      attendance_action: isCheckedIn ? 'checkout' : 'checkin'
-    }, function(res) {
-      if (res.success) loadRoster();
-      else alert("Error: " + res.message);
-    }, 'json');
-  });
-
-  // Live Search Filter
-  $('#searchInput').on('keyup', function() {
-    const val = $(this).val().toLowerCase();
-    $('.student-card').filter(function() {
-      $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
+    $.ajax({
+      url: 'vbs_api.php',
+      type: 'POST',
+      data: {
+        action: 'toggle_attendance',
+        student_id: row.data('id'),
+        vbs_session_id: row.data('session-id'),
+        attendance_action: isCheckedIn ? 'checkout' : 'checkin'
+      },
+      dataType: 'json',
+      success: function(res) {
+        if (res.success) {
+          loadRoster();
+        } else {
+          showInlineMessage("Error updating attendance: " + res.message, "error");
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        showInlineMessage("Server error during attendance toggle.", "error");
+        console.error("AJAX Error in toggle_attendance:", textStatus, jqXHR.responseText);
+      }
     });
   });
 
-  // Modal Handlers
-  $('#addNewStudentBtn').click(function() {
-    $('#vbsStudentForm')[0].reset();
-    $('#vbs_id').val('');
-    $('#modalTitle').text('Register Student for VBS');
-    $('#vbsModal').css('display', 'flex');
-  });
-
-  $('#closeModalBtn').click(function() { $('#vbsModal').hide(); });
-
-  // Load single student for edit
+  // Edit Action using $.ajax
   $(document).on('click', '.btn-edit', function() {
-    const vbsId = $(this).closest('.student-card').data('vbs-id');
-    $.get('vbs_api.php', { action: 'get_student', vbs_id: vbsId }, function(res) {
-      if (res.success) {
-        const s = res.data;
-        $('#vbs_id').val(s.vbs_id);
-        $('#vbs_sessions_id').val(s.vbs_sessions_id);
-        $('#contact_id').val(s.contact_id);
-        $('#parent_id').val(s.parent_id);
-        $('#class_id').val(s.class_id);
-        $('#allergies').val(s.allergies);
-        $('#food_restrictions').val(s.food_restrictions);
-        $('#medical_notes').val(s.medical_notes);
+    const vbsId = $(this).closest('tr').data('vbs-id');
+    $.ajax({
+      url: 'vbs_api.php',
+      type: 'GET',
+      data: { action: 'get_student', vbs_id: vbsId },
+      dataType: 'json',
+      success: function(res) {
+        if (res.success) {
+          const s = res.data;
+          $('#vbs_id').val(s.vbs_id);
+          $('#form_vbs_sessions_id').val(s.vbs_sessions_id);
+          $('#sessionSelect').val(s.vbs_sessions_id);
+          $('#contact_id').val(s.contact_id);
+          
+          // Reload classes for this session and set selected class after populate completes
+          loadClassesForSession(s.vbs_sessions_id, function() {
+            $('#vbs_class_id').val(s.class_id);
+          });
 
-        $('#modalTitle').text('Edit VBS Student Record');
-        $('#vbsModal').css('display', 'flex');
+          $('#allergies').val(s.allergies);
+          $('#food_restrictions').val(s.food_restrictions);
+          $('#medical_notes').val(s.medical_notes);
+
+          $('#formTitle').text('Edit VBS Student Record');
+          $('html, body').animate({ scrollTop: $("#inlineFormContainer").offset().top }, 'fast');
+        } else {
+          showInlineMessage("Failed to retrieve student record.", "error");
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.error("AJAX Error in get_student:", textStatus, jqXHR.responseText);
       }
-    }, 'json');
+    });
   });
 
-  // Submit Save Student Form
+  // Delete Action using $.ajax
+  $(document).on('click', '.btn-delete', function() {
+    const vbsId = $(this).closest('tr').data('vbs-id');
+    $.ajax({
+      url: 'vbs_api.php',
+      type: 'POST',
+      data: { action: 'delete_student', vbs_id: vbsId },
+      dataType: 'json',
+      success: function(res) {
+        if (res.success) {
+          showInlineMessage("Record removed.", "success");
+          loadRoster();
+        } else {
+          showInlineMessage("Error deleting record.", "error");
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.error("AJAX Error in delete_student:", textStatus, jqXHR.responseText);
+      }
+    });
+  });
+
+  // Submit Form - Adds student and updates table immediately using $.ajax
   $('#vbsStudentForm').on('submit', function(e) {
     e.preventDefault();
-    $.post('vbs_api.php', $(this).serialize() + '&action=save_student', function(res) {
-      if (res.success) {
-        $('#vbsModal').hide();
-        loadRoster();
-      } else {
-        alert("Error saving: " + res.message);
+    if (!$('#form_vbs_sessions_id').val()) {
+      showInlineMessage("Please select a Session Year from the dropdown above.", "error");
+      return;
+    }
+
+    $.ajax({
+      url: 'vbs_api.php',
+      type: 'POST',
+      data: $(this).serialize() + '&action=save_student',
+      dataType: 'json',
+      success: function(res) {
+        if (res.success) {
+          resetForm();
+          showInlineMessage("Student record saved successfully.", "success");
+          loadRoster();
+        } else {
+          showInlineMessage("Error: " + res.message, "error");
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        showInlineMessage("Server error while saving student.", "error");
+        console.error("AJAX Error in save_student:", textStatus, jqXHR.responseText);
       }
-    }, 'json');
+    });
   });
 
-  // Delete VBS Student Entry
-  $(document).on('click', '.btn-delete', function() {
-    if (!confirm("Are you sure you want to remove this student from VBS?")) return;
-    const vbsId = $(this).closest('.student-card').data('vbs-id');
-    $.post('vbs_api.php', { action: 'delete_student', vbs_id: vbsId }, function(res) {
-      if (res.success) loadRoster();
-    }, 'json');
+  $('#resetFormBtn').click(function() {
+    resetForm();
+  });
+
+  function resetForm() {
+    $('#vbsStudentForm')[0].reset();
+    $('#vbs_id').val('');
+    $('#form_vbs_sessions_id').val($('#sessionSelect').val());
+    $('#formTitle').text('Register VBS Student');
+  }
+
+  function showInlineMessage(msg, type) {
+    const box = $('#inlineStatus');
+    box.text(msg)
+       .css('background-color', type === 'error' ? '#fef2f2' : '#f0fdf4')
+       .css('color', type === 'error' ? '#991b1b' : '#166534')
+       .css('border', type === 'error' ? '1px solid #fca5a5' : '1px solid #86efac')
+       .show();
+    setTimeout(() => box.fadeOut(), 4000);
+  }
+
+  // Search Filter
+  $('#searchInput').on('keyup', function() {
+    const val = $(this).val().toLowerCase();
+    $('#studentTable tbody tr').filter(function() {
+      $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
+    });
   });
 
   function escapeHtml(str) {
@@ -202,65 +347,85 @@ $(document).ready(function() {
 
   <h1>VBS Attendance & Roster Management</h1>
 
-  <fieldset class="form-grid-section-short">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap: 1rem; width:100%;">
-      <input type="text" id="searchInput" placeholder="Search child or parent name..." style="padding:0.6rem; width:60%;">
-      <button type="button" id="addNewStudentBtn" class="btn-pulse nbtn">+ Add VBS Student</button>
+  <!-- Top Filters & Session Selection -->
+  <fieldset id="session-set" class="form-grid-section-short-40">
+    <div class="field-group" style="--colspan: 2;">
+      <label for="sessionSelect">
+        <h3 style="color: blue; margin: 0;">Select Session Year</h3>
+      </label>
+      <select id="sessionSelect">
+        <option value="">--Select--</option>
+      </select>
     </div>
   </fieldset>
 
-  <!-- Roster Grid -->
-  <div id="studentGrid" class="vbs-grid"></div>
+  <!-- Inline Registration & Edit Form -->
+  <div id="inlineFormContainer" style="background:#ffffff; padding:1.5rem; border:2px solid #e2e8f0; border-radius:8px; margin: 1.5rem 0;">
+    <h2 id="formTitle" style="margin-top:0;">Register VBS Student</h2>
+    
+    <div id="inlineStatus" style="display:none; padding:0.75rem; border-radius:4px; margin-bottom:1rem;"></div>
 
-  <!-- Registration/Edit Modal -->
-  <div class="modal" id="vbsModal">
-    <div class="modal-content">
-      <h2 id="modalTitle">Register VBS Student</h2>
-      <form id="vbsStudentForm">
-        <input type="hidden" name="vbs_id" id="vbs_id">
-        
+    <form id="vbsStudentForm">
+      <input type="hidden" name="vbs_id" id="vbs_id">
+      <input type="hidden" name="vbs_sessions_id" id="form_vbs_sessions_id">
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
         <div class="form-group">
-          <label for="vbs_sessions_id">VBS Session ID</label>
-          <input type="number" name="vbs_sessions_id" id="vbs_sessions_id" value="1" required>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label for="contact_id">Student</label>
+            <a href="contacts.php?type=child" class="add-contact-link" target="_blank">+ Add Student to Contacts</a>
+          </div>
+          <select name="contact_id" id="contact_id" required style="width:100%; padding:0.4rem;"></select>
         </div>
 
-        <div class="form-row">
+        <div class="form-group">
+          <label for="vbs_class_id">Registered Class</label>
+          <select name="vbs_class_id" id="vbs_class_id" required style="width:100%; padding:0.4rem;">
+            <option value="">--Select--</option>
+          </select>
+        </div>
+      </div>
+
+      <fieldset id="student-details" style="margin-top:1rem;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
           <div class="form-group">
-            <label for="contact_id">Child (Contact)</label>
-            <select name="contact_id" id="contact_id" required></select>
+            <label for="allergies">Allergies</label>
+            <textarea name="allergies" id="allergies" rows="2" style="width:100%;"></textarea>
           </div>
           <div class="form-group">
-            <label for="parent_id">Parent/Guardian</label>
-            <select name="parent_id" id="parent_id" required></select>
+            <label for="food_restrictions">Food Restrictions</label>
+            <textarea name="food_restrictions" id="food_restrictions" rows="2" style="width:100%;"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="medical_notes">Medical Notes</label>
+            <textarea name="medical_notes" id="medical_notes" rows="2" style="width:100%;"></textarea>
           </div>
         </div>
+      </fieldset>
 
-        <div class="form-group">
-          <label for="class_id">Class ID</label>
-          <input type="number" name="class_id" id="class_id" required>
-        </div>
-
-        <div class="form-group">
-          <label for="allergies">Allergies</label>
-          <textarea name="allergies" id="allergies" rows="2"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="food_restrictions">Food Restrictions</label>
-          <textarea name="food_restrictions" id="food_restrictions" rows="2"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="medical_notes">Medical Notes</label>
-          <textarea name="medical_notes" id="medical_notes" rows="2"></textarea>
-        </div>
-
-        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
-          <button type="button" id="closeModalBtn" class="btn-pulse" style="background:#94a3b8;">Cancel</button>
-          <button type="submit" class="btn-pulse">Save Record</button>
-        </div>
-      </form>
-    </div>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
+        <button type="button" id="resetFormBtn" class="btn-pulse" style="background:#94a3b8; color:white;">Clear / Cancel</button>
+        <button type="submit" class="btn-pulse" style="background:#2563eb; color:white;">Save Record</button>
+      </div>
+    </form>
   </div>
+
+  <div style="margin-bottom:1rem;">
+    <input type="text" id="searchInput" placeholder="Search student name..." style="padding:0.6rem; width:100%; max-width:400px;">
+  </div>
+
+  <!-- Student Roster Table -->
+  <table id="studentTable">
+    <thead>
+      <tr>
+        <th>Student Name</th>
+        <th>Class</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
 </body>
 </html>

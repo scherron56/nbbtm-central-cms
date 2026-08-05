@@ -1,6 +1,5 @@
 <?php
 // saveContact.php
-// $db is provided by db.php; do not overwrite it here.
 require_once 'config/db.php';
 header('Content-Type: application/json; charset=utf-8');
 
@@ -125,16 +124,13 @@ try {
     }
 
     // --- MANAGE FAMILIES TABLE LINK ---
-    // 1. Clear existing family records for this contact
     $delFam = $db->prepare("DELETE FROM Families WHERE contact_id = ?");
     $delFam->bind_param("i", $target_id);
     $delFam->execute();
     $delFam->close();
 
-    // 2. Resolve family_id target (If head of household, family_id IS contact_id)
     $target_family_id = ($is_head === 1) ? $target_id : $family_id;
 
-    // 3. Insert into Families table if a valid family ID exists
     if (!empty($target_family_id)) {
         $insFam = $db->prepare("INSERT INTO Families (contact_id, family_id) VALUES (?, ?)");
         $insFam->bind_param("ii", $target_id, $target_family_id);
@@ -143,14 +139,12 @@ try {
     }
 
     // --- MANAGE MINISTRY ALLIANCES ---
-    // Always clear existing alliances to rebuild cleanly
     $delSql = "DELETE FROM member_alliance WHERE contact_id = ?";
     $delStmt = $db->prepare($delSql);
     $delStmt->bind_param("i", $target_id);
     $delStmt->execute();
     $delStmt->close();
 
-    // Re-link ministry alliances ONLY IF Member is checked
     if ($is_member === 1 && !empty($ministries)) {
         $insAllSql = "INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)";
         $allStmt = $db->prepare($insAllSql);
