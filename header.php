@@ -10,7 +10,7 @@
     <h2 class="break-row">Central Management System</h2>
 <nav class="navbar"> 
   <ul class="nav-links"> 
-    <li><a href="#" class="active">Home</a></li> 
+    <li><a href="index.php" class="active">Home</a></li> 
     <li><a href="contacts.php">Contacts</a></li> 
     
     <!-- Parent Menu Item -->

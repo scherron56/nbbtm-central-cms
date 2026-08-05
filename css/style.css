@@ -65,86 +65,77 @@ h1 {
   font-size: 1rem;
 }
 
-/* Base Navbar Styling */ 
-.navbar { 
-  margin-top: auto; 
-  padding: 15px 30px; 
-} 
-
-.nav-links { 
-  display: flex; 
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
-  gap: 25px; 
-} 
-
-.nav-links a { 
-  color: #fff; 
-  text-decoration: none; 
-  position: relative; /* Required for absolute indicator line placement */ 
-  padding-bottom: 6px; /* Space between text and indicator line */ 
-  transition: color 0.2s ease; 
-} 
-
-/* Hover State color change */ 
-.nav-links a:hover { 
-  color: #ff8400; 
-} 
-
-/* Active Link Indicator Line */ 
-.nav-links a.active::after { 
-  content: ''; 
-  position: absolute; 
-  left: 0; 
-  bottom: 0; 
-  width: 100%; 
-  height: 3px; /* Thickness of the active line */ 
-  background-color: #ff8400; /* Vibrant orange line */ 
-  border-radius: 2px; 
+/* Button-Style Navigation */
+.navbar {
+  margin-top: 0.75rem;
 }
 
-/* ==========================================================================
-   ADDED: Submenu & Dropdown Styles
-   ========================================================================== */
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
 
-/* Gives the parent VBS item a positioning context for the submenu */
-.nav-links > .dropdown {
+.nav-links li {
   position: relative;
 }
 
-/* Base submenu setup: Hidden by default and stacked vertically */
-.nav-links .submenu {
+/* Button Base */
+.nav-links a {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  background-color: transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Hover State - Colored Highlight Button */
+.nav-links a:hover {
+  background-color: #2563eb; /* Vibrant Blue */
+  color: #ffffff;
+  text-decoration: none;
+}
+
+/* Active Page Button */
+.nav-links a.active {
+  background-color: #0d9488; /* Teal Highlight for Current Page */
+  color: #ffffff;
+}
+
+/* Dropdown Menu Styling */
+.dropdown:hover .submenu {
+  display: block;
+}
+
+.submenu {
   display: none;
   position: absolute;
-  top: 100%; /* Sits exactly below the parent text */
+  top: 100%;
   left: 0;
-  background-color: #222; /* Dark background to contrast with white text */
+  background-color: #ffffff;
   min-width: 160px;
-  list-style: none;
-  padding: 10px 0;
-  margin: 0;
-  border-radius: 4px;
-  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(57, 23, 160, 0.15);
+  border-radius: 6px;
+  padding: 0.5rem 0;
   z-index: 100;
+  list-style: none;
 }
 
-/* Format the links specifically inside the dropdown menu */
-.nav-links .submenu a {
+.submenu li a {
+  color: #374151;
   display: block;
-  padding: 8px 16px;
-  color: #fff;
-  white-space: nowrap; /* Prevents text from wrapping awkwardly */
-}
-
-/* Removes the active bottom border line from inside the submenu links */
-.nav-links .submenu a::after {
-  display: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0;
 }
 
 /* Smooth background highlight on submenu item hover */
 .nav-links .submenu a:hover {
-  background-color: #333;
+  background-color: #090d98;
   color: #ff8400;
 }
 
@@ -439,19 +430,233 @@ form {
   #checkbox-container {
     grid-template-columns: 1fr !important;
     gap: 1rem;
-  }
-  
+}
+
   .form-grid-section-short,
   .form-grid-section-short-rght {
     width: 100%;
     grid-template-columns: 1fr;
-  }
-  
+}
+
   .selContact {
     grid-template-columns: 1fr;
   }
   
   .ministry-card select {
     max-width: 100%; /* Dropdowns take up full width on mobile devices */
+  }
+}
+/* ==========================================================================
+   DASHBOARD LAYOUT & WIDGET STYLES
+   ========================================================================== */
+
+/* Main Container */
+.dashboard-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+/* 1. Dynamic KPI Metrics Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-left: 5px solid #2563eb;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.kpi-card.highlight {
+  border-left-color: #0d9488; /* Teal Accent */
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
+}
+
+.kpi-title {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #28089a;
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.kpi-subtext {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* 2. Main Two-Column Layout */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.main-content,
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* Card Container */
+.card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  color: #28089a;
+  font-size: 1.25rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+/* 3. Action Buttons Grid */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.action-buttons .btn {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.btn-accent {
+  background-color: #0d9488;
+  color: #ffffff;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-accent:hover {
+  background-color: #0f766e;
+}
+
+/* 4. Data Tables (Recent Contacts) */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.925rem;
+}
+
+.data-table th {
+  background-color: #f8fafc;
+  color: #28089a;
+  font-weight: 700;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* 5. Lists & Task Elements (Sidebar) */
+.quick-links,
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.task-list li:last-child {
+  border-bottom: none;
+}
+
+.task-list input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+.task-list label {
+  font-size: 0.9rem;
+  color: #334155;
+  cursor: pointer;
+}
+
+.link-btn {
+  display: inline-block;
+  color: #4f46e5;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.15s ease;
+}
+
+.link-btn:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* Mobile Breakpoints */
+@media screen and (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .data-table th, 
+  .data-table td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
   }
 }
