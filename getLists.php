@@ -48,12 +48,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $phoneTypeResult = $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER BY phone_type_desc ASC");
         $phonetype = $phoneTypeResult ? $phoneTypeResult->fetch_all(MYSQLI_ASSOC) : [];
 
+        // 6. Fetch Ministry/Committee List
+        $minStmt = $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
+        $ministryList = $minStmt ? $minStmt->fetch_all(MYSQLI_ASSOC) : [];
+
+        // 7. Fetch Roles List
+        $roleStmt = $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc ASC");
+        $roleList = $roleStmt ? $roleStmt->fetch_all(MYSQLI_ASSOC) : [];
+
         $response = [
-            'contacts'  => $contacts,
-            'heads'     => $heads,
-            'titles'    => $titles,
-            'marital'   => $marital,
-            'phonetype' => $phonetype
+            'contacts'     => $contacts,
+            'heads'        => $heads,
+            'titles'       => $titles,
+            'marital'      => $marital,
+            'phonetype'    => $phonetype,
+            'ministryList' => $ministryList,
+            'roleList'     => $roleList
         ];
 
     } catch (mysqli_sql_exception $e) {

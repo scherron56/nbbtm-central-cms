@@ -35,6 +35,9 @@
   <script>
 $(document).ready(function() {
 
+  let globalMinistryList = [];
+  let globalRoleList = [];
+
   // Initial Load of Dropdown Components
   updateFormLists();
 
@@ -46,20 +49,71 @@ $(document).ready(function() {
     }
   }
 
+  // Standalone function to render Ministry Checkboxes
+  function buildMinistryCheckboxes(ministryList, roleList, savedMinistries = []) {
+    $('#checkbox-container').empty(); 
+
+    if (ministryList && ministryList.length > 0) {
+      $.each(ministryList, function(index, item) {
+        let savedAlliance = (savedMinistries && Array.isArray(savedMinistries)) ? savedMinistries.find(function(minObj) {
+          return String(minObj.min_comm_id) === String(item.min_comm_id);
+        }) : null;
+        
+        let isChecked = !!savedAlliance;
+        let allianceRoleId = savedAlliance ? savedAlliance.role_id : ''; 
+
+        const checkboxId = 'ministry_id' + item.min_comm_id;
+        const checkbox = $('<input>').attr({
+          type: 'checkbox',
+          id: checkboxId,
+          name: 'ministries[]',
+          value: item.min_comm_id
+        }).prop('checked', isChecked);
+        
+        const label = $('<label>').attr('for', checkboxId).text(' ' + item.min_comm_name);
+        const rowDiv = $('<div>').css('margin-bottom', '10px');
+        rowDiv.append(checkbox).append(label).append(' ');
+
+        const roleSelect = $('<select>').attr({
+          id: 'role_id_' + item.min_comm_id, 
+          name: 'roles[' + item.min_comm_id + ']'
+        });
+        
+        roleSelect.append($('<option>').val('').text('--Select Role--'));
+
+        if (roleList) {
+          $.each(roleList, function(rIndex, roleOption) {
+            const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_desc);
+            if (savedAlliance && String(roleOption.role_id) === String(allianceRoleId)) {
+              option.attr('selected', 'selected');
+            }
+            roleSelect.append(option);
+          });                 
+        }
+
+        rowDiv.append(roleSelect);
+        $('#checkbox-container').append(rowDiv);
+      });
+    }
+  }
+
   $('#is_member').change(function() {
     toggleMemberSections($(this).is(':checked'));
   });
 
-  // Toggle Family dropdown based on Head of Household status
+  // Automatically handle Head of Household selection
   $('#is_head').change(function() {
     if ($(this).is(':checked')) {
-      // If contact is Head of Household, disable or reset family picker
-      $('#family_id').val('');
+      let currentContactId = $('#contact_id').val();
+      if (currentContactId) {
+        $('#family_id').val(currentContactId);
+      }
     }
   });
 
   function updateContactList() {
     let membersOnly = $('input[name="contact_filter"]:checked').val();
+    let currentContactId = $('#contactID').val();
 
     $.ajax({
       url: "getLists.php",
@@ -73,6 +127,7 @@ $(document).ready(function() {
             $('#contactID').append($('<option>', { value: item.contact_id, text: item.fullname }));
           });
         }
+        $('#contactID').val(currentContactId);
       },
       error: function(xhr, status, error) {
         console.error("Error loading contact list: ", error, xhr.responseText);
@@ -80,8 +135,17 @@ $(document).ready(function() {
     });
   }
 
-  function updateFormLists() {
+  function updateFormLists(callback) {
     let membersOnly = $('input[name="contact_filter"]:checked').val();
+
+    // Preserve selected values prior to rebuilding options
+    let selContact  = $('#contactID').val();
+    let selFamily   = $('#family_id').val();
+    let selTitle    = $('#title_id').val();
+    let selMarital  = $('#marital_status').val();
+    let selPhone1   = $('#phone_1_type').val();
+    let selPhone2   = $('#phone_2_type').val();
+    let selPhone3   = $('#phone_3_type').val();
 
     $.ajax({
       url: "getLists.php",
@@ -89,6 +153,10 @@ $(document).ready(function() {
       data: { members_only: membersOnly },
       dataType: 'json',
       success: function(data) {
+        // Cache Ministry & Role lists globally
+        globalMinistryList = data.ministryList || [];
+        globalRoleList = data.roleList || [];
+
         // Populate Contacts
         $('#contactID').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.contacts && Array.isArray(data.contacts)) {
@@ -97,7 +165,7 @@ $(document).ready(function() {
           });
         }
 
-        // Populate Family Dropdown (Heads of Household)
+        // Populate Family Dropdown
         $('#family_id').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.heads && Array.isArray(data.heads)) {
           $.each(data.heads, function(index, item) {
@@ -132,6 +200,24 @@ $(document).ready(function() {
             $('#phone_3_type').append(opt.clone());
           });
         }
+
+        // Re-select prior selections
+        if (selContact) $('#contactID').val(selContact);
+        if (selFamily) $('#family_id').val(selFamily);
+        if (selTitle) $('#title_id').val(selTitle);
+        if (selMarital) $('#marital_status').val(selMarital);
+        if (selPhone1) $('#phone_1_type').val(selPhone1);
+        if (selPhone2) $('#phone_2_type').val(selPhone2);
+        if (selPhone3) $('#phone_3_type').val(selPhone3);
+
+        // Build empty checkboxes if brand new contact mode
+        if (!$('#contact_id').val() && $('#checkbox-container').is(':empty')) {
+          buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
+        }
+
+        if (typeof callback === 'function') {
+          callback();
+        }
       },
       error: function(xhr, status, error) {
         console.error("Error loading lists: ", error, xhr.responseText);
@@ -147,8 +233,9 @@ $(document).ready(function() {
     $('#contact-form')[0].reset();
     $('#contact_id').val('');
     $('#contactID').val('');
-    $('#checkbox-container').empty();
     $('#is_member, #is_baptized, #is_active, #is_head').prop('checked', false);
+    
+    buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
     toggleMemberSections(false);
     $('#submitBtn').text('Save');
   });
@@ -160,7 +247,7 @@ $(document).ready(function() {
     if (contactid === "") {
       $('#contact-form')[0].reset();
       $('#contact_id').val('');
-      $('#checkbox-container').empty();
+      buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
       toggleMemberSections(false);
       return;
     }
@@ -203,16 +290,12 @@ $(document).ready(function() {
         $('#join_date').val(contact.join_date || '');
         $('#baptized_date').val(contact.baptized_date || '');
 
-        // Checkboxes & Head of Household / Family logic
         let isHead = String(contact.is_head) === "1" || contact.is_head === true;
         $('#is_head').prop('checked', isHead);
 
-        // Populate Family Dropdown selection
         if (isHead) {
-          // If Head of Household, the contact IS the family head
           $('#family_id').val(contactid);
         } else {
-          // Otherwise, set to the linked family_id from the Families table
           $('#family_id').val(data.family_id || '');
         }
 
@@ -224,50 +307,8 @@ $(document).ready(function() {
         
         toggleMemberSections(isMember);
 
-        // Build Ministry Checkboxes
-        $('#checkbox-container').empty(); 
-        if (data.ministryList && data.ministryList.length > 0) {
-          $.each(data.ministryList, function(index, item) {
-            let savedAlliance = (data.ministries && Array.isArray(data.ministries)) ? data.ministries.find(function(minObj) {
-              return String(minObj.min_comm_id) === String(item.min_comm_id);
-            }) : null;
-            
-            let isChecked = !!savedAlliance;
-            let allianceRoleId = savedAlliance ? savedAlliance.role_id : ''; 
-
-            const checkboxId = 'ministry_id' + item.min_comm_id;
-            const checkbox = $('<input>').attr({
-              type: 'checkbox',
-              id: checkboxId,
-              name: 'ministries[]',
-              value: item.min_comm_id
-            }).prop('checked', isChecked);
-            
-            const label = $('<label>').attr('for', checkboxId).text(' ' + item.min_comm_name);
-            const rowDiv = $('<div>').css('margin-bottom', '10px');
-            rowDiv.append(checkbox).append(label).append(' ');
-
-            const roleSelect = $('<select>').attr({
-              id: 'role_id_' + item.min_comm_id, 
-              name: 'roles[' + item.min_comm_id + ']'
-            });
-            
-            roleSelect.append($('<option>').val('').text('--Select Role--'));
-
-            if (data.roleList) {
-              $.each(data.roleList, function(rIndex, roleOption) {
-                const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_desc);
-                if (savedAlliance && String(roleOption.role_id) === String(allianceRoleId)) {
-                  option.attr('selected', 'selected');
-                }
-                roleSelect.append(option);
-              });                 
-            }
-
-            rowDiv.append(roleSelect);
-            $('#checkbox-container').append(rowDiv);
-          });
-        }
+        // Build Ministry Checkboxes using fetched contact alliances
+        buildMinistryCheckboxes(data.ministryList, data.roleList, data.ministries);
         
         $('#submitBtn').text('Update Contact');
         $('#resetBtn').show();
@@ -278,7 +319,7 @@ $(document).ready(function() {
     });
   });
 
-  // Save & Delete handlers remain as configured...
+  // Save handler
   $('#contact-form').on('submit', function(e) {
     e.preventDefault();
 
@@ -294,10 +335,14 @@ $(document).ready(function() {
       success: function(response) {
         if (response.status === 'success') {
           alert(response.message);
-          if (response.id) {
-            $('#contact_id').val(response.id);
-          }
-          updateFormLists();
+          let savedId = response.id;
+          
+          // Re-populate system lists and reload updated contact details
+          updateFormLists(function() {
+            if (savedId) {
+              $('#contactID').val(savedId).trigger('change');
+            }
+          });
         }
       },
       error: function(xhr, status, error) {
@@ -318,6 +363,38 @@ $(document).ready(function() {
     });
   });
 
+  // Delete handler
+  $('#deleteBtn').click(function(e) {
+    e.preventDefault();
+    let contactId = $('#contact_id').val();
+
+    if (!contactId) {
+      alert("Please select a contact to delete.");
+      return;
+    }
+
+    if (confirm("Are you sure you want to delete this contact? This action cannot be undone.")) {
+      $.ajax({
+        url: 'deleteContact.php',
+        type: 'POST',
+        data: { contact_id: contactId },
+        dataType: 'json',
+        success: function(response) {
+          if (response.status === 'success') {
+            alert(response.message);
+            $('#addNewContact').click();
+            updateFormLists();
+          } else {
+            alert(response.message || "Failed to delete contact.");
+          }
+        },
+        error: function(xhr, status, error) {
+          alert("An error occurred while attempting to delete the contact.");
+        }
+      });
+    }
+  });
+
   toggleMemberSections($('#is_member').is(':checked'));
 });
  </script>
@@ -330,7 +407,6 @@ $(document).ready(function() {
   <h1>Member/Contact Information</h1>
 
   <form id="contact-form" name="contact-form">
-  
   
 <fieldset id="contact-select" class="form-grid-section-short">
 
@@ -357,13 +433,7 @@ $(document).ready(function() {
     </select>
   </div>
   <div class="field-group" style="--colspan: 2; display: flex; justify-content: center; align-items: center;">
-  <button type="button" id="addNewContact" class="btn-pulse nbtn">Add Contact</button>
-</div>
-  <!-- <div class="field-group" style="--colspan: 1;">
     <button type="button" id="addNewContact" class="btn-pulse nbtn">Add Contact</button>
-  </div> -->
-  
-    </div>
   </div>
 
 </fieldset>
@@ -427,16 +497,15 @@ $(document).ready(function() {
       <div class="field-group" style="--colspan: 2; --rowspan: 3;">
         <label for="is_head">Head of Household</label>
         <input type="hidden" name="is_head" value="0">
-        <input type="checkbox" id="is_head" name="is_head" value="0">
+        <input type="checkbox" id="is_head" name="is_head" value="1">
       </div>  
 
       <div class="field-group" style="--colspan: 2;" >
-     <label for="family_id">Select Family</label>
-     <select name="family_id" id="family_id">
-      <option value="">--Select--</option>
-      
-    </select>
-  </div>     
+        <label for="family_id">Select Family</label>
+        <select name="family_id" id="family_id">
+          <option value="">--Select--</option>
+        </select>
+      </div>     
       
     </fieldset>
 
@@ -530,7 +599,6 @@ $(document).ready(function() {
       </div>
 
       <input type="hidden" name="is_child" value="0">
-      <input type="hidden" name="is_head" value="0">
     </fieldset>
 
     <!-- DYNAMIC MINISTRY ALLIANCES AREA -->

@@ -136,8 +136,8 @@
             action: 'save_session',
             vbs_sessions_id: sessionId,
             vbs_year: yearVal,
-            vbs_start_date: $('#vbs_start_date').val(),
-            vbs_end_date: $('#vbs_end_date').val(),
+            vbs_session_start: $('#vbs_start_date').val() || null,
+            vbs_session_end: $('#vbs_end_date').val() || null,
             vbs_theme: $('#vbs_theme').val(),
             vbs_theme_scripture: $('#vbs_theme_scripture').val()
           },
@@ -181,21 +181,17 @@
           url: 'class_controller.php',
           type: 'POST',
           data: {
-            action: 'save_session',
-            vbs_sessions_id: 0,
-            vbs_year: currentYear,
-            vbs_start_date: '',
-            vbs_end_date: '',
-            vbs_theme: 'New Session',
-            vbs_theme_scripture: ''
+            action: 'add_session',
+            vbs_theme_title: 'New Session'
           },
           dataType: 'json',
           success: function(res) {
-            if (res.success && res.vbs_sessions_id) {
-              const newId = res.vbs_sessions_id;
+            if (res.success && res.new_id) {
+              const newId = res.new_id;
+              const displayName = res.combined_name || (currentYear + ' - New Session');
 
               if ($(`#SessionID option[value="${newId}"]`).length === 0) {
-                $('#SessionID').append(new Option(currentYear + ' - New Session', newId));
+                $('#SessionID').append(new Option(displayName, newId));
               }
 
               setActiveSessionId(newId);
@@ -207,7 +203,7 @@
           },
           error: function(xhr, status, error) {
             console.error("Add session error:", xhr.responseText);
-            alert('Failed to initialize session record.');
+            alert('Failed to initialize session record. Check browser console for details.');
           }
         });
       });
@@ -301,14 +297,22 @@
           dataType: 'json',
           success: function(data) {
             const sessionSelect = $('#SessionID');
-            if (data.sessions) {
+            sessionSelect.find('option:not(:first)').remove();
+
+            if (data.sessions && Array.isArray(data.sessions)) {
               data.sessions.forEach(function(sess) {
-                sessionSelect.append(new Option(sess.vbs_year, sess.vbs_sessions_id));
+                let label = sess.vbs_year;
+                if (sess.vbs_theme) {
+                  label += ' - ' + sess.vbs_theme;
+                }
+                sessionSelect.append(new Option(label, sess.vbs_sessions_id));
               });
             }
 
             const teacherSelect = $('#vbs_class_teacher_id');
-            if (data.teachers) {
+            teacherSelect.find('option:not(:first)').remove();
+
+            if (data.teachers && Array.isArray(data.teachers)) {
               data.teachers.forEach(function(teach) {
                 teacherSelect.append(new Option(teach.teacher_name, teach.vbs_class_teacher_id));
               });
@@ -454,9 +458,11 @@
       </div>
     </fieldset>
 
-    <fieldset class="form-grid-section-9">
+<fieldset class="form-grid-section-9">
       <input type="hidden" id="vbs_sessions_id" name="vbs_sessions_id">
-      <div class="field-group" style="--colspan: 1;">
+      
+      <!-- Line 1: Year, Dates, and Theme -->
+      <div class="field-group" style="--colspan: 2;">
         <label for="vbs_year">Session Year</label>
         <input type="text" id="vbs_year" name="vbs_year">
       </div>
@@ -468,19 +474,20 @@
         <label for="vbs_end_date">End Date</label>
         <input type="date" id="vbs_end_date" name="vbs_end_date">
       </div>
-      <div class="field-group" style="--colspan: 2;">
+      <div class="field-group" style="--colspan: 3;">
         <label for="vbs_theme">Session Theme</label>
         <input type="text" id="vbs_theme" name="vbs_theme">
       </div>
-      <div class="field-group" style="--colspan: 2;">
+
+      <!-- Line 2: Theme Scripture (6 cols) + Save Button pushed right (3 cols) -->
+      <div class="field-group" style="--colspan: 6;">
         <label for="vbs_theme_scripture">Theme Scripture</label>
         <input type="text" id="vbs_theme_scripture" name="vbs_theme_scripture">
       </div>
-      <div class="field-group" style="--colspan: 9; margin-top: 10px;">
-        <button type="button" id="saveSessionBtn" class="btn-primary nbtn">Save Session Details</button>
+      <div class="field-group" style="--colspan: 3; display: flex; align-items: flex-end; justify-content: flex-end;">
+        <button type="button" id="saveSessionBtn" class="btn-primary nbtn" style="width: auto;">Save Session Details</button>
       </div>
     </fieldset>
-
     <div id="class-table-container" class="table-container hidden">
       <h3>Active Classes for Selected Session</h3>
       <table class="data-table">
