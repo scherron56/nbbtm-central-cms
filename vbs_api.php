@@ -111,7 +111,6 @@ try {
             $vbs_id          = !empty($_POST['vbs_id']) ? intval($_POST['vbs_id']) : null;
             $vbs_sessions_id = intval($_POST['vbs_sessions_id'] ?? 0);
             $contact_id      = intval($_POST['contact_id'] ?? 0);
-            $parent_id       = intval($_POST['parent_id'] ?? 0);
             $class_id        = intval($_POST['vbs_class_id'] ?? $_POST['class_id'] ?? 0);
             $allergies       = trim($_POST['allergies'] ?? '');
             $food            = trim($_POST['food_restrictions'] ?? '');
@@ -125,16 +124,16 @@ try {
             if ($vbs_id) {
                 $stmt = $db->prepare("
                     UPDATE vbs_students 
-                    SET vbs_sessions_id = ?, contact_id = ?, parent_id = ?, class_id = ?, allergies = ?, food_restrictions = ?, medical_notes = ? 
+                    SET vbs_sessions_id = ?, contact_id = ?, class_id = ?, allergies = ?, food_restrictions = ?, medical_notes = ? 
                     WHERE vbs_id = ?
                 ");
-                $stmt->bind_param("iiiisssi", $vbs_sessions_id, $contact_id, $parent_id, $class_id, $allergies, $food, $medical, $vbs_id);
+                $stmt->bind_param("iiisssi", $vbs_sessions_id, $contact_id, $class_id, $allergies, $food, $medical, $vbs_id);
             } else {
                 $stmt = $db->prepare("
-                    INSERT INTO vbs_students (vbs_sessions_id, contact_id, parent_id, class_id, allergies, food_restrictions, medical_notes) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO vbs_students (vbs_sessions_id, contact_id, class_id, allergies, food_restrictions, medical_notes) 
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->bind_param("iiiisss", $vbs_sessions_id, $contact_id, $parent_id, $class_id, $allergies, $food, $medical);
+                $stmt->bind_param("iiisss", $vbs_sessions_id, $contact_id, $class_id, $allergies, $food, $medical);
             }
             
             $stmt->execute();
