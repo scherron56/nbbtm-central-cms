@@ -48,8 +48,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $phoneTypeResult = $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER BY phone_type_desc ASC");
         $phonetype = $phoneTypeResult ? $phoneTypeResult->fetch_all(MYSQLI_ASSOC) : [];
 
-        // 6. Fetch Ministry/Committee List
-        $minStmt = $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
+        // 6. Fetch Ministry/Committee List joined with min_group_type
+        $minQuery = "SELECT mc.min_comm_id, mc.min_comm_type_id, mc.min_comm_name, 
+                            mgt.min_grp_type_desc 
+                     FROM ministry_committee mc
+                     LEFT JOIN min_group_type mgt ON mc.min_comm_type_id = mgt.min_grp_type_id
+                     ORDER BY mc.min_comm_type_id ASC, mc.min_comm_name ASC";
+        $minStmt = $db->query($minQuery);
         $ministryList = $minStmt ? $minStmt->fetch_all(MYSQLI_ASSOC) : [];
 
         // 7. Fetch Roles List

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ministry Management - New Beginnings Baptist Tabernacle Ministries</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+ 
+  <style>
+    .form-control { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95rem; box-sizing: border-box; color: #28089a; background-color: #ffffff; }
+    textarea.form-control { resize: vertical; min-height: 70px; }
+    label { font-weight: 600; color: #28089a; font-size: 0.9rem; margin-bottom: 0.25rem; display: inline-block; }
+    .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem; grid-column: span 12; }
+    .checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 600; color: #28089a; }
+    .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+    .badge-success { background-color: #d1fae5; color: #065f46; }
+    .badge-danger { background-color: #fee2e2; color: #991b1b; }
+    .filter-bar { background: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); display: flex; align-items: center; gap: 1rem; }
+  </style>
+
+  <script>
+    $(document).ready(function() {
+      const filterSelect = $('#filter_type');
+      const formTypeSelect = $('#min_comm_type_id');
+      const clearFilterBtn = $('#clear_filter_btn');
+      const ministryForm = $('#ministryForm');
+      const tableBody = $('#committeesTableBody');
+      const formTitle = $('#form-title');
+      const cancelEditBtn = $('#cancel_edit_btn');
+      const saveBtn = $('#save_btn');
+
+      // Initial AJAX Setup
+      loadGroupTypes();
+      loadCommittees();
+
+      // 1. Fetch Group Types via AJAX
+      function loadGroupTypes() {
+        $.ajax({
+          url: 'ministry_api.php',
+          type: 'GET',
+          data: { action: 'get_group_types' },
+          dataType: 'json',
+          success: function(res) {
+            if (res.status === 'success') {
+              let options = '<option value="">-- All Group Types --</option>';
+              let formOptions = '<option value="">-- Select Group Type --</option>';
+              
+              $.each(res.data, function(i, gt) {
+                options += `<option value="${gt.min_grp_type_id}">${escapeHtml(gt.min_grp_type_desc)}</option>`;
+                formOptions += `<option value="${gt.min_grp_type_id}">${escapeHtml(gt.min_grp_type_desc)}</option>`;
+              });
+              
+              filterSelect.html(options);
+              formTypeSelect.html(formOptions);
+            } else {
+              console.error('Group Types Error:', res.message);
+              filterSelect.html('<option value="">Failed to load</option>');
+              formTypeSelect.html('<option value="">Failed to load</option>');
+            }
+          },
+          error: function(xhr) {
+            console.error('AJAX Group Types Error:', xhr.responseText);
+            filterSelect.html('<option value="">Error loading data</option>');
+            formTypeSelect.html('<option value="">Error loading data</option>');
+          }
+        });
+      }
+
+      // 2. Filter Trigger
+      filterSelect.on('change', function() {
+        if ($(this).val() !== '') {
+          clearFilterBtn.show();
+        } else {
+          clearFilterBtn.hide();
+        }
+        loadCommittees($(this).val());
+      });
+
+      // Clear Filter
+      clearFilterBtn.on('click', function() {
+        filterSelect.val('');
+        $(this).hide();
+        loadCommittees();
+      });
+
+      // 3. Load Committees Function
+      function loadCommittees(filterType = '') {
+        $.ajax({
+          url: 'ministry_api.php',
+          type: 'GET',
+          data: { action: 'get_committees', filter_type: filterType },
+          dataType: 'json',
+          success: function(res) {
+            if (res.status === 'success') {
+              renderTable(res.data);
+            } else {
+              alert('Backend Error: ' + res.message);
+            }
+          },
+          error: function(xhr) {
+            console.error('AJAX Load Error:', xhr.responseText);
+            tableBody.html('<tr><td colspan="6" style="text-align: center; color: #dc2626; padding: 2rem;">Error loading data from server. Check console.</td></tr>');
+          }
+        });
+      }
+
+      // 4. Render Table
+      function renderTable(data) {
+        tableBody.empty();
+        if (data && data.length > 0) {
+          let html = '';
+          $.each(data, function(index, row) {
+            const badgeClass = row.is_active == 1 ? 'badge-success' : 'badge-danger';
+            const badgeText = row.is_active == 1 ? 'Active' : 'Inactive';
+            const shortDesc = row.description ? escapeHtml(row.description).substring(0, 50) + (row.description.length > 50 ? '...' : '') : '';
+
+            html += `
+              <tr>
+                <td>${row.min_comm_id}</td>
+                <td><strong>${escapeHtml(row.min_comm_name)}</strong></td>
+                <td>${escapeHtml(row.min_grp_type_desc || 'Unassigned')}</td>
+                <td>${shortDesc}</td>
+                <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+                <td style="text-align: right;">
+                  <a href="#" class="link-btn edit-btn" data-id="${row.min_comm_id}">Edit</a> | 
+                  <a href="#" class="link-btn delete-btn" style="color: #dc2626;" data-id="${row.min_comm_id}">Delete</a>
+                </td>
+              </tr>
+            `;
+          });
+          tableBody.html(html);
+        } else {
+          tableBody.html('<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 2rem;">No committees found.</td></tr>');
+        }
+      }
+
+      // 5. Form Submit (Save / Update)
+      ministryForm.on('submit', function(e) {
+        e.preventDefault();
+        
+        let formData = new FormData(this);
+        formData.append('action', 'save_committee');
+
+        $.ajax({
+          url: 'ministry_api.php',
+          type: 'POST',
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: 'json',
+          success: function(res) {
+            if (res.status === 'success') {
+              resetForm();
+              loadCommittees(filterSelect.val());
+            } else {
+              alert('Save Error: ' + res.message);
+            }
+          },
+          error: function(xhr) {
+            console.error('AJAX Save Error:', xhr.responseText);
+            alert('Server error while saving. Check browser console.');
+          }
+        });
+      });
+
+      // 6. Edit Click
+      tableBody.on('click', '.edit-btn', function(e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        
+        $.ajax({
+          url: 'ministry_api.php',
+          type: 'GET',
+          data: { action: 'get_committee', id: id },
+          dataType: 'json',
+          success: function(res) {
+            if (res.status === 'success' && res.data) {
+              const d = res.data;
+              $('#min_comm_id').val(d.min_comm_id);
+              $('#min_comm_name').val(d.min_comm_name);
+              $('#min_comm_type_id').val(d.min_comm_type_id);
+              $('#description').val(d.description || '');
+              $('#mission_purpose').val(d.mission_purpose || '');
+              $('#is_active').prop('checked', d.is_active == 1);
+
+              formTitle.text('Edit Ministry Committee');
+              saveBtn.text('Update Committee');
+              cancelEditBtn.show();
+              
+              $('html, body').animate({ scrollTop: 0 }, 'fast');
+            }
+          }
+        });
+      });
+
+      // 7. Delete Click
+      tableBody.on('click', '.delete-btn', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to delete this committee?')) {
+          const id = $(this).data('id');
+          
+          $.ajax({
+            url: 'ministry_api.php',
+            type: 'POST',
+            data: { action: 'delete_committee', id: id },
+            dataType: 'json',
+            success: function(res) {
+              if (res.status === 'success') {
+                loadCommittees(filterSelect.val());
+              } else {
+                alert('Delete Error: ' + res.message);
+              }
+            }
+          });
+        }
+      });
+
+      // Cancel Edit
+      cancelEditBtn.on('click', function() {
+        resetForm();
+      });
+
+      function resetForm() {
+        ministryForm[0].reset();
+        $('#min_comm_id').val('');
+        formTitle.text('Add New Ministry Committee');
+        saveBtn.text('Save Committee');
+        cancelEditBtn.hide();
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+    });
+  </script>  
+</head>
+<body>
+
+  <?php include 'header.php'; ?> <!--[cite: 6, 8] -->
+
+  <div class="dashboard-container">
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+      <label for="filter_type">Filter by Group Type:</label>
+      <select id="filter_type" name="filter_type">
+        <option value="">Loading Group Types...</option>
+      </select>
+      <button type="button" id="clear_filter_btn" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; display: none;">Clear Filter</button>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="card">
+      <h3>Ministry/Committees List</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Committee Name</th>
+            <th>Group Type</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="committeesTableBody">
+          <!-- Populated dynamically via AJAX -->
+        </tbody>
+      </table>
+    </div>
+
+    <br>
+
+    <!-- ENTRY / EDIT FORM -->
+    <form id="ministryForm">
+      <input type="hidden" id="min_comm_id" name="min_comm_id" value="">
+      <fieldset class="form-grid-section-9 fieldset-relative">
+        <legend>
+          <h2 id="form-title">Add/Update Ministry/Committee</h2>
+        </legend>
+        
+        <div class="field-group" style="--colspan: 5;">
+          <label for="min_comm_name">Name *</label>
+          <input type="text" id="min_comm_name" name="min_comm_name" class="form-control" required>
+        </div>
+
+        <div class="field-group" style="--colspan: 3;">
+          <label for="min_comm_type_id">Group Type *</label>
+          <select id="min_comm_type_id" name="min_comm_type_id" class="form-control" required>
+            <option value="">Loading Group Types...</option>
+          </select>
+        </div>
+
+        <div class="field-group" style="--colspan: 9;">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="2"></textarea>
+        </div>
+
+        <div class="field-group" style="--colspan: 9;">
+          <label for="mission_purpose">Mission</label>
+          <textarea id="mission_purpose" name="mission_purpose" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="field-group" style="--colspan: 1;">
+          <label class="checkbox-label">
+            <input type="checkbox" id="is_active" name="is_active" value="1" checked>
+            Is Active
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="cancel_edit_btn" class="btn-secondary" style="display: none; line-height: 2.2;">Cancel Edit</button>
+          <button type="submit" id="save_btn" class="btn-primary">Save Committee</button>
+        </div>
+      </fieldset>
+    </form>
+
+  </div>
+
+</body>
+</html>

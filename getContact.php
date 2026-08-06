@@ -26,7 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             
             if ($contact = mysqli_fetch_assoc($result)) {
                 
-                // 2. Fetch Family Link (if exists in Families table)
+                // 2. Fetch Family Link
                 $family_id = null;
                 $famQuery = "SELECT family_id FROM Families WHERE contact_id = ?";
                 if ($famStmt = mysqli_prepare($db, $famQuery)) {
@@ -55,7 +55,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     mysqli_stmt_close($minstmt);
                 }
 
-                $minStmt = $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
+                $minQuery = "SELECT mc.min_comm_id, mc.min_comm_type_id, mc.min_comm_name, 
+                                    mgt.min_grp_type_desc 
+                             FROM ministry_committee mc
+                             LEFT JOIN min_group_type mgt ON mc.min_comm_type_id = mgt.min_grp_type_id
+                             ORDER BY mc.min_comm_type_id ASC, mc.min_comm_name ASC";
+                $minStmt = $db->query($minQuery);
                 $ministryList = $minStmt ? $minStmt->fetch_all(MYSQLI_ASSOC) : [];
 
                 $roleStmt = $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc");
