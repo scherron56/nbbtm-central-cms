@@ -49,50 +49,78 @@ $(document).ready(function() {
     }
   }
 
-  // Standalone function to render Ministry Checkboxes
+  // Standalone function to render Ministry Checkboxes grouped by Group Type
   function buildMinistryCheckboxes(ministryList, roleList, savedMinistries = []) {
     $('#checkbox-container').empty(); 
 
     if (ministryList && ministryList.length > 0) {
+      // Group ministries by min_comm_type_id
+      let groupedMinistries = {};
+
       $.each(ministryList, function(index, item) {
-        let savedAlliance = (savedMinistries && Array.isArray(savedMinistries)) ? savedMinistries.find(function(minObj) {
-          return String(minObj.min_comm_id) === String(item.min_comm_id);
-        }) : null;
-        
-        let isChecked = !!savedAlliance;
-        let allianceRoleId = savedAlliance ? savedAlliance.role_id : ''; 
-
-        const checkboxId = 'ministry_id' + item.min_comm_id;
-        const checkbox = $('<input>').attr({
-          type: 'checkbox',
-          id: checkboxId,
-          name: 'ministries[]',
-          value: item.min_comm_id
-        }).prop('checked', isChecked);
-        
-        const label = $('<label>').attr('for', checkboxId).text(' ' + item.min_comm_name);
-        const rowDiv = $('<div>').css('margin-bottom', '10px');
-        rowDiv.append(checkbox).append(label).append(' ');
-
-        const roleSelect = $('<select>').attr({
-          id: 'role_id_' + item.min_comm_id, 
-          name: 'roles[' + item.min_comm_id + ']'
-        });
-        
-        roleSelect.append($('<option>').val('').text('--Select Role--'));
-
-        if (roleList) {
-          $.each(roleList, function(rIndex, roleOption) {
-            const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_desc);
-            if (savedAlliance && String(roleOption.role_id) === String(allianceRoleId)) {
-              option.attr('selected', 'selected');
-            }
-            roleSelect.append(option);
-          });                 
+        let typeId = item.min_comm_type_id || 0;
+        if (!groupedMinistries[typeId]) {
+          groupedMinistries[typeId] = {
+            typeDesc: item.min_grp_type_desc || 'General Associations',
+            items: []
+          };
         }
+        groupedMinistries[typeId].items.push(item);
+      });
 
-        rowDiv.append(roleSelect);
-        $('#checkbox-container').append(rowDiv);
+      // Iterate through each group and output headings & checkboxes
+      $.each(groupedMinistries, function(typeId, groupData) {
+        let groupHeader = $('<h3>').css({
+          'grid-column': '1 / -1',
+          'color': '#28089a',
+          'margin-top': '18px',
+          'margin-bottom': '6px',
+          'border-bottom': '2px solid #cbd5e1',
+          'padding-bottom': '4px'
+        }).text(groupData.typeDesc);
+
+        $('#checkbox-container').append(groupHeader);
+
+        $.each(groupData.items, function(index, item) {
+          let savedAlliance = (savedMinistries && Array.isArray(savedMinistries)) ? savedMinistries.find(function(minObj) {
+            return String(minObj.min_comm_id) === String(item.min_comm_id);
+          }) : null;
+          
+          let isChecked = !!savedAlliance;
+          let allianceRoleId = savedAlliance ? savedAlliance.role_id : ''; 
+
+          const checkboxId = 'ministry_id' + item.min_comm_id;
+          const checkbox = $('<input>').attr({
+            type: 'checkbox',
+            id: checkboxId,
+            name: 'ministries[]',
+            value: item.min_comm_id
+          }).prop('checked', isChecked);
+          
+          const label = $('<label>').attr('for', checkboxId).text(' ' + item.min_comm_name);
+          const rowDiv = $('<div>').addClass('ministry-card').css('margin-bottom', '10px');
+          rowDiv.append(checkbox).append(label).append(' ');
+
+          const roleSelect = $('<select>').attr({
+            id: 'role_id_' + item.min_comm_id, 
+            name: 'roles[' + item.min_comm_id + ']'
+          });
+          
+          roleSelect.append($('<option>').val('').text('--Select Role--'));
+
+          if (roleList) {
+            $.each(roleList, function(rIndex, roleOption) {
+              const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_desc);
+              if (savedAlliance && String(roleOption.role_id) === String(allianceRoleId)) {
+                option.attr('selected', 'selected');
+              }
+              roleSelect.append(option);
+            });                 
+          }
+
+          rowDiv.append(roleSelect);
+          $('#checkbox-container').append(rowDiv);
+        });
       });
     }
   }
@@ -138,7 +166,6 @@ $(document).ready(function() {
   function updateFormLists(callback) {
     let membersOnly = $('input[name="contact_filter"]:checked').val();
 
-    // Preserve selected values prior to rebuilding options
     let selContact  = $('#contactID').val();
     let selFamily   = $('#family_id').val();
     let selTitle    = $('#title_id').val();
@@ -153,11 +180,9 @@ $(document).ready(function() {
       data: { members_only: membersOnly },
       dataType: 'json',
       success: function(data) {
-        // Cache Ministry & Role lists globally
         globalMinistryList = data.ministryList || [];
         globalRoleList = data.roleList || [];
 
-        // Populate Contacts
         $('#contactID').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.contacts && Array.isArray(data.contacts)) {
           $.each(data.contacts, function(index, item) {
@@ -165,7 +190,6 @@ $(document).ready(function() {
           });
         }
 
-        // Populate Family Dropdown
         $('#family_id').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.heads && Array.isArray(data.heads)) {
           $.each(data.heads, function(index, item) {
@@ -173,7 +197,6 @@ $(document).ready(function() {
           });
         }
 
-        // Populate Titles
         $('#title_id').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.titles && Array.isArray(data.titles)) {
           $.each(data.titles, function(index, item) {
@@ -181,7 +204,6 @@ $(document).ready(function() {
           });
         }
 
-        // Populate Marital Status
         $('#marital_status').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.marital && Array.isArray(data.marital)) {
           $.each(data.marital, function(index, item) {
@@ -190,7 +212,6 @@ $(document).ready(function() {
           });
         }
 
-        // Populate Phone Types
         $('#phone_1_type, #phone_2_type, #phone_3_type').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.phonetype && Array.isArray(data.phonetype)) {
           $.each(data.phonetype, function(index, item) {
@@ -201,7 +222,6 @@ $(document).ready(function() {
           });
         }
 
-        // Re-select prior selections
         if (selContact) $('#contactID').val(selContact);
         if (selFamily) $('#family_id').val(selFamily);
         if (selTitle) $('#title_id').val(selTitle);
@@ -210,7 +230,6 @@ $(document).ready(function() {
         if (selPhone2) $('#phone_2_type').val(selPhone2);
         if (selPhone3) $('#phone_3_type').val(selPhone3);
 
-        // Build empty checkboxes if brand new contact mode
         if (!$('#contact_id').val() && $('#checkbox-container').is(':empty')) {
           buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
         }
@@ -265,7 +284,6 @@ $(document).ready(function() {
 
         let contact = data.contact || {};
 
-        // Populate Form Fields
         $('#contact_id').val(contactid || '');
         $('#title_id').val(contact.title_id || '');
         $('#first_name').val(contact.first_name || '');
@@ -307,7 +325,6 @@ $(document).ready(function() {
         
         toggleMemberSections(isMember);
 
-        // Build Ministry Checkboxes using fetched contact alliances
         buildMinistryCheckboxes(data.ministryList, data.roleList, data.ministries);
         
         $('#submitBtn').text('Update Contact');
@@ -337,7 +354,6 @@ $(document).ready(function() {
           alert(response.message);
           let savedId = response.id;
           
-          // Re-populate system lists and reload updated contact details
           updateFormLists(function() {
             if (savedId) {
               $('#contactID').val(savedId).trigger('change');
@@ -408,35 +424,31 @@ $(document).ready(function() {
 
   <form id="contact-form" name="contact-form">
   
-<fieldset id="contact-select" class="form-grid-section-short">
+    <fieldset id="contact-select" class="form-grid-section-short">
+      <div class="field-group" style="--colspan: 2;">
+        <label><h3 style="color: blue; margin-bottom: 5px;">View Option</h3></label>
+        <div style="display: flex; gap: 12px; align-items: center; margin-top: 4px;">
+          <label for="filter_all" style="font-weight: normal; cursor: pointer;">
+            <input type="radio" id="filter_all" name="contact_filter" value="0" checked>
+            All Contacts
+          </label>
+          <label for="filter_members" style="font-weight: normal; cursor: pointer;">
+            <input type="radio" id="filter_members" name="contact_filter" value="1">
+            Members Only
+          </label>
+        </div>
+      </div>
 
-  <!-- Radio Button Filter Selection (Default: All Contacts) -->
-  <div class="field-group" style="--colspan: 2;">
-    <label><h3 style="color: blue; margin-bottom: 5px;">View Option</h3></label>
-    <div style="display: flex; gap: 12px; align-items: center; margin-top: 4px;">
-      <label for="filter_all" style="font-weight: normal; cursor: pointer;">
-        <input type="radio" id="filter_all" name="contact_filter" value="0" checked>
-        All Contacts
-      </label>
-      <label for="filter_members" style="font-weight: normal; cursor: pointer;">
-        <input type="radio" id="filter_members" name="contact_filter" value="1">
-        Members Only
-      </label>
-    </div>
-  </div>
-
-  <!-- Contact Dropdown -->
-  <div class="field-group" style="--colspan: 2;">
-    <label for="contactID"><h3 style="color: blue;">Select Member/Contact</h3></label>
-    <select name="contactID" id="contactID">
-      <option value="">--Select--</option>
-    </select>
-  </div>
-  <div class="field-group" style="--colspan: 2; display: flex; justify-content: center; align-items: center;">
-    <button type="button" id="addNewContact" class="btn-pulse nbtn">Add Contact</button>
-  </div>
-
-</fieldset>
+      <div class="field-group" style="--colspan: 2;">
+        <label for="contactID"><h3 style="color: blue;">Select Member/Contact</h3></label>
+        <select name="contactID" id="contactID">
+          <option value="">--Select--</option>
+        </select>
+      </div>
+      <div class="field-group" style="--colspan: 2; display: flex; justify-content: center; align-items: center;">
+        <button type="button" id="addNewContact" class="btn-pulse nbtn">Add Contact</button>
+      </div>
+    </fieldset>
 
     <!-- PERSONAL INFORMATION FIELDSET -->
     <fieldset class="form-grid-section-8 fieldset-relative">
@@ -444,7 +456,6 @@ $(document).ready(function() {
         <h2>Personal Information</h2>
       </legend>
 
-      <!-- Member Checkbox styled bold and positioned upper-right -->
       <div class="top-right-member">
         <label for="is_member">Member</label>
         <input type="hidden" name="is_member" value="0">
@@ -453,7 +464,6 @@ $(document).ready(function() {
 
       <input type="hidden" id="contact_id" name="contact_id">
 
-      <!-- Fieldset grid fields shifted down by container padding -->
       <div class="field-group" style="--colspan: 2;">
         <label for="title_id">Salutation</label>
         <select name="title_id" id="title_id">
@@ -506,7 +516,6 @@ $(document).ready(function() {
           <option value="">--Select--</option>
         </select>
       </div>     
-      
     </fieldset>
 
     <!-- CONTACT INFORMATION FIELDSET -->
@@ -604,7 +613,7 @@ $(document).ready(function() {
     <!-- DYNAMIC MINISTRY ALLIANCES AREA -->
     <fieldset id="ministry-section">
       <legend>
-        <h2>Ministry Involvement</h2>
+        <h2>Ministry/Committee Associations</h2>
       </legend>
       <div id="checkbox-container">
         <!-- jQuery dynamically drops card rows in here -->
