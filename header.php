@@ -12,7 +12,7 @@
   <ul class="nav-links"> 
     <li><a href="index.php" class="active">Home</a></li> 
     <li><a href="contacts.php">Contacts</a></li> 
-    
+    <li><a href="ministry_manager.php">Ministries</a></li>
     <!-- Parent Menu Item -->
     <li class="dropdown">
       <a href="#">VBS</a>
