@@ -1,5 +1,5 @@
 <?php
-// Display errors for development debugging
+// Display errors for development
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -10,17 +10,13 @@ require_once 'config/db.php';
 // Initialize default metric counters
 $total_contacts = 0;
 $total_members = 0;
-$total_events = 0;
-$total_ministries = 0;
 $vbs_sessions_count = 0;
 $vbs_classes_count = 0;
-
 $recent_contacts = [];
-$upcoming_events = [];
 $active_sessions = [];
 
 try {
-    // 1. Fetch Contact & Membership Statistics
+    // 1. Fetch Total Contacts & Total Members
     $contactStats = $db->query("
         SELECT 
             COUNT(*) AS total_contacts,
@@ -32,56 +28,18 @@ try {
         $total_members  = intval($row['total_members']);
     }
 
-    // 2. Fetch Programs / Events Statistics & Upcoming Events
-    $eventStats = $db->query("SELECT COUNT(*) AS total_events FROM programs_events");
-    if ($row = $eventStats->fetch_assoc()) {
-        $total_events = intval($row['total_events']);
-    }
-
-    $upcomingQuery = $db->query("
-        SELECT e.prg_evnt_id, e.prg_evnt_name, m.min_comm_name AS ministry_name,
-               (SELECT MIN(start_datetime) FROM event_schedules WHERE prg_evnt_id = e.prg_evnt_id) AS primary_start
-        FROM programs_events e
-        LEFT JOIN ministry_committee m ON e.min_comm_id = m.min_comm_id
-        ORDER BY primary_start DESC
-        LIMIT 5
-    ");
-    if ($upcomingQuery && $upcomingQuery->num_rows > 0) {
-        $upcoming_events = $upcomingQuery->fetch_all(MYSQLI_ASSOC);
-    }
-
-    // 3. Fetch Active Ministries Count (Handles NULL, 1, or 'Y')
-    $minStats = $db->query("
-        SELECT COUNT(*) AS total_ministries 
-        FROM ministry_committee 
-        WHERE is_active = 1 OR is_active IS NULL OR is_active = 'Y'
-    ");
-    if ($row = $minStats->fetch_assoc()) {
-        $total_ministries = intval($row['total_ministries']);
-    }
-
-    // 4. Fetch Active/Current Year VBS Sessions Count
-    $vbsStats = $db->query("
-        SELECT COUNT(*) AS total_sessions 
-        FROM vbs_sessions 
-        WHERE vbs_year >= YEAR(CURDATE())
-    ");
+    // 2. Fetch Active VBS Sessions & Classes Count
+    $vbsStats = $db->query("SELECT COUNT(*) AS total_sessions FROM vbs_sessions");
     if ($row = $vbsStats->fetch_assoc()) {
         $vbs_sessions_count = intval($row['total_sessions']);
     }
 
-    // 5. Fetch Active VBS Classes Count linked to Current/Upcoming Sessions
-    $classStats = $db->query("
-        SELECT COUNT(c.vbs_class_id) AS total_classes 
-        FROM vbs_classes c
-        INNER JOIN vbs_sessions s ON c.vbs_class_session_id = s.vbs_sessions_id
-        WHERE s.vbs_year >= YEAR(CURDATE())
-    ");
+    $classStats = $db->query("SELECT COUNT(*) AS total_classes FROM vbs_classes");
     if ($row = $classStats->fetch_assoc()) {
         $vbs_classes_count = intval($row['total_classes']);
     }
 
-    // 6. Fetch Recently Added Contacts
+    // 3. Fetch Recent Contacts (Last 5 Added)
     $recentQuery = $db->query("
         SELECT contact_id, first_name, last_name, is_member, c_email, phone_1 
         FROM contacts 
@@ -92,12 +50,11 @@ try {
         $recent_contacts = $recentQuery->fetch_all(MYSQLI_ASSOC);
     }
 
-    // 7. Fetch Current & Upcoming Active VBS Sessions Overview
+    // 4. Fetch Active VBS Sessions Overview
     $sessionQuery = $db->query("
         SELECT vbs_sessions_id, vbs_year, vbs_theme, vbs_start_date, vbs_end_date 
         FROM vbs_sessions 
-        WHERE vbs_year >= YEAR(CURDATE())
-        ORDER BY vbs_year DESC, vbs_sessions_id DESC 
+        ORDER BY vbs_year DESC 
         LIMIT 3
     ");
     if ($sessionQuery && $sessionQuery->num_rows > 0) {
@@ -105,6 +62,7 @@ try {
     }
 
 } catch (mysqli_sql_exception $e) {
+    // Log exception for debugging if needed
     error_log("Dashboard Data Fetch Error: " . $e->getMessage());
 }
 ?>
@@ -140,25 +98,13 @@ try {
     </div>
 
     <div class="kpi-card">
-      <div class="kpi-title">Active Ministries</div>
-      <div class="kpi-value"><?= number_format($total_ministries) ?></div>
-      <div class="kpi-subtext">Committees & Groups</div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-title">Programs & Events</div>
-      <div class="kpi-value"><?= number_format($total_events) ?></div>
-      <div class="kpi-subtext">Scheduled Events</div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-title">Active VBS Sessions</div>
+      <div class="kpi-title">VBS Sessions</div>
       <div class="kpi-value"><?= number_format($vbs_sessions_count) ?></div>
-      <div class="kpi-subtext">Current & Upcoming Programs</div>
+      <div class="kpi-subtext">Configured VBS Programs</div>
     </div>
 
     <div class="kpi-card">
-      <div class="kpi-title">Active VBS Classes</div>
+      <div class="kpi-title">VBS Classes</div>
       <div class="kpi-value"><?= number_format($vbs_classes_count) ?></div>
       <div class="kpi-subtext">Active Class Modules</div>
     </div>
@@ -170,53 +116,18 @@ try {
     <!-- Primary Left Column -->
     <section class="main-content">
       
-      <!-- Quick Operations Panel -->
+      <!-- Quick Action Panel -->
       <div class="card">
         <h3>Quick Operations</h3>
         <div class="action-buttons">
           <a href="contacts.php?action=new" class="btn btn-primary">+ Add New Contact</a>
-          <a href="events.php" class="btn btn-accent">Manage Events</a>
-          <a href="ministry_manager.php" class="btn btn-secondary">Ministry Directory</a>
-          <a href="vbs_sessions.php" class="btn btn-secondary">VBS Sessions</a>
+          <a href="vbs_sessions.php" class="btn btn-accent">Manage VBS Sessions</a>
+          <a href="vbs_manager.php" class="btn btn-secondary">VBS Registration</a>
+          <a href="vbs_attendance.php" class="btn btn-secondary">Log Attendance</a>
         </div>
       </div>
 
-      <!-- Recent Programs & Events Widget -->
-      <div class="card">
-        <h3>Upcoming Programs & Events</h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Event Name</th>
-              <th>Sponsoring Ministry</th>
-              <th>Primary Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (!empty($upcoming_events)): ?>
-              <?php foreach ($upcoming_events as $event): ?>
-                <tr>
-                  <td>
-                    <strong><?= htmlspecialchars($event['prg_evnt_name']) ?></strong>
-                  </td>
-                  <td><?= htmlspecialchars($event['ministry_name'] ?? 'Unassigned') ?></td>
-                  <td>
-                    <?= !empty($event['primary_start']) ? date('M d, Y h:i A', strtotime($event['primary_start'])) : 'TBD'; ?>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="3">No upcoming events scheduled.</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-        <br>
-        <a href="events.php" class="link-btn">View Event Manager &rarr;</a>
-      </div>
-
-      <!-- Recently Added Contacts Widget -->
+      <!-- Recent Contacts Database Widget -->
       <div class="card">
         <h3>Recently Added Contacts</h3>
         <table class="data-table">
@@ -251,6 +162,9 @@ try {
         </table>
       </div>
 
+      <!-- FUTURE MODULE PLACEHOLDER: Attendance / Sunday Metrics -->
+      <!-- Simply add a new <div class="card"></div> block here when expanding -->
+
     </section>
 
     <!-- Secondary Right Column Sidebar -->
@@ -262,29 +176,20 @@ try {
         <?php if (!empty($active_sessions)): ?>
           <ul class="quick-links">
             <?php foreach ($active_sessions as $sess): ?>
-              <li style="margin-bottom: 0.75rem;">
-                <strong><?= htmlspecialchars($sess['vbs_year']) ?></strong> - <?= htmlspecialchars($sess['vbs_theme'] ?: 'New Session') ?>
+              <li style="margin-bottom: 0.5rem;">
+                <strong><?= htmlspecialchars($sess['vbs_year']) ?></strong> - <?= htmlspecialchars($sess['vbs_theme'] ?: 'No Theme Title') ?>
                 <br>
                 <small style="color: #64748b;">
-                  <?php 
-                    if (!empty($sess['vbs_start_date']) && $sess['vbs_start_date'] !== '0000-00-00') {
-                        echo date('M d, Y', strtotime($sess['vbs_start_date']));
-                        if (!empty($sess['vbs_end_date']) && $sess['vbs_end_date'] !== '0000-00-00') {
-                            echo ' - ' . date('M d, Y', strtotime($sess['vbs_end_date']));
-                        }
-                    } else {
-                        echo 'Dates TBD';
-                    }
-                  ?>
+                  <?= !empty($sess['vbs_start_date']) ? date('M d, Y', strtotime($sess['vbs_start_date'])) : 'Dates TBD' ?>
                 </small>
               </li>
             <?php endforeach; ?>
           </ul>
         <?php else: ?>
-          <p style="font-size:0.9rem; color:#64748b;">No active VBS sessions scheduled.</p>
+          <p style="font-size:0.9rem; color:#64748b;">No VBS sessions found.</p>
         <?php endif; ?>
         <br>
-        <a href="vbs_sessions.php" class="link-btn">Manage VBS Sessions &rarr;</a>
+        <a href="vbs_sessions.php" class="link-btn">View All VBS Sessions &rarr;</a>
       </div>
 
       <!-- Modular Task / Action Checklist -->
@@ -297,15 +202,11 @@ try {
           </li>
           <li>
             <input type="checkbox" id="task2">
-            <label for="task2">Review upcoming event budgets</label>
+            <label for="task2">Review active VBS class rosters</label>
           </li>
           <li>
             <input type="checkbox" id="task3">
-            <label for="task3">Update active ministry assignments</label>
-          </li>
-          <li>
-            <input type="checkbox" id="task4">
-            <label for="task4">Check VBS class roster capacity</label>
+            <label for="task3">Update ministry head assignments</label>
           </li>
         </ul>
       </div>

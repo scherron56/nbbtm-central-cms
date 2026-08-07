@@ -239,7 +239,7 @@
 </head>
 <body>
 
-  <?php include 'header.php'; ?> <!--[cite: 6, 8] -->
+  <?php include 'header.php'; ?> 
 
   <div class="dashboard-container">
 
