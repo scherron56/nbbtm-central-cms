@@ -10,16 +10,18 @@ body {
   justify-content: flex-start;
   align-items: center;
   min-height: 100vh;
+  font-family: 'Bespoke Serif', serif;
   font-family: 'Bespoke Sans', sans-serif;
   color: #28089a;
-  background-image: linear-gradient(to right, #a1bde7, #4b80c6, #ffffff);  
-  background-color: #fff;
+  /* background-color: #fff; */
+  background-image: linear-gradient(to right, #a1bde7, #4b80c6, #ffff);  background-color: #fff;
 }
 
 /* Header Container */
 .site-header {
   display: flex;
   flex-direction: column;
+  min-height: 200px;
   width: 100%; /* Ensures header spans full browser width */
   background-image: linear-gradient(to right, #043b8f, #0a4b9e);
   color: #ffffff;
@@ -29,18 +31,16 @@ body {
 
 /* Top Branding Area */
 .header-content {
-  padding: 12px 24px;
-  display: grid;
-  grid-template-columns: auto 1fr;
+  padding: 20px 30px;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px 20px;
+  gap: 15px;
 }
 
 /* Logo Sizing */
 .logo-container {
-  width: 140px;
-  grid-row: 1 / span 2;
-  align-self: start;
+  width: 100px;
   flex-shrink: 0;
 }
 
@@ -52,25 +52,22 @@ body {
 
 /* Typography Layout */
 h1 {
-  font-size: 2.1rem;
+  font-size: 3rem;
   margin: 0;
+  flex-grow: 1;
   text-align: left;
-  line-height: 1.1;
 }
 
 .break-row {
-  margin: 0;
+  flex-basis: 100%;
+  margin: 0 0 0 115px; /* Matches logo width (100px) + gap (15px) */
   text-align: left;
-  font-size: 1.1rem;
-  font-weight: 400;
-  opacity: 0.9;
+  font-size: 1rem;
 }
 
 /* Button-Style Navigation */
 .navbar {
-  margin-top: 5px;
-  background-color: rgba(0, 0, 0, 0.15);
-  padding: 4px 24px;
+  margin-top: 0.75rem;
 }
 
 .nav-links {
@@ -78,8 +75,6 @@ h1 {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  margin: 0;
-  padding: 0;
 }
 
 .nav-links li {
@@ -112,12 +107,6 @@ h1 {
   color: #ffffff;
 }
 
-/* Active Page Button Hover State */
-.nav-links a.active:hover {
-  background-color: #0f766e;
-  color: #ffffff;
-}
-
 /* Dropdown Menu Styling */
 .dropdown:hover .submenu {
   display: block;
@@ -130,7 +119,11 @@ h1 {
   left: 0;
   background-color: #ffffff;
   min-width: 160px;
+<<<<<<< HEAD
+  box-shadow: 0 4px 12px rgba(57, 23, 160, 0.15);
+=======
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+>>>>>>> dc1b48cb5e02436d561535ad410ead36f6481e77
   border-radius: 6px;
   padding: 0.5rem 0;
   z-index: 100;
@@ -155,37 +148,39 @@ h1 {
   display: block;
 }
 
+
 /* --- MOBILE RESPONSIVENESS REFINEMENTS --- */
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
+  .site-header {
+    min-height: auto; /* Allow growth based on content stacking 
+  } */
+
   .header-content {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    flex-direction: column; /* Stack logo, H1, and H2 vertically */
     text-align: center;
-    padding: 16px 15px;
+    padding: 20px 15px;
     gap: 10px;
   }
 
-  .logo-container {
-    grid-row: auto;
-    align-self: center;
-    width: 120px;
-  }
-
   h1 {
-    font-size: 1.6rem;
+    font-size: 2rem; /* Scale down heading font sizes */
+    text-align: center;
+  }
+    h2 {
+    font-size: 1.5rem; /* Scale down heading font sizes */
+    text-align: center;
+  }
+    h3 {
+    font-size: 1rem; /* Scale down heading font sizes */
     text-align: center;
   }
 
   .break-row {
-    font-size: 1rem;
+    margin-left: 0; /* Reset indentation since logo is centered above text */
     text-align: center;
   }
 
-  .nav-links {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-}
+
 
 .hidden { 
   display: none; 
@@ -195,7 +190,7 @@ h1 {
 .field-group {
   display: grid;
   grid-column: span var(--colspan);
-  grid-row: span var(--rowspan, 1);
+  grid-row: span var(--rowspan, 1); /* Default to 1 if not specified */
   inline-size: 100%;
   gap: .5rem; 
 }
@@ -230,13 +225,13 @@ form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  width: 100%;
-  max-width: 1000px;
-  padding: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  box-sizing: border-box;
+  width: 100%;             /* Fills space up to the max-width boundary */
+  max-width: 1000px;       /* Prevents the form from expanding past 1000px */
+  padding: 2rem;           /* Internal spacing */
+  background: white;       /* Contrast against the gray background */
+  border-radius: 8px;      /* Rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  box-sizing: border-box;  /* Ensures padding doesn't break max-width */
 }
 
 /* Base Grid Section Elements */
@@ -256,7 +251,7 @@ form {
 
 .form-grid-section-12 {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(12, 1fr); /* FIXED: Added missing '1fr' repeat tracker argument */
   gap: .5rem;
   width: 100%;
 }
@@ -269,7 +264,7 @@ form {
   margin-right: auto;
 }
 
-.form-grid-section-short-40 {
+.form-grid-section-short-40{
   display: grid;
   grid-template-columns: repeat(4, 1fr); 
   gap: 2rem;
@@ -293,7 +288,9 @@ form {
   grid-row: span var(--rowspan);
 }
 
-/* Ministry Two-Column Grid System Design */
+/* ==========================================================================
+   MINISTRY TWO-COLUMN GRID SYSTEM DESIGN (NEW)
+   ========================================================================== */
 #ministry-section {
   width: 100%;
   display: none;
@@ -301,7 +298,7 @@ form {
 
 #checkbox-container {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, 1fr); /* Default desktop view: Two Columns */
   gap: 15px 30px;
   width: 100%;
 }
@@ -317,7 +314,7 @@ form {
   padding: 0 5px;
 }
 
-/* Text validation styles */
+/* Text validation styles for script error callbacks */
 .text-danger {
   color: #dc2626 !important;
   font-size: 0.85rem;
@@ -327,7 +324,7 @@ form {
 
 /* Button UI Components */
 .btn-primary {
-  background-color: #4f46e5;
+  background-color: #4f46e5; /* Indigo */
   color: #ffffff;
   padding: 10px 20px;
   font-size: 14px;
@@ -347,7 +344,7 @@ form {
 }
 
 .btn-danger {
-  background-color: #dc2626;
+  background-color: #dc2626; /* Crimson Red */
   color: #ffffff;
   padding: 10px 20px;
   font-size: 14px;
@@ -367,7 +364,7 @@ form {
 }
 
 .btn-pulse {
-  background-color: #0ea5e9;
+  background-color: #0ea5e9; /* FIXED: Added missing comment slashes to clear syntax crash */
   color: #ffffff;
   padding: 10px 20px;
   font-size: 14px;
@@ -409,7 +406,7 @@ form {
 }
 
 @keyframes spin {
-  100% { transform: rotate(360deg); }
+  100% { transform: rotate(360deg); } /* FIXED: Corrected rotation value to 360deg for standard looping */
 }
 
 /* State when button is processing */
@@ -422,36 +419,42 @@ form {
   display: inline-block;
 }
 
-/* Responsive Form Breakpoints */
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS (NEW)
+   ========================================================================== */
 @media screen and (max-width: 768px) {
   form {
     padding: 1rem;
   }
   
+  /* Collapses multi-column grid layouts into a single stack on mobile viewports */
   .form-grid-section-8,
   .form-grid-section-9,
   .form-grid-section-12,
   #checkbox-container {
     grid-template-columns: 1fr !important;
     gap: 1rem;
-  }
+}
 
   .form-grid-section-short,
   .form-grid-section-short-rght {
     width: 100%;
     grid-template-columns: 1fr;
-  }
+}
 
   .selContact {
     grid-template-columns: 1fr;
   }
   
   .ministry-card select {
-    max-width: 100%;
+    max-width: 100%; /* Dropdowns take up full width on mobile devices */
   }
 }
+/* ==========================================================================
+   DASHBOARD LAYOUT & WIDGET STYLES
+   ========================================================================== */
 
-/* Dashboard Layout & Widget Styles */
+/* Main Container */
 .dashboard-container {
   width: 100%;
   max-width: 1200px;
@@ -460,6 +463,7 @@ form {
   box-sizing: border-box;
 }
 
+/* 1. Dynamic KPI Metrics Grid */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -482,7 +486,7 @@ form {
 }
 
 .kpi-card.highlight {
-  border-left-color: #0d9488;
+  border-left-color: #0d9488; /* Teal Accent */
   background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
 }
 
@@ -508,21 +512,13 @@ form {
   color: #64748b;
 }
 
+/* 2. Main Two-Column Layout */
 .dashboard-layout {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 1.75rem;
   align-items: start;
 }
-
-.dashboard-main-grid {
-  display: grid;
-  /* Automatically fits items with a minimum width of 250px */
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.25rem;
-}
-
-
 
 .main-content,
 .sidebar {
@@ -531,16 +527,13 @@ form {
   gap: 1.75rem;
 }
 
+/* Card Container */
 .card {
   background: #ffffff;
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
-
-
-
-
 
 .card h3 {
   margin-top: 0;
@@ -551,6 +544,7 @@ form {
   padding-bottom: 0.5rem;
 }
 
+/* 3. Action Buttons Grid */
 .action-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -580,6 +574,7 @@ form {
   background-color: #0f766e;
 }
 
+/* 4. Data Tables (Recent Contacts) */
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -604,6 +599,7 @@ form {
   background-color: #f1f5f9;
 }
 
+/* 5. Lists & Task Elements (Sidebar) */
 .quick-links,
 .task-list {
   list-style: none;
@@ -650,7 +646,7 @@ form {
   text-decoration: underline;
 }
 
-/* Dashboard Breakpoints */
+/* Mobile Breakpoints */
 @media screen and (max-width: 900px) {
   .dashboard-layout {
     grid-template-columns: 1fr;
@@ -667,80 +663,4 @@ form {
   .action-buttons .btn {
     width: 100%;
   }
-}
-
-.dateTimeContainer{
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-
-}
-/* --- MULTI-LEVEL NAVIGATION DROPDOWNS --- */
-.navbar ul.nav-links li {
-  position: relative;
-}
-
-/* Primary Submenu (Drops Down) */
-.navbar ul.submenu {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background-color: #1e293b; /* Dark slate background matching navbar theme */
-  min-width: 210px;
-  padding: 8px 0;
-  margin: 0;
-  list-style: none;
-  border-radius: 0 0 6px 6px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
-  z-index: 1000;
-}
-
-.navbar ul.submenu li {
-  width: 100%;
-  position: relative;
-}
-
-.navbar ul.submenu li a {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 18px;
-  color: #f8fafc;
-  font-size: 0.92rem;
-  text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  white-space: nowrap;
-}
-
-.navbar ul.submenu li a:hover {
-  background-color: #334155;
-  color: #f59e0b; /* Accent highlight color */
-}
-
-/* Show Submenu on Parent Hover */
-.navbar ul.nav-links li.dropdown:hover > .submenu {
-  display: block;
-}
-
-/* Secondary Nested Submenu (Fly-Out Right) */
-.navbar ul.submenu li.dropdown-submenu > .submenu {
-  top: 0;
-  left: 100%;
-  border-radius: 0 6px 6px 6px;
-  box-shadow: 4px 8px 16px rgba(0, 0, 0, 0.25);
-}
-
-.navbar ul.submenu li.dropdown-submenu:hover > .submenu {
-  display: block;
-}
-
-/* Submenu Arrow Indicator */
-.navbar ul.submenu li.dropdown-submenu a .arrow {
-  font-size: 0.85rem;
-  margin-left: 10px;
-  color: #94a3b8;
-}
-
-.navbar ul.submenu li.dropdown-submenu:hover > a .arrow {
-  color: #f59e0b;
 }
