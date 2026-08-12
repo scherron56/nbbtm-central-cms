@@ -1,5 +1,10 @@
 <?php
 require_once 'config/db.php';
+require_once 'auth.php';
+
+// Enforce admin permission check
+requireAdmin();
+
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {

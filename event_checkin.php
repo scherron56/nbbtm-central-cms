@@ -1,3 +1,21 @@
+<?php
+// Enforce persistent cookie scope before session start
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 86400, // 24 Hours
+        'path'     => '/',   // Root path ensures session spans all sub-folders
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
+
+// Require auth helper
+require_once __DIR__ . '/auth.php';
+
+// Optional: Restrict page to logged-in users
+// requireRole(['admin', 'staff', 'browse']); 
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +27,7 @@
   <style>
     .checkin-wrapper {
       width: 100%;
-      max-width: 1100px;
+      max-width: 1150px;
       margin: 2rem auto;
     }
     .status-badge {
@@ -26,6 +44,14 @@
     .badge-absent {
       background: #f1f5f9;
       color: #64748b;
+    }
+    .badge-completed {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .badge-incomplete {
+      background: #fee2e2;
+      color: #991b1b;
     }
     .search-filter-box {
       display: flex;
@@ -66,14 +92,52 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .btn-toggle-disabled {
+      background-color: #94a3b8 !important;
+      color: #ffffff !important;
+      cursor: not-allowed !important;
+      opacity: 0.6;
+    }
+    .pay-inline-form {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .pay-inline-form select, .pay-inline-form input {
+      height: 32px;
+      font-size: 0.85rem;
+      padding: 0 6px;
+    }
+    .btn-update-pay {
+      background-color: #28089a;
+      color: #ffffff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-waive-pay {
+      background-color: #d97706;
+      color: #ffffff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script>
     $(document).ready(function() {
         let currentRegistrations = [];
         let currentCheckedInIds = [];
+        let currentEvent = null;
 
-        // Parse query parameters (e.g. ?prg_evnt_id=12)
         const urlParams = new URLSearchParams(window.location.search);
         const preselectedEventId = urlParams.get('prg_evnt_id');
 
@@ -98,12 +162,16 @@
                         if (selectedId) {
                             $select.val(selectedId).trigger('change');
                         }
+                    } else if (data.error) {
+                        alert('Error loading events: ' + data.error);
                     }
+                },
+                error: function(xhr, status, error) {
+                    alert('Server error fetching events list: ' + error);
                 }
             });
         }
 
-        // Handle Event Selection
         $('#prg_evnt_id').on('change', function() {
             let eventId = $(this).val();
             if (!eventId) {
@@ -121,13 +189,19 @@
                 dataType: 'json',
                 success: function(data) {
                     if (data.success) {
+                        currentEvent = data.event || {};
                         currentRegistrations = data.registrations || [];
                         currentCheckedInIds = (data.attendance || []).map(a => parseInt(a.contact_id));
 
                         updateKPIDashboard();
                         renderRosterTable();
                         $('#checkinContent').slideDown();
+                    } else {
+                        alert('Error fetching roster: ' + (data.error || data.message || 'Unknown error'));
                     }
+                },
+                error: function(xhr, status, error) {
+                    alert('Server error loading event roster: ' + error);
                 }
             });
         }
@@ -147,8 +221,11 @@
             let searchFilter = $('#searchAttendee').val().toLowerCase().trim();
             let statusFilter = $('#filterStatus').val();
 
+            let reqFee = currentEvent && parseInt(currentEvent.requires_fee) === 1;
+
             let filteredList = currentRegistrations.filter(r => {
-                let nameMatches = r.full_name.toLowerCase().includes(searchFilter);
+                let fullName = (r.full_name || 'Unknown').toLowerCase();
+                let nameMatches = fullName.includes(searchFilter);
                 let isCheckedIn = currentCheckedInIds.includes(parseInt(r.contact_id));
                 
                 let statusMatches = true;
@@ -159,30 +236,73 @@
             });
 
             if (filteredList.length === 0) {
-                $tbody.append('<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No matching registered attendees found.</td></tr>');
+                $tbody.append('<tr><td colspan="6" style="text-align:center; color:#64748b; padding:20px;">No matching registered attendees found.</td></tr>');
                 return;
             }
 
             $.each(filteredList, function(i, r) {
                 let contactId = parseInt(r.contact_id);
+                let regId = parseInt(r.registration_id);
                 let isCheckedIn = currentCheckedInIds.includes(contactId);
 
-                let badge = isCheckedIn 
+                let isCompleted = false;
+                if (!reqFee) {
+                    isCompleted = true; 
+                } else {
+                    let statusLower = String(r.payment_status || '').toLowerCase();
+                    isCompleted = parseInt(r.is_completed) === 1 || ['paid', 'completed', 'waived', 'n/a'].includes(statusLower);
+                }
+
+                // Completion status badge
+                let regBadge = isCompleted
+                    ? '<span class="status-badge badge-completed">Completed</span>'
+                    : '<span class="status-badge badge-incomplete">Not Completed</span>';
+
+                // Attendance status badge
+                let attBadge = isCheckedIn 
                     ? '<span class="status-badge badge-present">Present ✓</span>'
                     : '<span class="status-badge badge-absent">Not Checked In</span>';
 
-                let actionBtn = isCheckedIn
-                    ? `<button type="button" class="btn-toggle-present btn-toggle" data-contact="${contactId}">Mark Absent</button>`
-                    : `<button type="button" class="btn-toggle-absent btn-toggle" data-contact="${contactId}">Check In</button>`;
+                // Check-In Button Logic
+                let actionBtn = '';
+                if (isCheckedIn) {
+                    actionBtn = `<button type="button" class="btn-toggle-present btn-toggle" data-contact="${contactId}">Mark Absent</button>`;
+                } else if (isCompleted) {
+                    actionBtn = `<button type="button" class="btn-toggle-absent btn-toggle" data-contact="${contactId}">Check In</button>`;
+                } else {
+                    actionBtn = `<button type="button" class="btn-toggle-disabled" disabled title="Registration must be Paid or Waived before check-in.">Check In</button>`;
+                }
 
-                let amountPaidFormatted = '$' + parseFloat(r.amount_paid || 0).toFixed(2);
+                // Payment column content depending on requires_fee
+                let paymentStatusDisp = reqFee ? (r.payment_status || 'Pending') : 'N/A (Free Event)';
+                let paymentCell = '';
+                if (!reqFee) {
+                    paymentCell = '<em>$0.00 (No Fee)</em>';
+                } else if (!isCompleted) {
+                    paymentCell = `
+                        <div class="pay-inline-form">
+                            <select class="pay-method" data-reg="${regId}">
+                                <option value="Cash">Cash</option>
+                                <option value="Check">Check</option>
+                                <option value="Credit Card">Credit Card</option>
+                            </select>
+                            <input type="number" step="0.01" class="pay-amount" data-reg="${regId}" value="${parseFloat(r.amount_paid || 0).toFixed(2)}" style="width:75px;">
+                            <button type="button" class="btn-update-pay" data-reg="${regId}">Pay & Enable</button>
+                            <button type="button" class="btn-waive-pay" data-reg="${regId}">Waive</button>
+                        </div>
+                    `;
+                } else {
+                    let methodDisp = r.payment_method && r.payment_method !== 'None' ? ` (${r.payment_method})` : '';
+                    paymentCell = `<strong>$${parseFloat(r.amount_paid || 0).toFixed(2)}</strong>${methodDisp}`;
+                }
 
                 $tbody.append(`
                     <tr>
-                        <td><strong>${r.full_name}</strong></td>
-                        <td>${r.payment_status || 'N/A'}</td>
-                        <td><strong>${amountPaidFormatted}</strong></td>
-                        <td>${badge}</td>
+                        <td><strong>${r.full_name || 'Unknown Contact'}</strong></td>
+                        <td>${regBadge}</td>
+                        <td>${paymentStatusDisp}</td>
+                        <td>${paymentCell}</td>
+                        <td>${attBadge}</td>
                         <td style="text-align:right;">${actionBtn}</td>
                     </tr>
                 `);
@@ -192,6 +312,62 @@
         // Live Search / Filter Triggers
         $(document).on('input', '#searchAttendee', renderRosterTable);
         $(document).on('change', '#filterStatus', renderRosterTable);
+
+        // Save Payment at Check-In
+        $(document).on('click', '.btn-update-pay', function() {
+            let regId = $(this).data('reg');
+            let method = $(`.pay-method[data-reg="${regId}"]`).val();
+            let amount = $(`.pay-amount[data-reg="${regId}"]`).val();
+            let eventId = $('#prg_evnt_id').val();
+
+            $.ajax({
+                url: 'prg_event_api.php',
+                type: 'POST',
+                data: {
+                    action: 'update_checkin_payment',
+                    registration_id: regId,
+                    payment_method: method,
+                    amount_paid: amount,
+                    payment_status: 'Paid'
+                },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        loadRoster(eventId);
+                    } else {
+                        alert('Error updating payment: ' + (res.message || res.error));
+                    }
+                }
+            });
+        });
+
+        // Waive Fee at Check-In
+        $(document).on('click', '.btn-waive-pay', function() {
+            let regId = $(this).data('reg');
+            let eventId = $('#prg_evnt_id').val();
+
+            if (!confirm('Are you sure you want to waive the fee for this registration?')) return;
+
+            $.ajax({
+                url: 'prg_event_api.php',
+                type: 'POST',
+                data: {
+                    action: 'update_checkin_payment',
+                    registration_id: regId,
+                    payment_method: 'None',
+                    amount_paid: 0.00,
+                    payment_status: 'Waived'
+                },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        loadRoster(eventId);
+                    } else {
+                        alert('Error waiving registration fee: ' + (res.message || res.error));
+                    }
+                }
+            });
+        });
 
         // Toggle Attendance Action
         $(document).on('click', '.btn-toggle', function() {
@@ -206,7 +382,12 @@
                 success: function(res) {
                     if (res.success) {
                         loadRoster(eventId);
+                    } else {
+                        alert(res.error || res.message || 'Error updating attendance status.');
                     }
+                },
+                error: function(xhr, status, error) {
+                    alert('Communication error updating attendance: ' + error);
                 }
             });
         });
@@ -273,8 +454,9 @@
           <thead>
             <tr>
               <th>Attendee Name</th>
+              <th>Reg. Status</th>
               <th>Payment Status</th>
-              <th>Amount Paid</th>
+              <th>Amount / Update Payment</th>
               <th>Attendance Status</th>
               <th style="text-align:right;">Action</th>
             </tr>

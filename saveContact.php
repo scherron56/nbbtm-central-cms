@@ -1,179 +1,221 @@
 <?php
 // saveContact.php
-require_once 'config/db.php';
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json; charset=utf-8');
 
+require_once 'config/db.php';
+require_once 'auth.php';
+
+// Fallback if db.php defines $conn instead of $db
+if (!isset($db) && isset($conn)) {
+    $db = $conn;
+}
+
+// Enforce admin privileges: Non-admin users are blocked from saving changes
+requireAdmin();
+
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    http_response_code(405);
+    echo json_encode(["status" => "error", "message" => "Method Not Allowed."]);
+    exit;
+}
+
+// Helper to sanitize phone input numbers down to raw digits
+function sanitizePhoneNumber($val) {
+    if (empty($val)) return null;
+    $digits = preg_replace('/\D/', '', (string)$val);
+    return !empty($digits) ? $digits : null;
+}
+
+// Helper to strictly format/validate date values to YYYY-MM-DD or NULL
+function sanitizeDate($val) {
+    if (empty($val)) return null;
+    $trimmed = trim((string)$val);
+
+    if ($trimmed === '' || $trimmed === '0000-00-00' || $trimmed === '0000') {
+        return null;
+    }
+    
+    // Valid YYYY-MM-DD format
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+        list($y, $m, $d) = explode('-', $trimmed);
+        if (checkdate((int)$m, (int)$d, (int)$y)) {
+            return $trimmed;
+        }
+    }
+    
+    // If only a 4-digit year was supplied (e.g. "1969"), default to "1969-01-01"
+    if (preg_match('/^\d{4}$/', $trimmed)) {
+        $year = intval($trimmed);
+        if ($year >= 1000 && $year <= 9999) {
+            return $trimmed . '-01-01';
+        }
+    }
+
+    // Attempt to convert non-standard date strings
+    $timestamp = strtotime($trimmed);
+    if ($timestamp !== false) {
+        $formatted = date('Y-m-d', $timestamp);
+        if ($formatted !== '1970-01-01' || $trimmed === '1970-01-01') {
+            return $formatted;
+        }
+    }
+
+    return null;
+}
+
+// 1. Collect & Sanitize Form Input Data
+$contact_id     = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : null;
+$title_id       = !empty($_POST['title_id']) ? intval($_POST['title_id']) : null;
+$first_name     = trim($_POST['first_name'] ?? '');
+$middle_name    = trim($_POST['middle_name'] ?? '');
+$last_name      = trim($_POST['last_name'] ?? '');
+
+// Sanitize all Date Inputs strictly to YYYY-MM-DD or NULL
+$date_of_birth  = sanitizeDate($_POST['date_of_birth'] ?? null);
+$anniv_date     = sanitizeDate($_POST['anniv_date'] ?? null);
+$join_date      = sanitizeDate($_POST['join_date'] ?? null);
+$baptized_date  = sanitizeDate($_POST['baptized_date'] ?? null);
+
+$gender         = !empty($_POST['gender']) ? $_POST['gender'] : null;
+$marital_status = !empty($_POST['marital_status']) ? intval($_POST['marital_status']) : null;
+
+$is_member   = isset($_POST['is_member']) ? intval($_POST['is_member']) : 0;
+$is_head     = isset($_POST['is_head']) ? intval($_POST['is_head']) : 0;
+$is_child    = isset($_POST['is_child']) ? intval($_POST['is_child']) : 0;
+$is_baptized = isset($_POST['is_baptized']) ? intval($_POST['is_baptized']) : 0;
+$is_active   = isset($_POST['is_active']) ? intval($_POST['is_active']) : 0;
+
+$family_id  = !empty($_POST['family_id']) ? intval($_POST['family_id']) : null;
+
+$address_1  = trim($_POST['address_1'] ?? '');
+$city       = trim($_POST['city'] ?? '');
+$state      = trim($_POST['state'] ?? '');
+$zipcode    = trim($_POST['zipcode'] ?? '');
+
+$phone_1      = sanitizePhoneNumber($_POST['phone_1'] ?? '');
+$phone_1_type = !empty($_POST['phone_1_type']) ? intval($_POST['phone_1_type']) : null;
+$phone_2      = sanitizePhoneNumber($_POST['phone_2'] ?? '');
+$phone_2_type = !empty($_POST['phone_2_type']) ? intval($_POST['phone_2_type']) : null;
+
+$emergency_contact = trim($_POST['emergency_contact'] ?? '');
+$phone_3      = sanitizePhoneNumber($_POST['phone_3'] ?? '');
+$phone_3_type = !empty($_POST['phone_3_type']) ? intval($_POST['phone_3_type']) : null;
+
+$c_email       = trim($_POST['c_email'] ?? '');
+
+// Validation
 $errors = [];
-
-// Helper function to turn empty strings/zeros into SQL NULL
-function nullify($val, $isInt = false) {
-    if ($val === '' || $val === null) return null;
-    if ($isInt && intval($val) === 0) return null;
-    return $isInt ? intval($val) : trim($val);
-}
-
-// Sanitize & Normalizing POST Parameters
-$contact_id        = isset($_POST['contact_id']) ? intval($_POST['contact_id']) : 0;
-$title_id          = nullify($_POST['title_id'] ?? null, true);
-$first_name        = trim($_POST['first_name'] ?? '');
-$middle_name       = nullify($_POST['middle_name'] ?? null);
-$last_name         = trim($_POST['last_name'] ?? '');
-$date_of_birth     = !empty($_POST['date_of_birth']) ? $_POST['date_of_birth'] : null;
-$gender            = nullify($_POST['gender'] ?? null);
-$address_1         = nullify($_POST['address_1'] ?? null);
-$city              = nullify($_POST['city'] ?? null);
-$state             = nullify($_POST['state'] ?? null);
-$zipcode           = nullify($_POST['zipcode'] ?? null);
-$phone_1           = nullify($_POST['phone_1'] ?? null);
-$phone_1_type      = nullify($_POST['phone_1_type'] ?? null, true);
-$phone_2           = nullify($_POST['phone_2'] ?? null);
-$phone_2_type      = nullify($_POST['phone_2_type'] ?? null, true);
-$emergency_contact = nullify($_POST['emergency_contact'] ?? null);
-$phone_3           = nullify($_POST['phone_3'] ?? null);
-$phone_3_type      = nullify($_POST['phone_3_type'] ?? null, true);
-$c_email           = nullify($_POST['c_email'] ?? null);
-$anniv_date        = !empty($_POST['anniv_date']) ? $_POST['anniv_date'] : null;
-$marital_status    = nullify($_POST['marital_status'] ?? null);
-
-// Head of Household & Family ID
-$is_head   = (!empty($_POST['is_head']) && $_POST['is_head'] != '0') ? 1 : 0;
-$family_id = nullify($_POST['family_id'] ?? null, true);
-
-// Determine Member status
-$is_member = (!empty($_POST['is_member']) && $_POST['is_member'] != '0') ? 1 : 0;
-
-if ($is_member === 1) {
-    $is_baptized   = (!empty($_POST['is_baptized']) && $_POST['is_baptized'] != '0') ? 1 : 0;
-    $baptized_date = !empty($_POST['baptized_date']) ? $_POST['baptized_date'] : null;
-    $join_date     = !empty($_POST['join_date']) ? $_POST['join_date'] : null;
-    $is_active     = (!empty($_POST['is_active']) && $_POST['is_active'] != '0') ? 1 : 0;
-} else {
-    $is_baptized   = 0;
-    $baptized_date = null;
-    $join_date     = null;
-    $is_active     = 0;
-}
-
-$ministries  = $_POST['ministries'] ?? []; 
-$roles       = $_POST['roles'] ?? [];      
-
-// Data Validation Routines
-if (empty($first_name)) { $errors['first_name'] = 'First Name is required.'; }
-if (empty($last_name))  { $errors['last_name']  = 'Last Name is required.'; }
-if (!empty($c_email) && !filter_var($c_email, FILTER_VALIDATE_EMAIL)) { 
-    $errors['c_email'] = 'Please enter a valid email address.'; 
-}
+if (empty($first_name)) { $errors['first_name'] = "First name is required."; }
+if (empty($last_name))  { $errors['last_name']  = "Last name is required."; }
 
 if (!empty($errors)) {
-    http_response_code(400);
-    echo json_encode(["status" => "error", "message" => "Validation tracking failure.", "errors" => $errors]);
+    http_response_code(422);
+    echo json_encode(["status" => "error", "errors" => $errors]);
     exit;
 }
 
 $db->begin_transaction();
 
 try {
-    if ($contact_id > 0) {
-        // UPDATE MODE
-        $sql = "UPDATE contacts SET 
-                    title_id = ?, first_name = ?, middle_name = ?, last_name = ?, 
-                    date_of_birth = ?, gender = ?, address_1 = ?, city = ?, state = ?, zipcode = ?, 
-                    phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
-                    emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
-                    is_member = ?, is_baptized = ?, anniv_date = ?, marital_status = ?, 
-                    join_date = ?, baptized_date = ?, is_active = ?, is_head = ? 
-                WHERE contact_id = ?";
-                
-        $stmt = $db->prepare($sql);
-        $stmt->bind_param(
-            "issssssssssisissisiissssiii", 
-            $title_id, $first_name, $middle_name, $last_name, 
-            $date_of_birth, $gender, $address_1, $city, $state, $zipcode, 
-            $phone_1, $phone_1_type, $phone_2, $phone_2_type, 
-            $emergency_contact, $phone_3, $phone_3_type, $c_email, 
-            $is_member, $is_baptized, $anniv_date, $marital_status, 
-            $join_date, $baptized_date, $is_active, $is_head, $contact_id
+    // 2. Insert or Update Contacts Table
+    if ($contact_id && $contact_id > 0) {
+        $stmt = $db->prepare("UPDATE contacts SET 
+            title_id = ?, first_name = ?, middle_name = ?, last_name = ?, date_of_birth = ?, 
+            gender = ?, address_1 = ?, city = ?, state = ?, zipcode = ?, 
+            phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
+            emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
+            is_member = ?, is_baptized = ?, anniv_date = ?, marital_status = ?, 
+            join_date = ?, baptized_date = ?, is_child = ?, is_head = ?, is_active = ?
+            WHERE contact_id = ?");
+
+        // 28 parameters -> 28 types: issssssssssisisisssssssiiiii
+        $stmt->bind_param("issssssssssisisisssssssiiiii", 
+            $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
+            $gender, $address_1, $city, $state, $zipcode,
+            $phone_1, $phone_1_type, $phone_2, $phone_2_type,
+            $emergency_contact, $phone_3, $phone_3_type, $c_email,
+            $is_member, $is_baptized, $anniv_date, $marital_status,
+            $join_date, $baptized_date, $is_child, $is_head, $is_active,
+            $contact_id
         );
         $stmt->execute();
         $stmt->close();
-        $target_id = $contact_id;
     } else {
-        // INSERT MODE
-        $sql = "INSERT INTO contacts (
-                    title_id, first_name, middle_name, last_name, 
-                    date_of_birth, gender, address_1, city, state, zipcode, 
-                    phone_1, phone_1_type, phone_2, phone_2_type, 
-                    emergency_contact, phone_3, phone_3_type, c_email, 
-                    is_member, is_baptized, anniv_date, marital_status, 
-                    join_date, baptized_date, is_active, is_head
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                
-        $stmt = $db->prepare($sql);
-        $stmt->bind_param(
-            "issssssssssisissisiissssii", 
-            $title_id, $first_name, $middle_name, $last_name, 
-            $date_of_birth, $gender, $address_1, $city, $state, $zipcode, 
-            $phone_1, $phone_1_type, $phone_2, $phone_2_type, 
-            $emergency_contact, $phone_3, $phone_3_type, $c_email, 
-            $is_member, $is_baptized, $anniv_date, $marital_status, 
-            $join_date, $baptized_date, $is_active, $is_head
+        $stmt = $db->prepare("INSERT INTO contacts (
+            title_id, first_name, middle_name, last_name, date_of_birth, 
+            gender, address_1, city, state, zipcode, 
+            phone_1, phone_1_type, phone_2, phone_2_type, 
+            emergency_contact, phone_3, phone_3_type, c_email, 
+            is_member, is_baptized, anniv_date, marital_status, 
+            join_date, baptized_date, is_child, is_head, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        // 27 parameters -> 27 types: issssssssssisisisssssssiiii
+        $stmt->bind_param("issssssssssisisisssssssiiii", 
+            $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
+            $gender, $address_1, $city, $state, $zipcode,
+            $phone_1, $phone_1_type, $phone_2, $phone_2_type,
+            $emergency_contact, $phone_3, $phone_3_type, $c_email,
+            $is_member, $is_baptized, $anniv_date, $marital_status,
+            $join_date, $baptized_date, $is_child, $is_head, $is_active
         );
         $stmt->execute();
-        $target_id = $stmt->insert_id;
+        $contact_id = $stmt->insert_id;
         $stmt->close();
     }
 
-    // --- MANAGE FAMILIES TABLE LINK ---
+    // 3. Update Families Mapping
     $delFam = $db->prepare("DELETE FROM Families WHERE contact_id = ?");
-    $delFam->bind_param("i", $target_id);
+    $delFam->bind_param("i", $contact_id);
     $delFam->execute();
     $delFam->close();
 
-    $target_family_id = ($is_head === 1) ? $target_id : $family_id;
-
-    if (!empty($target_family_id)) {
+    $assigned_family = ($is_head === 1) ? $contact_id : $family_id;
+    if (!empty($assigned_family)) {
         $insFam = $db->prepare("INSERT INTO Families (contact_id, family_id) VALUES (?, ?)");
-        $insFam->bind_param("ii", $target_id, $target_family_id);
+        $insFam->bind_param("ii", $contact_id, $assigned_family);
         $insFam->execute();
         $insFam->close();
     }
 
-    // --- MANAGE MINISTRY ALLIANCES ---
-    $delSql = "DELETE FROM member_alliance WHERE contact_id = ?";
-    $delStmt = $db->prepare($delSql);
-    $delStmt->bind_param("i", $target_id);
-    $delStmt->execute();
-    $delStmt->close();
+    // 4. Update Ministry Alliances (`member_alliance`)
+    $delMin = $db->prepare("DELETE FROM member_alliance WHERE contact_id = ?");
+    $delMin->bind_param("i", $contact_id);
+    $delMin->execute();
+    $delMin->close();
 
-    if ($is_member === 1 && !empty($ministries)) {
-        $insAllSql = "INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)";
-        $allStmt = $db->prepare($insAllSql);
+    if ($is_member === 1 && !empty($_POST['ministries']) && is_array($_POST['ministries'])) {
+        $insMin = $db->prepare("INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)");
+        
+        foreach ($_POST['ministries'] as $min_comm_id) {
+            $min_comm_id = intval($min_comm_id);
+            $role_id = !empty($_POST['roles'][$min_comm_id]) ? intval($_POST['roles'][$min_comm_id]) : null;
 
-        foreach ($ministries as $min_comm_id) {
-            $min_comm_id_int = intval($min_comm_id);
-            $role_id_raw     = isset($roles[$min_comm_id_int]) ? trim($roles[$min_comm_id_int]) : '';
-            $role_id_value   = ($role_id_raw !== '') ? intval($role_id_raw) : null;
-
-            if ($min_comm_id_int > 0) {
-                $allStmt->bind_param("iii", $target_id, $min_comm_id_int, $role_id_value);
-                $allStmt->execute();
-            }
+            $insMin->bind_param("iii", $contact_id, $min_comm_id, $role_id);
+            $insMin->execute();
         }
-        $allStmt->close();
+        $insMin->close();
     }
 
     $db->commit();
 
-    http_response_code(200);
     echo json_encode([
-        "status"  => "success",
-        "message" => ($contact_id > 0) ? "Record updated successfully." : "Record saved successfully.",
-        "id"      => $target_id
+        "status" => "success", 
+        "message" => "Contact saved successfully.",
+        "id" => $contact_id
     ]);
 
 } catch (Exception $e) {
     $db->rollback();
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Database processing failure.", "error" => $e->getMessage()]);
+    echo json_encode(["status" => "error", "message" => "Save error: " . $e->getMessage()]);
 }
-exit;
+
+if (isset($db) && $db instanceof mysqli) {
+    mysqli_close($db);
+}
+?>

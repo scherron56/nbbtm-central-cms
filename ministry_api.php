@@ -1,15 +1,15 @@
 <?php
 // ministry_api.php
-require_once 'config/db.php'; // Includes database connection setup
+require_once 'config/db.php';
+require_once 'auth.php'; // Load authentication & session helpers
 
-// Buffer output to catch unexpected whitespace or warnings
 ob_start();
 
 $action = $_REQUEST['action'] ?? '';
 
 try {
     /* ==========================================================================
-       1. GET GROUP TYPES (For populating initial dropdown filters)
+       1. GET GROUP TYPES (Read-Only)
        ========================================================================== */
     if ($action === 'get_group_types') {
         $result = $db->query("SELECT min_grp_type_id, min_grp_type_desc FROM min_group_type ORDER BY min_grp_type_desc ASC");
@@ -22,7 +22,7 @@ try {
     }
 
     /* ==========================================================================
-       2. GET ALL COMMITTEES (Optionally Filtered by min_comm_type_id)
+       2. GET ALL COMMITTEES (Read-Only)
        ========================================================================== */
     if ($action === 'get_committees') {
         $filter_type = isset($_GET['filter_type']) && $_GET['filter_type'] !== '' ? (int)$_GET['filter_type'] : '';
@@ -53,7 +53,7 @@ try {
     }
 
     /* ==========================================================================
-       3. GET SINGLE COMMITTEE (For Edit Mode)
+       3. GET SINGLE COMMITTEE (Read-Only)
        ========================================================================== */
     if ($action === 'get_committee') {
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -78,9 +78,11 @@ try {
     }
 
     /* ==========================================================================
-       4. CREATE OR UPDATE COMMITTEE
+       4. CREATE OR UPDATE COMMITTEE (Admin Only)
        ========================================================================== */
     if ($action === 'save_committee') {
+        requireAdmin(); // Enforce admin permissions
+
         $comm_id = !empty($_POST['min_comm_id']) ? (int)$_POST['min_comm_id'] : null;
         $type_id = !empty($_POST['min_comm_type_id']) ? (int)$_POST['min_comm_type_id'] : null;
         $name    = trim($_POST['min_comm_name'] ?? '');
@@ -121,9 +123,11 @@ try {
     }
 
     /* ==========================================================================
-       5. DELETE COMMITTEE
+       5. DELETE COMMITTEE (Admin Only)
        ========================================================================== */
     if ($action === 'delete_committee') {
+        requireAdmin(); // Enforce admin permissions
+
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
         if ($id > 0) {
@@ -148,10 +152,11 @@ try {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action requested']);
     exit;
 
-} catch (Throwable $e) { // Catches all PHP 7/8 exceptions and engine errors
+} catch (Throwable $e) {
     ob_clean();
     header('Content-Type: application/json; charset=utf-8');
     http_response_code(500);
     echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
     exit;
 }
+?>

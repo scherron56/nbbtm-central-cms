@@ -1,3 +1,21 @@
+<?php
+// Enforce persistent cookie scope before session start
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 86400, // 24 Hours
+        'path'     => '/',   // Root path ensures session spans all sub-folders
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
+
+// Require auth helper
+require_once __DIR__ . '/auth.php';
+
+// Optional: Restrict page to logged-in users
+// requireRole(['admin', 'staff', 'browse']); 
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

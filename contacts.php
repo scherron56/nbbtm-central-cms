@@ -1,3 +1,21 @@
+<?php
+// Enforce persistent cookie scope before session start
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 86400, // 24 Hours
+        'path'     => '/',   // Root path ensures session spans all sub-folders
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
+
+// Require auth helper
+require_once __DIR__ . '/auth.php';
+
+// Optional: Restrict page to logged-in users
+// requireRole(['admin', 'staff', 'browse']); 
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,6 +56,38 @@ $(document).ready(function() {
   let globalMinistryList = [];
   let globalRoleList = [];
 
+  // Ensure all checkboxes start explicitly unchecked on fresh page load
+  $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+
+  // Helper function to format raw phone numbers into (XXX) XXX-XXXX
+  function formatPhoneNumber(value) {
+    if (!value) return '';
+    let digits = String(value).replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    }
+    if (digits.length > 6) {
+      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
+    }
+    if (digits.length > 3) {
+      return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+    }
+    if (digits.length > 0) {
+      return `(${digits}`;
+    }
+    return '';
+  }
+
+  // Input mask for phone inputs
+  $(document).on('input', 'input[type="tel"]', function() {
+    let cursorPosition = this.selectionStart;
+    let originalLength = this.value.length;
+    this.value = formatPhoneNumber(this.value);
+    let newLength = this.value.length;
+    cursorPosition += (newLength - originalLength);
+    this.setSelectionRange(cursorPosition, cursorPosition);
+  });
+
   // Initial Load of Dropdown Components
   updateFormLists();
 
@@ -54,7 +104,6 @@ $(document).ready(function() {
     $('#checkbox-container').empty(); 
 
     if (ministryList && ministryList.length > 0) {
-      // Group ministries by min_comm_type_id
       let groupedMinistries = {};
 
       $.each(ministryList, function(index, item) {
@@ -68,7 +117,6 @@ $(document).ready(function() {
         groupedMinistries[typeId].items.push(item);
       });
 
-      // Iterate through each group and output headings & checkboxes
       $.each(groupedMinistries, function(typeId, groupData) {
         let groupHeader = $('<h3>').css({
           'grid-column': '1 / -1',
@@ -252,7 +300,7 @@ $(document).ready(function() {
     $('#contact-form')[0].reset();
     $('#contact_id').val('');
     $('#contactID').val('');
-    $('#is_member, #is_baptized, #is_active, #is_head').prop('checked', false);
+    $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
     
     buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
     toggleMemberSections(false);
@@ -266,6 +314,7 @@ $(document).ready(function() {
     if (contactid === "") {
       $('#contact-form')[0].reset();
       $('#contact_id').val('');
+      $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
       buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
       toggleMemberSections(false);
       return;
@@ -297,10 +346,10 @@ $(document).ready(function() {
         $('#gender').val(contact.gender || '');
         $('#marital_status').val(contact.marital_status || '');
         $('#anniv_date').val(contact.anniv_date || '');
-        $('#phone_1').val(contact.phone_1 || '');
-        $('#phone_2').val(contact.phone_2 || '');
+        $('#phone_1').val(formatPhoneNumber(contact.phone_1 || ''));
+        $('#phone_2').val(formatPhoneNumber(contact.phone_2 || ''));
         $('#emergency_contact').val(contact.emergency_contact || '');
-        $('#phone_3').val(contact.phone_3 || '');
+        $('#phone_3').val(formatPhoneNumber(contact.phone_3 || ''));
         $('#phone_1_type').val(contact.phone_1_type || '');
         $('#phone_2_type').val(contact.phone_2_type || '');
         $('#phone_3_type').val(contact.phone_3_type || '');
@@ -310,6 +359,9 @@ $(document).ready(function() {
 
         let isHead = String(contact.is_head) === "1" || contact.is_head === true;
         $('#is_head').prop('checked', isHead);
+
+        let isChild = String(contact.is_child) === "1" || contact.is_child === true;
+        $('#is_child').prop('checked', isChild);
 
         if (isHead) {
           $('#family_id').val(contactid);
@@ -379,7 +431,7 @@ $(document).ready(function() {
     });
   });
 
-  // Delete handler
+  // Delete handlerd
   $('#deleteBtn').click(function(e) {
     e.preventDefault();
     let contactId = $('#contact_id').val();
@@ -413,7 +465,7 @@ $(document).ready(function() {
 
   toggleMemberSections($('#is_member').is(':checked'));
 });
- </script>
+</script>
 </head>
 
 <body>
@@ -509,6 +561,11 @@ $(document).ready(function() {
         <input type="hidden" name="is_head" value="0">
         <input type="checkbox" id="is_head" name="is_head" value="1">
       </div>  
+      <div class="field-group" style="--colspan: 2; --rowspan: 3;">
+        <label for="is_child">Child</label>
+        <input type="hidden" name="is_child" value="0">
+        <input type="checkbox" id="is_child" name="is_child" value="1">
+      </div>
 
       <div class="field-group" style="--colspan: 2;" >
         <label for="family_id">Select Family</label>
@@ -541,7 +598,7 @@ $(document).ready(function() {
       </div>
       <div class="field-group" style="--colspan: 2; --rowspan: 1;">
         <label for="phone_1">Primary Phone</label>
-        <input type="tel" id="phone_1" name="phone_1">
+        <input type="tel" id="phone_1" name="phone_1" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
       </div>
       <div class="field-group" style="--colspan: 2;">
         <label for="phone_1_type">Phone Type</label>
@@ -551,7 +608,7 @@ $(document).ready(function() {
       </div>
       <div class="field-group" style="--colspan: 2; --rowspan: 1;">
         <label for="phone_2">Secondary Phone</label>
-        <input type="tel" id="phone_2" name="phone_2">
+        <input type="tel" id="phone_2" name="phone_2" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
       </div>
       <div class="field-group" style="--colspan: 2;">
         <label for="phone_2_type">Phone Type</label>
@@ -565,7 +622,7 @@ $(document).ready(function() {
       </div>
       <div class="field-group" style="--colspan: 2; --rowspan: 1;">
         <label for="phone_3">Emergency Contact Phone</label>
-        <input type="tel" id="phone_3" name="phone_3">
+        <input type="tel" id="phone_3" name="phone_3" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
       </div>
       <div class="field-group" style="--colspan: 2;">
         <label for="phone_3_type">Phone Type</label>
@@ -606,8 +663,6 @@ $(document).ready(function() {
         <input type="hidden" name="is_active" value="0">
         <input type="checkbox" id="is_active" name="is_active" value="1">
       </div>
-
-      <input type="hidden" name="is_child" value="0">
     </fieldset>
 
     <!-- DYNAMIC MINISTRY ALLIANCES AREA -->
