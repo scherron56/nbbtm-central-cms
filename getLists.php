@@ -9,21 +9,36 @@ $response = [];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     
-    // Check if filtering for members only
+    // Check filter options
     $membersOnly = isset($_POST['members_only']) ? (int)$_POST['members_only'] : 0;
+    $ageFilter   = isset($_POST['age_filter']) ? (int)$_POST['age_filter'] : 0; // 0 = All, 1 = Adults Only, 2 = Children Only
 
     try {
-        // 1. Fetch Contacts (Filtered or All)
+        // Build dynamic WHERE clause
+        $whereConditions = [];
+
         if ($membersOnly === 1) {
-            $contactQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
-                             FROM contacts 
-                             WHERE is_member = 1 
-                             ORDER BY last_name ASC, first_name ASC";
-        } else {
-            $contactQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
-                             FROM contacts 
-                             ORDER BY last_name ASC, first_name ASC";
+            $whereConditions[] = "is_member = 1";
         }
+
+        if ($ageFilter === 1) {
+            // Adults Only (is_child is 0 or NULL)
+            $whereConditions[] = "(is_child = 0 OR is_child IS NULL)";
+        } elseif ($ageFilter === 2) {
+            // Children Only (is_child is 1)
+            $whereConditions[] = "is_child = 1";
+        }
+
+        $whereClause = "";
+        if (!empty($whereConditions)) {
+            $whereClause = "WHERE " . implode(" AND ", $whereConditions);
+        }
+
+        // 1. Fetch Contacts (Filtered dynamically)
+        $contactQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
+                         FROM contacts 
+                         {$whereClause} 
+                         ORDER BY last_name ASC, first_name ASC";
 
         $contactsResult = $db->query($contactQuery);
         $contacts = $contactsResult ? $contactsResult->fetch_all(MYSQLI_ASSOC) : [];

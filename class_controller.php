@@ -1,25 +1,28 @@
 <?php
-// PLACE THIS AT THE VERY TOP OF class_controller.php FOR DEBUGGING
+// class_controller.php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Ensure MySQLi throws catchable errors instead of silently failing
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Database Setup Configurations
 require_once 'config/db.php';
+require_once 'auth.php';
 
 $action = $_REQUEST['action'] ?? '';
+
+// Restrict write actions to Admin users
+if (in_array($action, ['add_session', 'save_session', 'create', 'update', 'delete'])) {
+    requireAdmin();
+}
 
 switch ($action) {
     case 'add_session':
         $theme = !empty($_POST['vbs_theme_title']) ? trim($_POST['vbs_theme_title']) : 'New Session';
         $current_year = date('Y');
 
-        // Insert a new session row into vbs_sessions
         $stmt = $db->prepare("INSERT INTO vbs_sessions (vbs_year, vbs_theme) VALUES (?, ?)");
         $stmt->bind_param("ss", $current_year, $theme);
 
@@ -36,7 +39,6 @@ switch ($action) {
         $stmt->close();
         break;
 
-    // Fetch individual Session metadata
     case 'get_session':
         $session_id = !empty($_REQUEST['vbs_sessions_id']) ? intval($_REQUEST['vbs_sessions_id']) : 0;
 
@@ -57,7 +59,6 @@ switch ($action) {
         }
         break;
 
-    // Create or Update Session metadata
     case 'save_session':
         $session_id = 0;
         if (!empty($_POST['vbs_sessions_id'])) {
@@ -90,12 +91,8 @@ switch ($action) {
         break;
 
     case 'get_dropdowns':
-        $dropdowns = [
-            'sessions' => [],
-            'teachers' => []
-        ];
+        $dropdowns = ['sessions' => [], 'teachers' => []];
 
-        // Fetch Sessions
         $session_query = "SELECT vbs_sessions_id, vbs_year, vbs_theme FROM vbs_sessions ORDER BY vbs_year ASC";
         if ($session_result = $db->query($session_query)) {
             while ($row = $session_result->fetch_assoc()) {
@@ -103,7 +100,6 @@ switch ($action) {
             }
         }
 
-        // Fetch Teachers from Contacts Table
         $teacher_query = "SELECT contact_id AS vbs_class_teacher_id, CONCAT(first_name, ' ', last_name) AS teacher_name 
                           FROM contacts 
                           ORDER BY last_name ASC, first_name ASC";
@@ -158,10 +154,7 @@ switch ($action) {
         }
 
         if ($session_id <= 0) {
-            echo json_encode([
-                "success" => false,
-                "message" => "Please select a valid Session Year before adding a class."
-            ]);
+            echo json_encode(["success" => false, "message" => "Please select a valid Session Year."]);
             exit;
         }
 
@@ -226,7 +219,7 @@ switch ($action) {
         break;
 
     default:
-        echo json_encode(["success" => false, "message" => "Invalid endpoint routing action"]);
+        echo json_encode(["success" => false, "message" => "Invalid action action"]);
         break;
 }
 

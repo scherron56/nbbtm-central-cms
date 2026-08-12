@@ -5,6 +5,20 @@ header('Content-Type: application/json');
 
 $response = [];
 
+// Helper function to format integer DB values into (XXX) XXX-XXXX for the frontend
+function formatPhoneDisplay($val) {
+    if (empty($val)) return null;
+    $digits = preg_replace('/\D/', '', (string)$val);
+    if (strlen($digits) === 10) {
+        return sprintf("(%s) %s-%s", 
+            substr($digits, 0, 3), 
+            substr($digits, 3, 3), 
+            substr($digits, 6, 4)
+        );
+    }
+    return $digits;
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if (!empty($_POST["contactid"])) {
@@ -25,7 +39,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $result = mysqli_stmt_get_result($stmt);
             
             if ($contact = mysqli_fetch_assoc($result)) {
-                
+
+                // Convert MySQL INT values to formatted phone string
+                $contact['phone_1'] = formatPhoneDisplay($contact['phone_1']);
+                $contact['phone_2'] = formatPhoneDisplay($contact['phone_2']);
+                $contact['phone_3'] = formatPhoneDisplay($contact['phone_3']);
+
                 // 2. Fetch Family Link
                 $family_id = null;
                 $famQuery = "SELECT family_id FROM Families WHERE contact_id = ?";

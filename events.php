@@ -1,3 +1,21 @@
+<?php
+// Enforce persistent cookie scope before session start
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 86400, // 24 Hours
+        'path'     => '/',   // Root path ensures session spans all sub-folders
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
+
+// Require auth helper
+require_once __DIR__ . '/auth.php';
+
+// Optional: Restrict page to logged-in users
+// requireRole(['admin', 'staff', 'browse']); 
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -108,8 +126,14 @@
             }
         }
 
-        $(document.body).on('change', '#requires_registration', function() {
-            $('#fee_container').toggle(this.checked);
+        // TOGGLE FEE FIELD VISIBILITY
+        $(document.body).on('change', '#requires_fee', function() {
+            if (this.checked) {
+                $('#fee_container').slideDown();
+            } else {
+                $('#fee_container').slideUp();
+                $('#registration_fee').val('0.00');
+            }
         });
 
         function loadMinistriesDropdown() {
@@ -174,12 +198,20 @@
                         $('#goal').val(ev.goal);
                         $('#notes').val(ev.notes || '');
                         
-                        let reqReg = ev.requires_registration == 1;
+                        let reqReg = parseInt(ev.requires_registration) === 1;
+                        let reqFee = parseInt(ev.requires_fee) === 1;
+
                         $('#requires_registration').prop('checked', reqReg);
-                        $('#fee_container').toggle(reqReg);
-                        $('#registration_fee').val(ev.registration_fee);
+                        $('#requires_fee').prop('checked', reqFee);
+
+                        if (reqFee) {
+                            $('#fee_container').show();
+                            $('#registration_fee').val(parseFloat(ev.registration_fee || 0).toFixed(2));
+                        } else {
+                            $('#fee_container').hide();
+                            $('#registration_fee').val('0.00');
+                        }
                         
-                        // Show/Hide Registration Direct Link Button
                         if (reqReg) {
                             $('#btnGoRegister').attr('href', 'event_registration.php?prg_evnt_id=' + ev.prg_evnt_id).show();
                         } else {
@@ -399,7 +431,6 @@
   <?php include 'header.php'; ?> 
 
 <div class="dashboard-layout">
-    <!-- LEFT PANEL: Dynamic Multi-Date & Multi-Budget Event Form -->
     <div class="card">
         <h2>Manage Event Details</h2>
         <form id="eventForm">
@@ -492,17 +523,26 @@
                     <textarea id="goal" name="goal" rows="2" class="form-control"></textarea>
                 </div>
 
+                <!-- REGISTRATION & FEE CHECKBOXES -->
                 <div class="field-group" style="--colspan: 1;">
                     <label>
                         <input type="checkbox" id="requires_registration" name="requires_registration" value="1"> 
-                        Requires Registration & Payment
+                        Requires Registration
                     </label>
                 </div>
 
-                <div class="field-group" id="fee_container" style="display: none;">
-                    <label>Registration Fee ($):</label>
-                    <input type="number" step="0.01" id="registration_fee" name="registration_fee" class="form-control">
+                <div class="field-group" style="--colspan: 1;">
+                    <label>
+                        <input type="checkbox" id="requires_fee" name="requires_fee" value="1"> 
+                        Requires Fee
+                    </label>
                 </div>
+
+                <div class="field-group" id="fee_container" style="display: none; --colspan: 2;">
+                    <label>Registration Fee ($):</label>
+                    <input type="number" step="0.01" id="registration_fee" name="registration_fee" class="form-control" value="0.00">
+                </div>
+
                 <div class="field-group" style="--colspan: 2;">
                     <label>Additional Notes:</label>
                     <textarea id="notes" name="notes" rows="3" class="form-control"></textarea>
@@ -517,7 +557,6 @@
         </form>
     </div>
 
-    <!-- RIGHT PANEL: Roster, Live Check-In, and Real-time Balance Summaries -->
     <div class="card">
         <h2>Financial Projection Ledger</h2>
         <div class="form-row" style="margin-bottom:20px; text-align:center;">
