@@ -11,13 +11,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
+$adminUser = isAdmin();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en">a
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,6 +23,17 @@ require_once __DIR__ . '/auth.php';
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
     .checkin-wrapper {
       width: 100%;
       max-width: 1150px;
@@ -134,9 +143,27 @@ require_once __DIR__ . '/auth.php';
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script>
     $(document).ready(function() {
+        const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
         let currentRegistrations = [];
         let currentCheckedInIds = [];
         let currentEvent = null;
+
+        function showStatusMessage(message, type = 'success') {
+            let $box = $('#status-message');
+            $box.removeClass('alert-success alert-error')
+                .addClass(type === 'success' ? 'alert-success' : 'alert-error')
+                .html(message)
+                .stop(true, true)
+                .fadeIn(200);
+
+            if (type === 'success') {
+                setTimeout(function() { $box.fadeOut(500); }, 5000);
+            }
+        }
+
+        function clearStatusMessage() {
+            $('#status-message').fadeOut(200).empty();
+        }
 
         const urlParams = new URLSearchParams(window.location.search);
         const preselectedEventId = urlParams.get('prg_evnt_id');
@@ -154,25 +181,33 @@ require_once __DIR__ . '/auth.php';
                         let $select = $('#prg_evnt_id');
                         $select.find('option:not(:first)').remove();
 
-                        $.each(data.programs_events, function(i, ev) {
-                            let dispDate = ev.primary_start ? ` (${ev.primary_start.substring(0, 10)})` : '';
-                            $select.append(`<option value="${ev.prg_evnt_id}">${ev.prg_evnt_name}${dispDate}</option>`);
-                        });
+                        // Filter to only include events requiring registration
+                        let registrableEvents = data.programs_events.filter(ev => parseInt(ev.requires_registration) === 1);
+
+                        if (registrableEvents.length === 0) {
+                            $select.append('<option value="" disabled>No upcoming events requiring registration</option>');
+                        } else {
+                            $.each(registrableEvents, function(i, ev) {
+                                let dispDate = ev.primary_start ? ` (${ev.primary_start.substring(0, 10)})` : '';
+                                $select.append(`<option value="${ev.prg_evnt_id}">${ev.prg_evnt_name}${dispDate}</option>`);
+                            });
+                        }
 
                         if (selectedId) {
                             $select.val(selectedId).trigger('change');
                         }
                     } else if (data.error) {
-                        alert('Error loading events: ' + data.error);
+                        showStatusMessage('Error loading events: ' + data.error, 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert('Server error fetching events list: ' + error);
+                    showStatusMessage('Server error fetching events list: ' + error, 'error');
                 }
             });
         }
 
         $('#prg_evnt_id').on('change', function() {
+            clearStatusMessage();
             let eventId = $(this).val();
             if (!eventId) {
                 $('#checkinContent').slideUp();
@@ -197,11 +232,11 @@ require_once __DIR__ . '/auth.php';
                         renderRosterTable();
                         $('#checkinContent').slideDown();
                     } else {
-                        alert('Error fetching roster: ' + (data.error || data.message || 'Unknown error'));
+                        showStatusMessage('Error fetching roster: ' + (data.error || data.message || 'Unknown error'), 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert('Server error loading event roster: ' + error);
+                    showStatusMessage('Server error loading event roster: ' + error, 'error');
                 }
             });
         }
@@ -265,7 +300,9 @@ require_once __DIR__ . '/auth.php';
 
                 // Check-In Button Logic
                 let actionBtn = '';
-                if (isCheckedIn) {
+                if (!IS_ADMIN) {
+                    actionBtn = '<button type="button" class="btn-toggle-disabled" disabled>Read Only</button>';
+                } else if (isCheckedIn) {
                     actionBtn = `<button type="button" class="btn-toggle-present btn-toggle" data-contact="${contactId}">Mark Absent</button>`;
                 } else if (isCompleted) {
                     actionBtn = `<button type="button" class="btn-toggle-absent btn-toggle" data-contact="${contactId}">Check In</button>`;
@@ -279,18 +316,22 @@ require_once __DIR__ . '/auth.php';
                 if (!reqFee) {
                     paymentCell = '<em>$0.00 (No Fee)</em>';
                 } else if (!isCompleted) {
-                    paymentCell = `
-                        <div class="pay-inline-form">
-                            <select class="pay-method" data-reg="${regId}">
-                                <option value="Cash">Cash</option>
-                                <option value="Check">Check</option>
-                                <option value="Credit Card">Credit Card</option>
-                            </select>
-                            <input type="number" step="0.01" class="pay-amount" data-reg="${regId}" value="${parseFloat(r.amount_paid || 0).toFixed(2)}" style="width:75px;">
-                            <button type="button" class="btn-update-pay" data-reg="${regId}">Pay & Enable</button>
-                            <button type="button" class="btn-waive-pay" data-reg="${regId}">Waive</button>
-                        </div>
-                    `;
+                    if (IS_ADMIN) {
+                        paymentCell = `
+                            <div class="pay-inline-form">
+                                <select class="pay-method" data-reg="${regId}">
+                                    <option value="Cash">Cash</option>
+                                    <option value="Check">Check</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                </select>
+                                <input type="number" step="0.01" class="pay-amount" data-reg="${regId}" value="${parseFloat(r.amount_paid || 0).toFixed(2)}" style="width:75px;">
+                                <button type="button" class="btn-update-pay" data-reg="${regId}">Pay & Enable</button>
+                                <button type="button" class="btn-waive-pay" data-reg="${regId}">Waive</button>
+                            </div>
+                        `;
+                    } else {
+                        paymentCell = `<em>Pending Payment</em>`;
+                    }
                 } else {
                     let methodDisp = r.payment_method && r.payment_method !== 'None' ? ` (${r.payment_method})` : '';
                     paymentCell = `<strong>$${parseFloat(r.amount_paid || 0).toFixed(2)}</strong>${methodDisp}`;
@@ -315,6 +356,8 @@ require_once __DIR__ . '/auth.php';
 
         // Save Payment at Check-In
         $(document).on('click', '.btn-update-pay', function() {
+            if (!IS_ADMIN) return;
+            clearStatusMessage();
             let regId = $(this).data('reg');
             let method = $(`.pay-method[data-reg="${regId}"]`).val();
             let amount = $(`.pay-amount[data-reg="${regId}"]`).val();
@@ -333,9 +376,10 @@ require_once __DIR__ . '/auth.php';
                 dataType: 'json',
                 success: function(res) {
                     if (res.success) {
+                        showStatusMessage("Payment updated successfully.", 'success');
                         loadRoster(eventId);
                     } else {
-                        alert('Error updating payment: ' + (res.message || res.error));
+                        showStatusMessage('Error updating payment: ' + (res.message || res.error), 'error');
                     }
                 }
             });
@@ -343,6 +387,8 @@ require_once __DIR__ . '/auth.php';
 
         // Waive Fee at Check-In
         $(document).on('click', '.btn-waive-pay', function() {
+            if (!IS_ADMIN) return;
+            clearStatusMessage();
             let regId = $(this).data('reg');
             let eventId = $('#prg_evnt_id').val();
 
@@ -361,9 +407,10 @@ require_once __DIR__ . '/auth.php';
                 dataType: 'json',
                 success: function(res) {
                     if (res.success) {
+                        showStatusMessage("Fee waived successfully.", 'success');
                         loadRoster(eventId);
                     } else {
-                        alert('Error waiving registration fee: ' + (res.message || res.error));
+                        showStatusMessage('Error waiving registration fee: ' + (res.message || res.error), 'error');
                     }
                 }
             });
@@ -371,6 +418,8 @@ require_once __DIR__ . '/auth.php';
 
         // Toggle Attendance Action
         $(document).on('click', '.btn-toggle', function() {
+            if (!IS_ADMIN) return;
+            clearStatusMessage();
             let contactId = $(this).data('contact');
             let eventId = $('#prg_evnt_id').val();
 
@@ -383,11 +432,11 @@ require_once __DIR__ . '/auth.php';
                     if (res.success) {
                         loadRoster(eventId);
                     } else {
-                        alert(res.error || res.message || 'Error updating attendance status.');
+                        showStatusMessage(res.error || res.message || 'Error updating attendance status.', 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert('Communication error updating attendance: ' + error);
+                    showStatusMessage('Communication error updating attendance: ' + error, 'error');
                 }
             });
         });
@@ -396,9 +445,11 @@ require_once __DIR__ . '/auth.php';
 </head>
 <body>
   <?php require_once("config/db.php"); ?>
-  <?php include 'header.php'; ?> 
+  <?php include 'include/header.php'; ?> 
 
   <h1>Live Event Attendance Check-In</h1>
+
+  <div id="status-message" class="alert-box"></div>
 
   <div class="checkin-wrapper">
     <!-- EVENT SELECTOR FIELDSET -->
@@ -468,5 +519,6 @@ require_once __DIR__ . '/auth.php';
       </div>
     </div>
   </div>
+  <?php include_once 'include/footer.php'; ?>
 </body>
 </html>

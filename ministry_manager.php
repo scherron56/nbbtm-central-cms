@@ -11,10 +11,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
+$adminUser = isAdmin();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,6 +25,25 @@ require_once __DIR__ . '/auth.php';
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
  
   <style>
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+    .read-only-banner {
+      background-color: #f1f5f9;
+      border-left: 4px solid #0ea5e9;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      color: #334155;
+    }
+
     .form-control { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95rem; box-sizing: border-box; color: #28089a; background-color: #ffffff; }
     textarea.form-control { resize: vertical; min-height: 70px; }
     label { font-weight: 600; color: #28089a; font-size: 0.9rem; margin-bottom: 0.25rem; display: inline-block; }
@@ -40,6 +57,7 @@ require_once __DIR__ . '/auth.php';
 
   <script>
     $(document).ready(function() {
+      const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
       const filterSelect = $('#filter_type');
       const formTypeSelect = $('#min_comm_type_id');
       const clearFilterBtn = $('#clear_filter_btn');
@@ -48,6 +66,23 @@ require_once __DIR__ . '/auth.php';
       const formTitle = $('#form-title');
       const cancelEditBtn = $('#cancel_edit_btn');
       const saveBtn = $('#save_btn');
+
+      function showStatusMessage(message, type = 'success') {
+        let $box = $('#status-message');
+        $box.removeClass('alert-success alert-error')
+            .addClass(type === 'success' ? 'alert-success' : 'alert-error')
+            .html(message)
+            .stop(true, true)
+            .fadeIn(200);
+
+        if (type === 'success') {
+          setTimeout(function() { $box.fadeOut(500); }, 5000);
+        }
+      }
+
+      function clearStatusMessage() {
+        $('#status-message').fadeOut(200).empty();
+      }
 
       // Initial AJAX Setup
       loadGroupTypes();
@@ -71,17 +106,17 @@ require_once __DIR__ . '/auth.php';
               });
               
               filterSelect.html(options);
-              formTypeSelect.html(formOptions);
+              if (formTypeSelect.length) formTypeSelect.html(formOptions);
             } else {
               console.error('Group Types Error:', res.message);
               filterSelect.html('<option value="">Failed to load</option>');
-              formTypeSelect.html('<option value="">Failed to load</option>');
+              if (formTypeSelect.length) formTypeSelect.html('<option value="">Failed to load</option>');
             }
           },
           error: function(xhr) {
             console.error('AJAX Group Types Error:', xhr.responseText);
             filterSelect.html('<option value="">Error loading data</option>');
-            formTypeSelect.html('<option value="">Error loading data</option>');
+            if (formTypeSelect.length) formTypeSelect.html('<option value="">Error loading data</option>');
           }
         });
       }
@@ -114,7 +149,7 @@ require_once __DIR__ . '/auth.php';
             if (res.status === 'success') {
               renderTable(res.data);
             } else {
-              alert('Backend Error: ' + res.message);
+              showStatusMessage('Backend Error: ' + res.message, 'error');
             }
           },
           error: function(xhr) {
@@ -134,6 +169,11 @@ require_once __DIR__ . '/auth.php';
             const badgeText = row.is_active == 1 ? 'Active' : 'Inactive';
             const shortDesc = row.description ? escapeHtml(row.description).substring(0, 50) + (row.description.length > 50 ? '...' : '') : '';
 
+            let actionsHtml = IS_ADMIN ? `
+              <a href="#" class="link-btn edit-btn" data-id="${row.min_comm_id}">Edit</a> | 
+              <a href="#" class="link-btn delete-btn" style="color: #dc2626;" data-id="${row.min_comm_id}">Delete</a>
+            ` : '<em>Read Only</em>';
+
             html += `
               <tr>
                 <td>${row.min_comm_id}</td>
@@ -141,10 +181,7 @@ require_once __DIR__ . '/auth.php';
                 <td>${escapeHtml(row.min_grp_type_desc || 'Unassigned')}</td>
                 <td>${shortDesc}</td>
                 <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-                <td style="text-align: right;">
-                  <a href="#" class="link-btn edit-btn" data-id="${row.min_comm_id}">Edit</a> | 
-                  <a href="#" class="link-btn delete-btn" style="color: #dc2626;" data-id="${row.min_comm_id}">Delete</a>
-                </td>
+                <td style="text-align: right;">${actionsHtml}</td>
               </tr>
             `;
           });
@@ -157,6 +194,7 @@ require_once __DIR__ . '/auth.php';
       // 5. Form Submit (Save / Update)
       ministryForm.on('submit', function(e) {
         e.preventDefault();
+        clearStatusMessage();
         
         let formData = new FormData(this);
         formData.append('action', 'save_committee');
@@ -170,15 +208,15 @@ require_once __DIR__ . '/auth.php';
           dataType: 'json',
           success: function(res) {
             if (res.status === 'success') {
+              showStatusMessage(res.message, 'success');
               resetForm();
               loadCommittees(filterSelect.val());
             } else {
-              alert('Save Error: ' + res.message);
+              showStatusMessage('Save Error: ' + res.message, 'error');
             }
           },
           error: function(xhr) {
-            console.error('AJAX Save Error:', xhr.responseText);
-            alert('Server error while saving. Check browser console.');
+            showStatusMessage('Server error while saving committee.', 'error');
           }
         });
       });
@@ -186,6 +224,9 @@ require_once __DIR__ . '/auth.php';
       // 6. Edit Click
       tableBody.on('click', '.edit-btn', function(e) {
         e.preventDefault();
+        if (!IS_ADMIN) return;
+        clearStatusMessage();
+
         const id = $(this).data('id');
         
         $.ajax({
@@ -207,7 +248,7 @@ require_once __DIR__ . '/auth.php';
               saveBtn.text('Update Committee');
               cancelEditBtn.show();
               
-              $('html, body').animate({ scrollTop: 0 }, 'fast');
+              $('html, body').animate({ scrollTop: $('#ministryForm').offset().top - 20 }, 'fast');
             }
           }
         });
@@ -216,6 +257,9 @@ require_once __DIR__ . '/auth.php';
       // 7. Delete Click
       tableBody.on('click', '.delete-btn', function(e) {
         e.preventDefault();
+        if (!IS_ADMIN) return;
+        clearStatusMessage();
+
         if (confirm('Are you sure you want to delete this committee?')) {
           const id = $(this).data('id');
           
@@ -226,9 +270,10 @@ require_once __DIR__ . '/auth.php';
             dataType: 'json',
             success: function(res) {
               if (res.status === 'success') {
+                showStatusMessage(res.message, 'success');
                 loadCommittees(filterSelect.val());
               } else {
-                alert('Delete Error: ' + res.message);
+                showStatusMessage('Delete Error: ' + res.message, 'error');
               }
             }
           });
@@ -241,11 +286,14 @@ require_once __DIR__ . '/auth.php';
       });
 
       function resetForm() {
-        ministryForm[0].reset();
-        $('#min_comm_id').val('');
-        formTitle.text('Add New Ministry Committee');
-        saveBtn.text('Save Committee');
-        cancelEditBtn.hide();
+        clearStatusMessage();
+        if (ministryForm.length) {
+          ministryForm[0].reset();
+          $('#min_comm_id').val('');
+          formTitle.text('Add New Ministry Committee');
+          saveBtn.text('Save Committee');
+          cancelEditBtn.hide();
+        }
       }
 
       function escapeHtml(str) {
@@ -257,9 +305,11 @@ require_once __DIR__ . '/auth.php';
 </head>
 <body>
 
-  <?php include 'header.php'; ?> 
+  <?php include 'include/header.php'; ?> 
 
   <div class="dashboard-container">
+
+    <div id="status-message" class="alert-box"></div>
 
     <!-- FILTER BAR -->
     <div class="filter-bar">
@@ -292,51 +342,57 @@ require_once __DIR__ . '/auth.php';
 
     <br>
 
-    <!-- ENTRY / EDIT FORM -->
-    <form id="ministryForm">
-      <input type="hidden" id="min_comm_id" name="min_comm_id" value="">
-      <fieldset class="form-grid-section-9 fieldset-relative">
-        <legend>
-          <h2 id="form-title">Add/Update Ministry/Committee</h2>
-        </legend>
-        
-        <div class="field-group" style="--colspan: 5;">
-          <label for="min_comm_name">Name *</label>
-          <input type="text" id="min_comm_name" name="min_comm_name" class="form-control" required>
-        </div>
+    <?php if ($adminUser): ?>
+      <!-- ENTRY / EDIT FORM -->
+      <form id="ministryForm">
+        <input type="hidden" id="min_comm_id" name="min_comm_id" value="">
+        <fieldset class="form-grid-section-9 fieldset-relative">
+          <legend>
+            <h2 id="form-title">Add/Update Ministry/Committee</h2>
+          </legend>
+          
+          <div class="field-group" style="--colspan: 5;">
+            <label for="min_comm_name">Name *</label>
+            <input type="text" id="min_comm_name" name="min_comm_name" class="form-control" required>
+          </div>
 
-        <div class="field-group" style="--colspan: 3;">
-          <label for="min_comm_type_id">Group Type *</label>
-          <select id="min_comm_type_id" name="min_comm_type_id" class="form-control" required>
-            <option value="">Loading Group Types...</option>
-          </select>
-        </div>
+          <div class="field-group" style="--colspan: 3;">
+            <label for="min_comm_type_id">Group Type *</label>
+            <select id="min_comm_type_id" name="min_comm_type_id" class="form-control" required>
+              <option value="">Loading Group Types...</option>
+            </select>
+          </div>
 
-        <div class="field-group" style="--colspan: 9;">
-          <label for="description">Description</label>
-          <textarea id="description" name="description" class="form-control" rows="2"></textarea>
-        </div>
+          <div class="field-group" style="--colspan: 9;">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" class="form-control" rows="2"></textarea>
+          </div>
 
-        <div class="field-group" style="--colspan: 9;">
-          <label for="mission_purpose">Mission</label>
-          <textarea id="mission_purpose" name="mission_purpose" class="form-control" rows="3"></textarea>
-        </div>
+          <div class="field-group" style="--colspan: 9;">
+            <label for="mission_purpose">Mission</label>
+            <textarea id="mission_purpose" name="mission_purpose" class="form-control" rows="3"></textarea>
+          </div>
 
-        <div class="field-group" style="--colspan: 1;">
-          <label class="checkbox-label">
-            <input type="checkbox" id="is_active" name="is_active" value="1" checked>
-            Is Active
-          </label>
-        </div>
+          <div class="field-group" style="--colspan: 1;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="is_active" name="is_active" value="1" checked>
+              Is Active
+            </label>
+          </div>
 
-        <div class="form-actions">
-          <button type="button" id="cancel_edit_btn" class="btn-secondary" style="display: none; line-height: 2.2;">Cancel Edit</button>
-          <button type="submit" id="save_btn" class="btn-primary">Save Committee</button>
-        </div>
-      </fieldset>
-    </form>
+          <div class="form-actions">
+            <button type="button" id="cancel_edit_btn" class="btn-secondary" style="display: none; line-height: 2.2;">Cancel Edit</button>
+            <button type="submit" id="save_btn" class="btn-primary">Save Committee</button>
+          </div>
+        </fieldset>
+      </form>
+    <?php else: ?>
+      <div class="read-only-banner">
+        <strong>Read-Only Mode:</strong> You must be an administrator to add or modify ministry committee details.
+      </div>
+    <?php endif; ?>
 
   </div>
-
+<?php include_once 'include/footer.php'; ?>
 </body>
 </html>

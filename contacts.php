@@ -11,10 +11,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
+$adminUser = isAdmin();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -46,6 +44,35 @@ require_once __DIR__ . '/auth.php';
     .top-right-member label {
       font-weight: 700;
     }
+
+    /* On-Screen Alert Message Container Styles */
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      display: none;
+    }
+    .alert-success {
+      background-color: #d1fae5;
+      border: 1px solid #6ee7b7;
+      color: #065f46;
+    }
+    .alert-error {
+      background-color: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+    .read-only-banner {
+      background-color: #f1f5f9;
+      border-left: 4px solid #0ea5e9;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      color: #334155;
+    }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -53,8 +80,38 @@ require_once __DIR__ . '/auth.php';
   <script>
 $(document).ready(function() {
 
+  const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
   let globalMinistryList = [];
   let globalRoleList = [];
+
+  function showStatusMessage(message, type = 'success') {
+    let $box = $('#status-message');
+    let htmlContent = '';
+
+    if (Array.isArray(message)) {
+      htmlContent = '<ul style="margin: 0; padding-left: 20px;">' + message.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+    } else if (typeof message === 'object') {
+      htmlContent = '<ul style="margin: 0; padding-left: 20px;">' + Object.values(message).map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+    } else {
+      htmlContent = message;
+    }
+
+    $box.removeClass('alert-success alert-error')
+        .addClass(type === 'success' ? 'alert-success' : 'alert-error')
+        .html(htmlContent)
+        .stop(true, true)
+        .fadeIn(200);
+
+    $('html, body').animate({ scrollTop: $box.offset().top - 20 }, 200);
+
+    if (type === 'success') {
+      setTimeout(function() { $box.fadeOut(500); }, 5000);
+    }
+  }
+
+  function clearStatusMessage() {
+    $('#status-message').fadeOut(200).empty();
+  }
 
   // Ensure all checkboxes start explicitly unchecked on fresh page load
   $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
@@ -171,6 +228,10 @@ $(document).ready(function() {
         });
       });
     }
+
+    if (!IS_ADMIN) {
+      $('#checkbox-container input, #checkbox-container select').prop('disabled', true);
+    }
   }
 
   $('#is_member').change(function() {
@@ -206,7 +267,7 @@ $(document).ready(function() {
         $('#contactID').val(currentContactId);
       },
       error: function(xhr, status, error) {
-        console.error("Error loading contact list: ", error, xhr.responseText);
+        showStatusMessage("Error loading contact list.", 'error');
       }
     });
   }
@@ -287,7 +348,7 @@ $(document).ready(function() {
         }
       },
       error: function(xhr, status, error) {
-        console.error("Error loading lists: ", error, xhr.responseText);
+        showStatusMessage("Error loading dropdown data.", 'error');
       }
     });
   }
@@ -297,26 +358,31 @@ $(document).ready(function() {
   });
 
   $('#addNewContact, #resetBtn').click(function(e) {
-    $('#contact-form')[0].reset();
-    $('#contact_id').val('');
-    $('#contactID').val('');
-    $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
-    
-    buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
-    toggleMemberSections(false);
-    $('#submitBtn').text('Save');
+    clearStatusMessage();
+    if ($('#contact-form').length) {
+      $('#contact-form')[0].reset();
+      $('#contact_id').val('');
+      $('#contactID').val('');
+      $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+      buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
+      toggleMemberSections(false);
+      $('#submitBtn').text('Save');
+    }
   });
 
   // Fetch Contact Data on Selection
   $('#contactID').change(function() {
+    clearStatusMessage();
     let contactid = $(this).val();
 
     if (contactid === "") {
-      $('#contact-form')[0].reset();
-      $('#contact_id').val('');
-      $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
-      buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
-      toggleMemberSections(false);
+      if ($('#contact-form').length) {
+        $('#contact-form')[0].reset();
+        $('#contact_id').val('');
+        $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+        buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
+        toggleMemberSections(false);
+      }
       return;
     }
 
@@ -327,7 +393,7 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(data) {
         if (data.error) {
-          console.error("Server Error: " + data.error);
+          showStatusMessage(data.error, 'error');
           return;
         }
 
@@ -376,14 +442,15 @@ $(document).ready(function() {
         $('#is_member').prop('checked', isMember);
         
         toggleMemberSections(isMember);
-
         buildMinistryCheckboxes(data.ministryList, data.roleList, data.ministries);
         
-        $('#submitBtn').text('Update Contact');
-        $('#resetBtn').show();
+        if (IS_ADMIN) {
+          $('#submitBtn').text('Update Contact');
+          $('#resetBtn').show();
+        }
       },
       error: function(xhr, status, error) {
-        console.error("Error fetching contact: ", error, xhr.responseText);
+        showStatusMessage("Error fetching contact details.", 'error');
       }
     });
   });
@@ -391,6 +458,7 @@ $(document).ready(function() {
   // Save handler
   $('#contact-form').on('submit', function(e) {
     e.preventDefault();
+    clearStatusMessage();
 
     let formData = $(this).serialize();
     let submitBtn = $('#submitBtn');
@@ -403,7 +471,7 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(response) {
         if (response.status === 'success') {
-          alert(response.message);
+          showStatusMessage(response.message, 'success');
           let savedId = response.id;
           
           updateFormLists(function() {
@@ -411,18 +479,16 @@ $(document).ready(function() {
               $('#contactID').val(savedId).trigger('change');
             }
           });
+        } else {
+          showStatusMessage(response.message || "Failed to save contact.", 'error');
         }
       },
       error: function(xhr, status, error) {
         let response = xhr.responseJSON || {};
         if (response.errors) {
-          let errorMsg = "Please address the following inputs:\n";
-          $.each(response.errors, function(key, text) {
-            errorMsg += "- " + text + "\n";
-          });
-          alert(errorMsg);
+          showStatusMessage(response.errors, 'error');
         } else {
-          alert("An error occurred while saving. Please try again.");
+          showStatusMessage("An error occurred while saving. Please try again.", 'error');
         }
       },
       complete: function() {
@@ -431,13 +497,14 @@ $(document).ready(function() {
     });
   });
 
-  // Delete handlerd
+  // Delete handler
   $('#deleteBtn').click(function(e) {
     e.preventDefault();
+    clearStatusMessage();
     let contactId = $('#contact_id').val();
 
     if (!contactId) {
-      alert("Please select a contact to delete.");
+      showStatusMessage("Please select a contact to delete.", 'error');
       return;
     }
 
@@ -449,15 +516,15 @@ $(document).ready(function() {
         dataType: 'json',
         success: function(response) {
           if (response.status === 'success') {
-            alert(response.message);
+            showStatusMessage(response.message, 'success');
             $('#addNewContact').click();
             updateFormLists();
           } else {
-            alert(response.message || "Failed to delete contact.");
+            showStatusMessage(response.message || "Failed to delete contact.", 'error');
           }
         },
         error: function(xhr, status, error) {
-          alert("An error occurred while attempting to delete the contact.");
+          showStatusMessage("An error occurred while attempting to delete the contact.", 'error');
         }
       });
     }
@@ -470,227 +537,240 @@ $(document).ready(function() {
 
 <body>
   <?php require_once("config/db.php") ?>
-  <?php include 'header.php'?>
+  <?php include 'include/header.php'?>
 
   <h1>Member/Contact Information</h1>
 
-  <form id="contact-form" name="contact-form">
-  
-    <fieldset id="contact-select" class="form-grid-section-short">
-      <div class="field-group" style="--colspan: 2;">
-        <label><h3 style="color: blue; margin-bottom: 5px;">View Option</h3></label>
-        <div style="display: flex; gap: 12px; align-items: center; margin-top: 4px;">
-          <label for="filter_all" style="font-weight: normal; cursor: pointer;">
-            <input type="radio" id="filter_all" name="contact_filter" value="0" checked>
-            All Contacts
-          </label>
-          <label for="filter_members" style="font-weight: normal; cursor: pointer;">
-            <input type="radio" id="filter_members" name="contact_filter" value="1">
-            Members Only
-          </label>
-        </div>
-      </div>
+  <div id="status-message" class="alert-box"></div>
 
-      <div class="field-group" style="--colspan: 2;">
-        <label for="contactID"><h3 style="color: blue;">Select Member/Contact</h3></label>
-        <select name="contactID" id="contactID">
-          <option value="">--Select--</option>
-        </select>
+  <fieldset id="contact-select" class="form-grid-section-short">
+    <div class="field-group" style="--colspan: 2;">
+      <label><h3 style="color: blue; margin-bottom: 5px;">View Option</h3></label>
+      <div style="display: flex; gap: 12px; align-items: center; margin-top: 4px;">
+        <label for="filter_all" style="font-weight: normal; cursor: pointer;">
+          <input type="radio" id="filter_all" name="contact_filter" value="0" checked>
+          All Contacts
+        </label>
+        <label for="filter_members" style="font-weight: normal; cursor: pointer;">
+          <input type="radio" id="filter_members" name="contact_filter" value="1">
+          Members Only
+        </label>
       </div>
+    </div>
+
+    <div class="field-group" style="--colspan: 2;">
+      <label for="contactID"><h3 style="color: blue;">Select Member/Contact</h3></label>
+      <select name="contactID" id="contactID">
+        <option value="">--Select--</option>
+      </select>
+    </div>
+
+    <?php if ($adminUser): ?>
       <div class="field-group" style="--colspan: 2; display: flex; justify-content: center; align-items: center;">
         <button type="button" id="addNewContact" class="btn-pulse nbtn">Add Contact</button>
       </div>
-    </fieldset>
+    <?php endif; ?>
+  </fieldset>
 
-    <!-- PERSONAL INFORMATION FIELDSET -->
-    <fieldset class="form-grid-section-8 fieldset-relative">
-      <legend>
-        <h2>Personal Information</h2>
-      </legend>
+  <?php if ($adminUser): ?>
+    <form id="contact-form" name="contact-form">
+      <!-- PERSONAL INFORMATION FIELDSET -->
+      <fieldset class="form-grid-section-8 fieldset-relative">
+        <legend>
+          <h2>Personal Information</h2>
+        </legend>
 
-      <div class="top-right-member">
-        <label for="is_member">Member</label>
-        <input type="hidden" name="is_member" value="0">
-        <input type="checkbox" id="is_member" name="is_member" value="1">
-      </div>
+        <div class="top-right-member">
+          <label for="is_member">Member</label>
+          <input type="hidden" name="is_member" value="0">
+          <input type="checkbox" id="is_member" name="is_member" value="1">
+        </div>
 
-      <input type="hidden" id="contact_id" name="contact_id">
+        <input type="hidden" id="contact_id" name="contact_id">
 
-      <div class="field-group" style="--colspan: 2;">
-        <label for="title_id">Salutation</label>
-        <select name="title_id" id="title_id">
-          <option value="">--Select--</option>
-        </select>
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="first_name">First Name</label>
-        <input type="text" id="first_name" name="first_name">
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="middle_name">Middle Name</label>
-        <input type="text" id="middle_name" name="middle_name" />
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="last_name">Last Name</label>
-        <input type="text" id="last_name" name="last_name"/>
-      </div>
-      <div class="field-group" style="--colspan: 2; --rowspan: 1;">
-        <label for="date_of_birth">Date of Birth</label>
-        <input type="date" id="date_of_birth" name="date_of_birth">
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="gender">Gender</label>
-        <select id="gender" name="gender" size="1">
-          <option value="">Select</option>
-          <option value="F">Female</option>
-          <option value="M">Male</option>
-        </select>
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="marital_status">Marital Status</label>
-        <select id="marital_status" name="marital_status" size="1">
-          <option value="">Select</option>
-        </select>
-      </div>
-      <div class="field-group" style="--colspan: 2; --rowspan: 1;">
-        <label for="anniv_date">Anniversary Date</label>
-        <input type="date" id="anniv_date" name="anniv_date" />
-      </div>
-      <div class="field-group" style="--colspan: 2; --rowspan: 3;">
-        <label for="is_head">Head of Household</label>
-        <input type="hidden" name="is_head" value="0">
-        <input type="checkbox" id="is_head" name="is_head" value="1">
-      </div>  
-      <div class="field-group" style="--colspan: 2; --rowspan: 3;">
-        <label for="is_child">Child</label>
-        <input type="hidden" name="is_child" value="0">
-        <input type="checkbox" id="is_child" name="is_child" value="1">
-      </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="title_id">Salutation</label>
+          <select name="title_id" id="title_id">
+            <option value="">--Select--</option>
+          </select>
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name">
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="middle_name">Middle Name</label>
+          <input type="text" id="middle_name" name="middle_name" />
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name"/>
+        </div>
+        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth">
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" size="1">
+            <option value="">Select</option>
+            <option value="F">Female</option>
+            <option value="M">Male</option>
+          </select>
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="marital_status">Marital Status</label>
+          <select id="marital_status" name="marital_status" size="1">
+            <option value="">Select</option>
+          </select>
+        </div>
+        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+          <label for="anniv_date">Anniversary Date</label>
+          <input type="date" id="anniv_date" name="anniv_date" />
+        </div>
+        <div class="field-group" style="--colspan: 2; --rowspan: 3;">
+          <label for="is_head">Head of Household</label>
+          <input type="hidden" name="is_head" value="0">
+          <input type="checkbox" id="is_head" name="is_head" value="1">
+        </div>  
+        <div class="field-group" style="--colspan: 2; --rowspan: 3;">
+          <label for="is_child">Child</label>
+          <input type="hidden" name="is_child" value="0">
+          <input type="checkbox" id="is_child" name="is_child" value="1">
+        </div>
 
-      <div class="field-group" style="--colspan: 2;" >
-        <label for="family_id">Select Family</label>
-        <select name="family_id" id="family_id">
-          <option value="">--Select--</option>
-        </select>
-      </div>     
-    </fieldset>
+        <div class="field-group" style="--colspan: 2;" >
+          <label for="family_id">Select Family</label>
+          <select name="family_id" id="family_id">
+            <option value="">--Select--</option>
+          </select>
+        </div>     
+      </fieldset>
 
-    <!-- CONTACT INFORMATION FIELDSET -->
-    <fieldset class="form-grid-section-9">
-      <legend>
-        <h2>Contact Information</h2>
-      </legend>
-      <div class="field-group" style="--colspan: 9;">
-        <label for="address_1">Address</label>
-        <input type="text" id="address_1" name="address_1" autocomplete="off" />
-      </div>
-      <div class="field-group" style="--colspan: 3; --rowspan: 1;">
-        <label for="city">City</label>
-        <input type="text" id="city" name="city" autocomplete="off" />
-      </div>
-      <div class="field-group" style="--colspan: 3;">
-        <label for="state">State</label>
-        <input type="text" id="state" name="state" autocomplete="off" />
-      </div>
-      <div class="field-group" style="--colspan: 3;">
-        <label for="zipcode">Zip Code</label>
-        <input type="text" id="zipcode" name="zipcode" autocomplete="off" />
-      </div>
-      <div class="field-group" style="--colspan: 2; --rowspan: 1;">
-        <label for="phone_1">Primary Phone</label>
-        <input type="tel" id="phone_1" name="phone_1" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="phone_1_type">Phone Type</label>
-        <select name="phone_1_type" id="phone_1_type">
-          <option value="">--Select--</option>
-        </select>
-      </div>
-      <div class="field-group" style="--colspan: 2; --rowspan: 1;">
-        <label for="phone_2">Secondary Phone</label>
-        <input type="tel" id="phone_2" name="phone_2" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="phone_2_type">Phone Type</label>
-        <select name="phone_2_type" id="phone_2_type">
-          <option value="">--Select--</option>
-        </select>
-      </div>
-      <div class="field-group" style="--colspan: 4; --rowspan: 1;">
-        <label for="emergency_contact">Emergency Contact Name</label>
-        <input type="text" id="emergency_contact" name="emergency_contact">
-      </div>
-      <div class="field-group" style="--colspan: 2; --rowspan: 1;">
-        <label for="phone_3">Emergency Contact Phone</label>
-        <input type="tel" id="phone_3" name="phone_3" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
-      </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="phone_3_type">Phone Type</label>
-        <select name="phone_3_type" id="phone_3_type">
-          <option value="">--Select--</option>
-        </select>
-      </div>
-      <div class="field-group" style="--colspan: 9;">
-        <label for="c_email">E-mail Address</label>
-        <input type="email" id="c_email" name="c_email" autocomplete="off">
-        <div id="c_emailError" class="nborder"></div>
-      </div>
-    </fieldset>
+      <!-- CONTACT INFORMATION FIELDSET -->
+      <fieldset class="form-grid-section-9">
+        <legend>
+          <h2>Contact Information</h2>
+        </legend>
+        <div class="field-group" style="--colspan: 9;">
+          <label for="address_1">Address</label>
+          <input type="text" id="address_1" name="address_1" autocomplete="off" />
+        </div>
+        <div class="field-group" style="--colspan: 3; --rowspan: 1;">
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" autocomplete="off" />
+        </div>
+        <div class="field-group" style="--colspan: 3;">
+          <label for="state">State</label>
+          <input type="text" id="state" name="state" autocomplete="off" />
+        </div>
+        <div class="field-group" style="--colspan: 3;">
+          <label for="zipcode">Zip Code</label>
+          <input type="text" id="zipcode" name="zipcode" autocomplete="off" />
+        </div>
+        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+          <label for="phone_1">Primary Phone</label>
+          <input type="tel" id="phone_1" name="phone_1" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="phone_1_type">Phone Type</label>
+          <select name="phone_1_type" id="phone_1_type">
+            <option value="">--Select--</option>
+          </select>
+        </div>
+        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+          <label for="phone_2">Secondary Phone</label>
+          <input type="tel" id="phone_2" name="phone_2" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="phone_2_type">Phone Type</label>
+          <select name="phone_2_type" id="phone_2_type">
+            <option value="">--Select--</option>
+          </select>
+        </div>
+        <div class="field-group" style="--colspan: 4; --rowspan: 1;">
+          <label for="emergency_contact">Emergency Contact Name</label>
+          <input type="text" id="emergency_contact" name="emergency_contact">
+        </div>
+        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
+          <label for="phone_3">Emergency Contact Phone</label>
+          <input type="tel" id="phone_3" name="phone_3" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">
+        </div>
+        <div class="field-group" style="--colspan: 2;">
+          <label for="phone_3_type">Phone Type</label>
+          <select name="phone_3_type" id="phone_3_type">
+            <option value="">--Select--</option>
+          </select>
+        </div>
+        <div class="field-group" style="--colspan: 9;">
+          <label for="c_email">E-mail Address</label>
+          <input type="email" id="c_email" name="c_email" autocomplete="off">
+          <div id="c_emailError" class="nborder"></div>
+        </div>
+      </fieldset>
 
-    <!-- MEMBERSHIP INFORMATION FIELDSET -->
-    <fieldset id="membership-section" class="form-grid-section-short">
-      <legend>
-        <h2>Membership Information</h2>
-      </legend>
-      <div class="field-group" style="--colspan: 1;">
-        <label for="is_baptized">Baptized</label>
-        <input type="hidden" name="is_baptized" value="0">
-        <input type="checkbox" id="is_baptized" name="is_baptized" value="1">
-      </div> 
-      
-      <div class="field-group" style="--colspan: 2;">
-        <label for="baptized_date">Date Baptized</label>
-        <input type="date" id="baptized_date" name="baptized_date">
-      </div>
-      
-      <div class="field-group" style="--colspan: 2;">
-        <label for="join_date">Date Joined</label>
-        <input type="date" id="join_date" name="join_date">
-      </div>
-      
-      <div class="field-group" style="--colspan: 1; --rowspan: 1;">
-        <label for="is_active">Active</label>
-        <input type="hidden" name="is_active" value="0">
-        <input type="checkbox" id="is_active" name="is_active" value="1">
-      </div>
-    </fieldset>
+      <!-- MEMBERSHIP INFORMATION FIELDSET -->
+      <fieldset id="membership-section" class="form-grid-section-short">
+        <legend>
+          <h2>Membership Information</h2>
+        </legend>
+        <div class="field-group" style="--colspan: 1;">
+          <label for="is_baptized">Baptized</label>
+          <input type="hidden" name="is_baptized" value="0">
+          <input type="checkbox" id="is_baptized" name="is_baptized" value="1">
+        </div> 
+        
+        <div class="field-group" style="--colspan: 2;">
+          <label for="baptized_date">Date Baptized</label>
+          <input type="date" id="baptized_date" name="baptized_date">
+        </div>
+        
+        <div class="field-group" style="--colspan: 2;">
+          <label for="join_date">Date Joined</label>
+          <input type="date" id="join_date" name="join_date">
+        </div>
+        
+        <div class="field-group" style="--colspan: 1; --rowspan: 1;">
+          <label for="is_active">Active</label>
+          <input type="hidden" name="is_active" value="0">
+          <input type="checkbox" id="is_active" name="is_active" value="1">
+        </div>
+      </fieldset>
 
-    <!-- DYNAMIC MINISTRY ALLIANCES AREA -->
-    <fieldset id="ministry-section">
-      <legend>
-        <h2>Ministry/Committee Associations</h2>
-      </legend>
-      <div id="checkbox-container">
-        <!-- jQuery dynamically drops card rows in here -->
-      </div>
-    </fieldset>
+      <!-- DYNAMIC MINISTRY ALLIANCES AREA -->
+      <fieldset id="ministry-section">
+        <legend>
+          <h2>Ministry/Committee Associations</h2>
+        </legend>
+        <div id="checkbox-container">
+          <!-- jQuery dynamically drops card rows in here -->
+        </div>
+      </fieldset>
 
-    <fieldset class="form-grid-section-short-rght">
-      <div class="field-group" style="--colspan: 1;">
-        <button type="submit" id="submitBtn" class="btn-pulse">Save</button>
-      </div>
-      <div class="field-group" style="--colspan: 1;">
-        <button type="button" id="deleteBtn" class="delete-btn"> 
-          <span class="btn-text">Delete</span>
-          <svg class="spinner" viewBox="0 0 50 50" stroke="currentColor" stroke-width="5" fill="none">
-            <circle cx="25" cy="25" r="20" stroke-dasharray="80, 200"></circle>
-          </svg>
-        </button>
-      </div>
-      <div class="field-group" style="--colspan: 1;">
-        <button type="reset" id="resetBtn" class="btn-pulse">Reset</button>
-      </div>
-    </fieldset> 
-  </form>
+      <fieldset class="form-grid-section-short-rght">
+        <div class="field-group" style="--colspan: 1;">
+          <button type="submit" id="submitBtn" class="btn-pulse">Save</button>
+        </div>
+        <div class="field-group" style="--colspan: 1;">
+          <button type="button" id="deleteBtn" class="delete-btn"> 
+            <span class="btn-text">Delete</span>
+            <svg class="spinner" viewBox="0 0 50 50" stroke="currentColor" stroke-width="5" fill="none">
+              <circle cx="25" cy="25" r="20" stroke-dasharray="80, 200"></circle>
+            </svg>
+          </button>
+        </div>
+        <div class="field-group" style="--colspan: 1;">
+          <button type="reset" id="resetBtn" class="btn-pulse">Reset</button>
+        </div>
+      </fieldset> 
+    </form>
+  <?php else: ?>
+    <div class="read-only-banner">
+      <strong>Read-Only Mode:</strong> You must be signed in as an administrator to edit or delete contact records.
+    </div>
+  <?php endif; ?>
+  
+  <?php include_once 'include/footer.php'; ?>
+
 </body>
 </html>

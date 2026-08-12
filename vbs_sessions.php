@@ -11,10 +11,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
+$adminUser = isAdmin();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -28,6 +26,25 @@ require_once __DIR__ . '/auth.php';
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <style>
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+    .read-only-banner {
+      background-color: #f1f5f9;
+      border-left: 4px solid #0ea5e9;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      color: #334155;
+    }
+
     /* Data grid container formatting */
     .table-container {
       width: 100%;
@@ -71,7 +88,25 @@ require_once __DIR__ . '/auth.php';
 
   <script>
     $(document).ready(function() {
-      // Initialize setup dropdown data fields 
+      const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
+
+      function showStatusMessage(message, type = 'success') {
+        let $box = $('#status-message');
+        $box.removeClass('alert-success alert-error')
+            .addClass(type === 'success' ? 'alert-success' : 'alert-error')
+            .html(message)
+            .stop(true, true)
+            .fadeIn(200);
+
+        if (type === 'success') {
+          setTimeout(function() { $box.fadeOut(500); }, 5000);
+        }
+      }
+
+      function clearStatusMessage() {
+        $('#status-message').fadeOut(200).empty();
+      }
+
       populateDropdowns();
 
       function getActiveSessionId() {
@@ -84,14 +119,13 @@ require_once __DIR__ . '/auth.php';
         $('#vbs_sessions_id').val(id);
       }
 
-      // Clear error styles when a user fixes the content typing
       $('#vbs-form').on('input change', 'input, select', function() {
         $(this).removeClass('input-error');
         $(this).siblings('.error-message-text').remove();
       });
 
-      // Track session drop-down updates 
       $('#SessionID').on('change', function() {
+        clearStatusMessage();
         const sessionId = $(this).val();
         setActiveSessionId(sessionId);
 
@@ -108,7 +142,6 @@ require_once __DIR__ . '/auth.php';
         }
       });
 
-      // Fetch Session details via AJAX
       function fetchSessionDetails(sessionId) {
         $.ajax({
           url: 'class_controller.php',
@@ -126,9 +159,6 @@ require_once __DIR__ . '/auth.php';
               $('#vbs_theme').val(res.data.vbs_theme || '');
               $('#vbs_theme_scripture').val(res.data.vbs_theme_scripture || '');
             }
-          },
-          error: function(xhr, status, error) {
-            console.error("Fetch session error:", xhr.responseText);
           }
         });
       }
@@ -142,6 +172,8 @@ require_once __DIR__ . '/auth.php';
       }
 
       function saveSessionDetails() {
+        if (!IS_ADMIN) return;
+        clearStatusMessage();
         const sessionId = getActiveSessionId();
         const yearVal = $('#vbs_year').val().trim();
 
@@ -176,16 +208,18 @@ require_once __DIR__ . '/auth.php';
       }
 
       $('#vbs_year, #vbs_start_date, #vbs_end_date, #vbs_theme, #vbs_theme_scripture').on('change', function() {
-        saveSessionDetails();
+        if (IS_ADMIN) saveSessionDetails();
       });
 
       $('#saveSessionBtn').on('click', function() {
+        if (!IS_ADMIN) return;
         saveSessionDetails();
-        alert('Session details updated successfully!');
+        showStatusMessage('Session details updated successfully!', 'success');
       });
 
-      // Add Session button handler
       $('#addSession').on('click', function() {
+        if (!IS_ADMIN) return;
+        clearStatusMessage();
         const currentYear = new Date().getFullYear().toString();
 
         resetSessionFormFields();
@@ -215,20 +249,18 @@ require_once __DIR__ . '/auth.php';
               setActiveSessionId(newId);
               $('#class-table-container').removeClass('hidden');
               $('#vbs_year').focus();
+              showStatusMessage('New session initialized.', 'success');
             } else {
-              alert('Could not initialize new session: ' + (res.message || 'Unknown error'));
+              showStatusMessage('Could not initialize new session: ' + (res.message || 'Unknown error'), 'error');
             }
-          },
-          error: function(xhr, status, error) {
-            console.error("Add session error:", xhr.responseText);
-            alert('Failed to initialize session record. Check browser console for details.');
           }
         });
       });
 
-      // Submit class form
       $('#vbs-form').on('submit', function(e) {
         e.preventDefault();
+        if (!IS_ADMIN) return;
+        clearStatusMessage();
 
         $('.input-error').removeClass('input-error');
         $('.error-message-text').remove();
@@ -244,7 +276,7 @@ require_once __DIR__ . '/auth.php';
         let hasError = false;
 
         if (!sessionId || sessionId === "0") {
-          alert('Please select or create a valid Session Year before saving class records.');
+          showStatusMessage('Please select or create a valid Session Year before saving class records.', 'error');
           return;
         }
         if (classDesc === '') {
@@ -285,15 +317,12 @@ require_once __DIR__ . '/auth.php';
           dataType: 'json',
           success: function(response) {
             if (response.success) {
+              showStatusMessage(classId ? 'Class updated successfully.' : 'Class created successfully.', 'success');
               resetClassFormFields();
               fetchClasses(sessionId);
             } else {
-              alert('Operation failed: ' + response.message);
+              showStatusMessage('Operation failed: ' + response.message, 'error');
             }
-          },
-          error: function(xhr, status, error) {
-            console.error("Save class error:", xhr.responseText);
-            alert('An error occurred during communication processing pipelines.');
           }
         });
       });
@@ -328,17 +357,14 @@ require_once __DIR__ . '/auth.php';
             }
 
             const teacherSelect = $('#vbs_class_teacher_id');
-            teacherSelect.find('option:not(:first)').remove();
-
-            if (data.teachers && Array.isArray(data.teachers)) {
-              data.teachers.forEach(function(teach) {
-                teacherSelect.append(new Option(teach.teacher_name, teach.vbs_class_teacher_id));
-              });
+            if (teacherSelect.length) {
+              teacherSelect.find('option:not(:first)').remove();
+              if (data.teachers && Array.isArray(data.teachers)) {
+                data.teachers.forEach(function(teach) {
+                  teacherSelect.append(new Option(teach.teacher_name, teach.vbs_class_teacher_id));
+                });
+              }
             }
-          },
-          error: function(xhr, status, error) {
-            console.error("Dropdown load error:", xhr.responseText);
-            alert('Failed to load initial dropdown data.');
           }
         });
       }
@@ -371,30 +397,34 @@ require_once __DIR__ . '/auth.php';
 
               const $actionsTd = $('<td class="row-actions">');
 
-              const $editBtn = $('<button type="button" class="btn-pulse">Edit</button>')
-                .data('classData', cls)
-                .on('click', function() {
-                  populateEditClass($(this).data('classData'));
-                });
+              if (IS_ADMIN) {
+                const $editBtn = $('<button type="button" class="btn-pulse">Edit</button>')
+                  .data('classData', cls)
+                  .on('click', function() {
+                    populateEditClass($(this).data('classData'));
+                  });
 
-              const $deleteBtn = $('<button type="button" class="btn-danger">Delete</button>')
-                .on('click', function() {
-                  deleteClass(cls.vbs_class_id);
-                });
+                const $deleteBtn = $('<button type="button" class="btn-danger">Delete</button>')
+                  .on('click', function() {
+                    deleteClass(cls.vbs_class_id);
+                  });
 
-              $actionsTd.append($editBtn).append($deleteBtn);
+                $actionsTd.append($editBtn).append($deleteBtn);
+              } else {
+                $actionsTd.append('<em>Read Only</em>');
+              }
+
               $tr.append($actionsTd);
               tbody.append($tr);
             });
-          },
-          error: function(xhr, status, error) {
-            console.error("Fetch classes error:", xhr.responseText);
-            $('#class-table-body').html('<tr><td colspan="4" style="color:red;">Error fetching class data.</td></tr>');
           }
         });
       }
 
       function populateEditClass(cls) {
+        if (!IS_ADMIN) return;
+        clearStatusMessage();
+
         $('.input-error').removeClass('input-error');
         $('.error-message-text').remove();
 
@@ -410,9 +440,14 @@ require_once __DIR__ . '/auth.php';
         $('#class-form-title').text('Modify VBS Class Details');
         $('#submit-class-btn').text('Update Class');
         $('#cancel-edit-btn').removeClass('hidden');
+
+        $('html, body').animate({ scrollTop: $('#vbs-form').offset().top - 20 }, 'fast');
       }
 
       function deleteClass(classId) {
+        if (!IS_ADMIN) return;
+        clearStatusMessage();
+
         if (!confirm('Are you sure you want to permanently delete this class entry?')) return;
         const sessionId = getActiveSessionId();
         $.ajax({
@@ -425,19 +460,17 @@ require_once __DIR__ . '/auth.php';
           dataType: 'json',
           success: function(response) {
             if (response.success) {
+              showStatusMessage('Class deleted successfully.', 'success');
               fetchClasses(sessionId);
             } else {
-              alert('Delete failed: ' + response.message);
+              showStatusMessage('Delete failed: ' + response.message, 'error');
             }
-          },
-          error: function(xhr, status, error) {
-            console.error("Delete error:", xhr.responseText);
-            alert('Server error occurred while deleting.');
           }
         });
       }
 
       function resetClassFormFields() {
+        clearStatusMessage();
         const activeSessionId = getActiveSessionId();
 
         $('#vbs_class_id').val('');
@@ -457,55 +490,62 @@ require_once __DIR__ . '/auth.php';
 
 <body>
   <?php require_once("config/db.php"); ?>
-  <?php include 'header.php'; ?>
+  <?php include 'include/header.php'; ?>
 
   <h1>Vacation Bible School Session</h1>
 
-  <form id="vbs-form" name="vbs-form">
-    <fieldset class="form-grid-section-short">
+  <div id="status-message" class="alert-box"></div>
+
+  <fieldset class="form-grid-section-short">
+    <?php if ($adminUser): ?>
       <div class="field-group" style="--colspan: 1;">
         <button type="button" id="addSession" class="btn-pulse nbtn">Add Session</button>
       </div>
-      <div class="field-group" style="--colspan: 2;">
-        <label for="SessionID">
-          <h3 style="color: blue; margin: 0;">Select Session Year</h3>
-        </label>
-        <select name="sessionID" id="SessionID">
-          <option value="">--Select--</option>
-        </select>
-      </div>
-    </fieldset>
+    <?php endif; ?>
+    <div class="field-group" style="--colspan: 2;">
+      <label for="SessionID">
+        <h3 style="color: blue; margin: 0;">Select Session Year</h3>
+      </label>
+      <select name="sessionID" id="SessionID">
+        <option value="">--Select--</option>
+      </select>
+    </div>
+  </fieldset>
 
-<fieldset class="form-grid-section-9">
+  <form id="vbs-form" name="vbs-form">
+    <fieldset class="form-grid-section-9">
       <input type="hidden" id="vbs_sessions_id" name="vbs_sessions_id">
       
       <!-- Line 1: Year, Dates, and Theme -->
       <div class="field-group" style="--colspan: 2;">
         <label for="vbs_year">Session Year</label>
-        <input type="text" id="vbs_year" name="vbs_year">
+        <input type="text" id="vbs_year" name="vbs_year" <?php echo !$adminUser ? 'readonly' : ''; ?>>
       </div>
       <div class="field-group" style="--colspan: 2;">
         <label for="vbs_start_date">Start Date</label>
-        <input type="date" id="vbs_start_date" name="vbs_start_date">
+        <input type="date" id="vbs_start_date" name="vbs_start_date" <?php echo !$adminUser ? 'readonly' : ''; ?>>
       </div>
       <div class="field-group" style="--colspan: 2;">
         <label for="vbs_end_date">End Date</label>
-        <input type="date" id="vbs_end_date" name="vbs_end_date">
+        <input type="date" id="vbs_end_date" name="vbs_end_date" <?php echo !$adminUser ? 'readonly' : ''; ?>>
       </div>
       <div class="field-group" style="--colspan: 3;">
         <label for="vbs_theme">Session Theme</label>
-        <input type="text" id="vbs_theme" name="vbs_theme">
+        <input type="text" id="vbs_theme" name="vbs_theme" <?php echo !$adminUser ? 'readonly' : ''; ?>>
       </div>
 
       <!-- Line 2: Theme Scripture (6 cols) + Save Button pushed right (3 cols) -->
       <div class="field-group" style="--colspan: 6;">
         <label for="vbs_theme_scripture">Theme Scripture</label>
-        <input type="text" id="vbs_theme_scripture" name="vbs_theme_scripture">
+        <input type="text" id="vbs_theme_scripture" name="vbs_theme_scripture" <?php echo !$adminUser ? 'readonly' : ''; ?>>
       </div>
-      <div class="field-group" style="--colspan: 3; display: flex; align-items: flex-end; justify-content: flex-end;">
-        <button type="button" id="saveSessionBtn" class="btn-primary nbtn" style="width: auto;">Save Session Details</button>
-      </div>
+      <?php if ($adminUser): ?>
+        <div class="field-group" style="--colspan: 3; display: flex; align-items: flex-end; justify-content: flex-end;">
+          <button type="button" id="saveSessionBtn" class="btn-primary nbtn" style="width: auto;">Save Session Details</button>
+        </div>
+      <?php endif; ?>
     </fieldset>
+
     <div id="class-table-container" class="table-container hidden">
       <h3>Active Classes for Selected Session</h3>
       <table class="data-table">
@@ -525,42 +565,49 @@ require_once __DIR__ . '/auth.php';
       </table>
     </div>
 
-    <fieldset class="form-grid-section-9">
-      <legend>
-        <h2 id="class-form-title">Add VBS Class</h2>
-      </legend>
+    <?php if ($adminUser): ?>
+      <fieldset class="form-grid-section-9">
+        <legend>
+          <h2 id="class-form-title">Add VBS Class</h2>
+        </legend>
 
-      <input type="hidden" id="vbs_class_session_id" name="vbs_class_session_id">
-      <input type="hidden" id="vbs_class_id" name="vbs_class_id">
+        <input type="hidden" id="vbs_class_session_id" name="vbs_class_session_id">
+        <input type="hidden" id="vbs_class_id" name="vbs_class_id">
 
-      <div class="field-group" style="--colspan: 3">
-        <label for="vbs_class_desc">Class Description</label>
-        <input type="text" id="vbs_class_desc" name="vbs_class_desc">
+        <div class="field-group" style="--colspan: 3">
+          <label for="vbs_class_desc">Class Description</label>
+          <input type="text" id="vbs_class_desc" name="vbs_class_desc">
+        </div>
+
+        <div class="field-group" style="--colspan: 2">
+          <label for="vbs_class_age_start">Class Starting Age</label>
+          <input type="text" id="vbs_class_age_start" name="vbs_class_age_start">
+        </div>
+
+        <div class="field-group" style="--colspan: 2">
+          <label for="vbs_class_age_end">Class Ending Age</label>
+          <input type="text" id="vbs_class_age_end" name="vbs_class_age_end">
+        </div>
+
+        <div class="field-group" style="--colspan: 2">
+          <label for="vbs_class_teacher_id">Class Teacher</label>
+          <select name="vbs_class_teacher_id" id="vbs_class_teacher_id">
+            <option value="">--Select--</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <div class="action-flex">
+        <button type="submit" class="btn-primary nbtn" id="submit-class-btn">Save Class</button>
+        <button type="button" class="btn-secondary nbtn hidden" id="cancel-edit-btn">Cancel Edit</button>
       </div>
-
-      <div class="field-group" style="--colspan: 2">
-        <label for="vbs_class_age_start">Class Starting Age</label>
-        <input type="text" id="vbs_class_age_start" name="vbs_class_age_start">
+    <?php else: ?>
+      <div class="read-only-banner">
+        <strong>Read-Only Mode:</strong> You must be an administrator to add or modify VBS sessions and class details.
       </div>
-
-      <div class="field-group" style="--colspan: 2">
-        <label for="vbs_class_age_end">Class Ending Age</label>
-        <input type="text" id="vbs_class_age_end" name="vbs_class_age_end">
-      </div>
-
-      <div class="field-group" style="--colspan: 2">
-        <label for="vbs_class_teacher_id">Class Teacher</label>
-        <select name="vbs_class_teacher_id" id="vbs_class_teacher_id">
-          <option value="">--Select--</option>
-        </select>
-      </div>
-    </fieldset>
-
-    <div class="action-flex">
-      <button type="submit" class="btn-primary nbtn" id="submit-class-btn">Save Class</button>
-      <button type="button" class="btn-secondary nbtn hidden" id="cancel-edit-btn">Cancel Edit</button>
-    </div>
+    <?php endif; ?>
   </form>
+<?php include_once 'include/footer.php'; ?>
 </body>
 
 </html>

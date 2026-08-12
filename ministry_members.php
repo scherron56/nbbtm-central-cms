@@ -11,10 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,6 +24,16 @@ require_once __DIR__ . '/auth.php';
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <style>
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
     .form-control { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95rem; box-sizing: border-box; color: #28089a; background-color: #ffffff; }
     label { font-weight: 600; color: #28089a; font-size: 0.9rem; margin-bottom: 0.25rem; display: inline-block; }
     .filter-bar { background: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
@@ -42,6 +49,15 @@ require_once __DIR__ . '/auth.php';
       const rosterCard = $('#rosterCard');
       const rosterTitle = $('#rosterTitle');
 
+      function showStatusMessage(message, type = 'error') {
+        let $box = $('#status-message');
+        $box.removeClass('alert-error').addClass('alert-error').html(message).stop(true, true).fadeIn(200);
+      }
+
+      function clearStatusMessage() {
+        $('#status-message').fadeOut(200).empty();
+      }
+
       // 1. Initial Load via AJAX
       loadGroupTypes();
       loadCommittees();
@@ -49,7 +65,7 @@ require_once __DIR__ . '/auth.php';
       // AJAX Call 1: Load Group Types Dropdown
       function loadGroupTypes() {
         $.ajax({
-          url: 'get_members.php',
+          url: 'ministry_api.php',
           type: 'GET',
           data: { action: 'get_group_types' },
           dataType: 'json',
@@ -75,7 +91,7 @@ require_once __DIR__ . '/auth.php';
       // AJAX Call 2: Load Committees Dropdown (Filtered by Group Type if passed)
       function loadCommittees(filterType = '') {
         $.ajax({
-          url: 'get_members.php',
+          url: 'ministry_api.php',
           type: 'GET',
           data: { action: 'get_committees', filter_type: filterType },
           dataType: 'json',
@@ -100,6 +116,7 @@ require_once __DIR__ . '/auth.php';
 
       // Filter Trigger for Group Type Dropdown
       filterGroupSelect.on('change', function() {
+        clearStatusMessage();
         const typeId = $(this).val();
         if (typeId !== '') {
           clearFilterBtn.show();
@@ -113,6 +130,7 @@ require_once __DIR__ . '/auth.php';
 
       // Clear Filter Button Trigger
       clearFilterBtn.on('click', function() {
+        clearStatusMessage();
         filterGroupSelect.val('');
         $(this).hide();
         selectMinistry.val('');
@@ -122,6 +140,7 @@ require_once __DIR__ . '/auth.php';
 
       // AJAX Call 3: Fetch Members when a Ministry/Committee is selected
       selectMinistry.on('change', function() {
+        clearStatusMessage();
         const minCommId = $(this).val();
         const minCommName = $(this).find('option:selected').text();
 
@@ -135,7 +154,7 @@ require_once __DIR__ . '/auth.php';
         rosterCard.show();
 
         $.ajax({
-          url: 'get_members.php',
+          url: 'ministry_api.php',
           type: 'GET',
           data: { action: 'get_members', min_comm_id: minCommId },
           dataType: 'json',
@@ -145,45 +164,47 @@ require_once __DIR__ . '/auth.php';
             } else if (res.status === 'success') {
               membersTableBody.html('<tr><td colspan="4" class="no-records">No members found for this ministry or committee.</td></tr>');
             } else {
-              membersTableBody.html(`<tr><td colspan="4" style="text-align: center; color: #dc2626; padding: 2rem;">Error: ${escapeHtml(res.message)}</td></tr>`);
+              showStatusMessage(`Error: ${escapeHtml(res.message)}`);
+              membersTableBody.html('<tr><td colspan="4" class="no-records">Unable to load roster.</td></tr>');
             }
           },
           error: function(xhr) {
             console.error('AJAX Members Error:', xhr.responseText);
-            membersTableBody.html('<tr><td colspan="4" style="text-align: center; color: #dc2626; padding: 2rem;">Error loading member data from server. Check console.</td></tr>');
+            showStatusMessage('Error loading member data from server.');
+            membersTableBody.html('<tr><td colspan="4" class="no-records">Unable to load roster.</td></tr>');
           }
         });
       });
 
-function formatPhoneNumber(val) {
-  if (!val) return 'N/A';
-  let digits = String(val).replace(/\D/g, '');
-  if (digits.length === 10) {
-    return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-  }
-  return val;
-}
+      function formatPhoneNumber(val) {
+        if (!val) return 'N/A';
+        let digits = String(val).replace(/\D/g, '');
+        if (digits.length === 10) {
+          return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+        }
+        return val;
+      }
 
       // Render Table Rows Function
-function renderMembersTable(members) {
-  let html = '';
-  $.each(members, function(i, m) {
-    const fullName = `${escapeHtml(m.first_name)} ${escapeHtml(m.last_name)}`;
-    const role = escapeHtml(m.role_desc || 'Unassigned');
-    const phone = m.phone_1 ? escapeHtml(formatPhoneNumber(m.phone_1)) : 'N/A';
-    const email = m.c_email ? `<a href="mailto:${escapeHtml(m.c_email)}" class="link-btn">${escapeHtml(m.c_email)}</a>` : 'N/A';
+      function renderMembersTable(members) {
+        let html = '';
+        $.each(members, function(i, m) {
+          const fullName = `${escapeHtml(m.first_name)} ${escapeHtml(m.last_name)}`;
+          const role = escapeHtml(m.role_desc || 'Unassigned');
+          const phone = m.phone_1 ? escapeHtml(formatPhoneNumber(m.phone_1)) : 'N/A';
+          const email = m.c_email ? `<a href="mailto:${escapeHtml(m.c_email)}" class="link-btn">${escapeHtml(m.c_email)}</a>` : 'N/A';
 
-    html += `
-      <tr>
-        <td><strong>${fullName}</strong></td>
-        <td>${role}</td>
-        <td>${phone}</td>
-        <td>${email}</td>
-      </tr>
-    `;
-  });
-  membersTableBody.html(html);
-}
+          html += `
+            <tr>
+              <td><strong>${fullName}</strong></td>
+              <td>${role}</td>
+              <td>${phone}</td>
+              <td>${email}</td>
+            </tr>
+          `;
+        });
+        membersTableBody.html(html);
+      }
 
       function escapeHtml(str) {
         if (!str) return '';
@@ -194,9 +215,11 @@ function renderMembersTable(members) {
 </head>
 <body>
 
-  <?php include 'header.php'; ?> 
+  <?php include 'include/header.php'; ?> 
 
   <div class="dashboard-container">
+
+    <div id="status-message" class="alert-box"></div>
 
     <!-- SELECTION & FILTER BAR -->
     <div class="filter-bar">
@@ -235,6 +258,6 @@ function renderMembersTable(members) {
     </div>
 
   </div>
-
+<?php include_once 'include/footer.php'; ?>
 </body>
 </html>

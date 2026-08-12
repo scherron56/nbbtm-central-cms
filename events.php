@@ -11,10 +11,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
+$adminUser = isAdmin();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,9 +22,48 @@ require_once __DIR__ . '/auth.php';
   <title>Event Management Module</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+    .read-only-banner {
+      background-color: #f1f5f9;
+      border-left: 4px solid #0ea5e9;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      color: #334155;
+    }
+  </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script>
     $(document).ready(function() {
+        const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
+
+        function showStatusMessage(message, type = 'success') {
+            let $box = $('#status-message');
+            $box.removeClass('alert-success alert-error')
+                .addClass(type === 'success' ? 'alert-success' : 'alert-error')
+                .html(message)
+                .stop(true, true)
+                .fadeIn(200);
+
+            if (type === 'success') {
+                setTimeout(function() { $box.fadeOut(500); }, 5000);
+            }
+        }
+
+        function clearStatusMessage() {
+            $('#status-message').fadeOut(200).empty();
+        }
+
         // --- DYNAMIC DATES GENERATION SYSTEM ---
         $('#btnAddDate').on('click', function() {
             $('#dateTimeContainer').append(`
@@ -36,8 +73,8 @@ require_once __DIR__ . '/auth.php';
                         <input type="datetime-local" name="start_datetimes[]" required class="form-control">
                     </div>
                     <div class="field-group">
-                        <label>End Date & Time:</label>
-                        <input type="datetime-local" name="end_datetimes[]" required class="form-control">
+                        <label>End Date & Time (Optional):</label>
+                        <input type="datetime-local" name="end_datetimes[]" class="form-control">
                     </div>
                     <div class="btn-remove-wrapper">
                         <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
@@ -177,6 +214,7 @@ require_once __DIR__ . '/auth.php';
         }
 
         $('#event_select').on('change', function() {
+            clearStatusMessage();
             let id = $(this).val();
             if(!id) {
                 resetForm();
@@ -218,19 +256,22 @@ require_once __DIR__ . '/auth.php';
                             $('#btnGoRegister').hide();
                         }
 
-                        // Repopulate dynamic schedules
+                        // Repopulate dynamic schedules safely handling null end dates
                         $('#dateTimeContainer').empty();
                         if(data.schedules && data.schedules.length > 0) {
                             $.each(data.schedules, function(i, sch) {
+                                let startVal = sch.start_datetime ? sch.start_datetime.replace(' ', 'T').substring(0,16) : '';
+                                let endVal = sch.end_datetime ? sch.end_datetime.replace(' ', 'T').substring(0,16) : '';
+                                
                                 $('#dateTimeContainer').append(`
                                     <div class="date-time-row">
                                         <div class="field-group">
                                             <label>Start Date & Time:</label>
-                                            <input type="datetime-local" name="start_datetimes[]" value="${sch.start_datetime.replace(' ', 'T').substring(0,16)}" required class="form-control">
+                                            <input type="datetime-local" name="start_datetimes[]" value="${startVal}" required class="form-control">
                                         </div>
                                         <div class="field-group">
-                                            <label>End Date & Time:</label>
-                                            <input type="datetime-local" name="end_datetimes[]" value="${sch.end_datetime.replace(' ', 'T').substring(0,16)}" required class="form-control">
+                                            <label>End Date & Time (Optional):</label>
+                                            <input type="datetime-local" name="end_datetimes[]" value="${endVal}" class="form-control">
                                         </div>
                                         <div class="btn-remove-wrapper">
                                             <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
@@ -271,7 +312,7 @@ require_once __DIR__ . '/auth.php';
                         toggleBudgetButtons();
                         calculateLiveBudgetSummary();
                         
-                        $('#btnDelete').show();
+                        if ($('#btnDelete').length) $('#btnDelete').show();
                         loadRoster(id);
                     }
                 }
@@ -280,6 +321,8 @@ require_once __DIR__ . '/auth.php';
 
         $('#eventForm').on('submit', function(e) {
             e.preventDefault();
+            clearStatusMessage();
+
             $.ajax({
                 url: 'prg_event_api.php?action=save_event',
                 type: 'POST',
@@ -287,14 +330,14 @@ require_once __DIR__ . '/auth.php';
                 dataType: 'json',
                 success: function(res) {
                     if(res.success) {
-                        alert(res.message);
+                        showStatusMessage(res.message, 'success');
                         loadEventDropdown(res.prg_evnt_id);
                     } else {
-                        alert("Error: " + (res.message || res.error));
+                        showStatusMessage("Error: " + (res.message || res.error), 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert("Server Request Failed: " + error);
+                    showStatusMessage("Server Request Failed: " + error, 'error');
                 }
             });
         });
@@ -323,7 +366,7 @@ require_once __DIR__ . '/auth.php';
                                         <strong>${r.full_name}</strong>
                                         <br><br>
                                         <button type="button" class="btn ${isCheckedIn ? 'btn-success' : 'btn-secondary'} btn-toggle" 
-                                                data-contact="${r.contact_id}">
+                                                data-contact="${r.contact_id}" ${!IS_ADMIN ? 'disabled' : ''}>
                                             ${isCheckedIn ? 'Checked In ✓' : 'Mark Present'}
                                         </button>
                                     </div>
@@ -336,6 +379,8 @@ require_once __DIR__ . '/auth.php';
         }
 
         $(document).on('click', '.btn-toggle', function() {
+            if (!IS_ADMIN) return;
+            clearStatusMessage();
             let contactId = $(this).data('contact');
             let eventId = $('#prg_evnt_id').val();
 
@@ -347,19 +392,22 @@ require_once __DIR__ . '/auth.php';
                 success: function(res) {
                     if(res.success) {
                         loadRoster(eventId);
+                    } else {
+                        showStatusMessage(res.error || "Failed to update attendance.", 'error');
                     }
                 }
             });
         });
 
         function resetForm() {
-            $('#eventForm')[0].reset();
-            $('#prg_evnt_id').val('');
+            clearStatusMessage();
+            if ($('#eventForm').length) {
+                $('#eventForm')[0].reset();
+                $('#prg_evnt_id').val('');
+                $('#fee_container').hide();
+                if ($('#btnDelete').length) $('#btnDelete').hide();
+            }
             $('#event_select').val('');
-            $('#min_comm_id').val('');
-            $('#notes').val('');
-            $('#fee_container').hide();
-            $('#btnDelete').hide();
             $('#btnGoRegister').hide();
             $('#rosterPlaceholder').show();
             $('#rosterContent').hide();
@@ -371,8 +419,8 @@ require_once __DIR__ . '/auth.php';
                     <input type="datetime-local" name="start_datetimes[]" required class="form-control">
                 </div>
                 <div class="field-group">
-                    <label>End Date & Time:</label>
-                    <input type="datetime-local" name="end_datetimes[]" required class="form-control">
+                    <label>End Date & Time (Optional):</label>
+                    <input type="datetime-local" name="end_datetimes[]" class="form-control">
                 </div>
                 <div class="btn-remove-wrapper">
                     <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
@@ -404,6 +452,7 @@ require_once __DIR__ . '/auth.php';
         $('#btnReset').on('click', resetForm);
 
         $('#btnDelete').on('click', function() {
+            clearStatusMessage();
             if(confirm("Are you sure you want to delete this event? All cascading data parameters will be permanently dropped.")) {
                 $.ajax({
                     url: 'prg_event_api.php',
@@ -412,9 +461,11 @@ require_once __DIR__ . '/auth.php';
                     dataType: 'json',
                     success: function(res) {
                         if(res.success) {
-                            alert(res.message);
+                            showStatusMessage(res.message, 'success');
                             resetForm();
                             loadEventDropdown();
+                        } else {
+                            showStatusMessage(res.error || "Failed to delete event.", 'error');
                         }
                     }
                 });
@@ -428,133 +479,142 @@ require_once __DIR__ . '/auth.php';
   </script>
 </head>
 <body>
-  <?php include 'header.php'; ?> 
+  <?php include 'include/header.php'; ?> 
 
 <div class="dashboard-layout">
     <div class="card">
         <h2>Manage Event Details</h2>
-        <form id="eventForm">
-            <input type="hidden" id="prg_evnt_id" name="prg_evnt_id">
 
-            <div class="form-group">
-                <label for="event_select">Select Existing Event:</label>
-                <select id="event_select" class="form-control">
-                    <option value="">-- Create New Event --</option>
-                </select>
+        <div id="status-message" class="alert-box"></div>
+
+        <div class="form-group">
+            <label for="event_select">Select Existing Event:</label>
+            <select id="event_select" class="form-control">
+                <option value="">-- Create New Event --</option>
+            </select>
+        </div>
+
+        <?php if ($adminUser): ?>
+            <form id="eventForm">
+                <input type="hidden" id="prg_evnt_id" name="prg_evnt_id">
+
+                <fieldset class="dashboard-main-grid fieldset-relative">
+                    <legend>
+                        <h2 id="form-title">Program / Event Information</h2>
+                    </legend>
+                    <div class="field-group" style="--colspan: 2;">
+                        <label for="prg_evnt_name">Event Name:</label>
+                        <input type="text" id="prg_evnt_name" name="prg_evnt_name" required class="form-control">
+                    </div>
+
+                    <div class="field-group" style="--colspan: 2;">
+                        <label for="min_comm_id">Sponsor:</label>
+                        <select id="min_comm_id" name="min_comm_id" required class="form-control">
+                            <option value="">-- Select Sponsoring Ministry --</option>
+                        </select>
+                    </div>
+
+                    <!-- DYNAMIC DATES CONTAINER -->
+                    <div class="field-group" style="--colspan: 2;">
+                        <label style="display:flex; justify-content:space-between; align-items:center;">
+                            Event Date(s) & Time(s):
+                            <button type="button" id="btnAddDate" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Date</button>
+                        </label>
+                        
+                        <div id="dateTimeContainer">
+                            <div class="date-time-row">
+                                <div class="field-group">
+                                    <label>Start Date & Time:</label>
+                                    <input type="datetime-local" name="start_datetimes[]" required class="form-control">
+                                </div>
+                                <div class="field-group">
+                                    <label>End Date & Time (Optional):</label>
+                                    <input type="datetime-local" name="end_datetimes[]" class="form-control">
+                                </div>
+                                <div class="btn-remove-wrapper">
+                                    <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC ITEMIZED BUDGET DESIGN BLOCK -->
+                    <div class="field-group" style="--colspan: 2;">
+                        <label style="display:flex; justify-content:space-between; align-items:center;">
+                            Budget Ledger (Income / Expenses):
+                            <button type="button" id="btnAddBudget" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Line Item</button>
+                        </label>
+                        <div id="budgetContainer">
+                            <div class="form-row budget-row" style="margin-bottom: 8px;">
+                                <div class="form-group" style="flex:2;">
+                                    <label for="budget_desc">Description:</label>   
+                                    <input type="text" name="budget_desc[]" placeholder="e.g., Facility Rental / Ticket Sales" required class="form-control budget-calc-trigger">
+                                </div>
+                                <div class="form-group">
+                                    <label for="budget_type">Type:</label>
+                                    <select name="budget_type[]" class="form-control budget-calc-trigger">
+                                        <option value="Expense">Expense</option>
+                                        <option value="Income">Income</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="budget_amount">Amount ($):</label>
+                                    <input type="number" step="0.01" name="budget_amount[]" placeholder="0.00" value="0.00" required class="form-control budget-calc-trigger">
+                                </div>
+                                <div style="display:flex; align-items:flex-end; margin-bottom:15px;">
+                                    <button type="button" class="btn btn-danger btnRemoveBudget" style="padding:6px 10px;" disabled>&times;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field-group" style="--colspan: 2;">
+                        <label>Location:</label>
+                        <input type="text" id="location" name="location" required class="form-control">
+                    </div>
+
+                    <div class="field-group" style="--colspan: 2;">
+                        <label>Goal / Purpose:</label>
+                        <textarea id="goal" name="goal" rows="2" class="form-control"></textarea>
+                    </div>
+
+                    <!-- REGISTRATION & FEE CHECKBOXES -->
+                    <div class="field-group" style="--colspan: 1;">
+                        <label>
+                            <input type="checkbox" id="requires_registration" name="requires_registration" value="1"> 
+                            Requires Registration
+                        </label>
+                    </div>
+
+                    <div class="field-group" style="--colspan: 1;">
+                        <label>
+                            <input type="checkbox" id="requires_fee" name="requires_fee" value="1"> 
+                            Requires Fee
+                        </label>
+                    </div>
+
+                    <div class="field-group" id="fee_container" style="display: none; --colspan: 2;">
+                        <label>Registration Fee ($):</label>
+                        <input type="number" step="0.01" id="registration_fee" name="registration_fee" class="form-control" value="0.00">
+                    </div>
+
+                    <div class="field-group" style="--colspan: 2;">
+                        <label>Additional Notes:</label>
+                        <textarea id="notes" name="notes" rows="3" class="form-control"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">Save Event</button>
+                        <a id="btnGoRegister" href="event_registration.php" class="btn btn-accent" style="display:none; text-decoration:none;">Register Attendees</a>
+                        <button type="button" id="btnReset" class="btn btn-secondary">Reset / New</button>
+                        <button type="button" id="btnDelete" class="btn btn-danger" style="display:none;">Delete</button>
+                    </div>
+                </fieldset>
+            </form>
+        <?php else: ?>
+            <div class="read-only-banner">
+                <strong>Read-Only Mode:</strong> You must be an administrator to create or edit event details.
             </div>
-
-            <fieldset class="dashboard-main-grid fieldset-relative">
-                <legend>
-                    <h2 id="form-title">Program / Event Information</h2>
-                </legend>
-                <div class="field-group" style="--colspan: 2;">
-                    <label for="prg_evnt_name">Event Name:</label>
-                    <input type="text" id="prg_evnt_name" name="prg_evnt_name" required class="form-control">
-                </div>
-
-                <div class="field-group" style="--colspan: 2;">
-                    <label for="min_comm_id">Sponsor:</label>
-                    <select id="min_comm_id" name="min_comm_id" required class="form-control">
-                        <option value="">-- Select Sponsoring Ministry --</option>
-                    </select>
-                </div>
-
-                <!-- DYNAMIC DATES CONTAINER -->
-                <div class="field-group" style="--colspan: 2;">
-                    <label style="display:flex; justify-content:space-between; align-items:center;">
-                        Event Date(s) & Time(s):
-                        <button type="button" id="btnAddDate" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Date</button>
-                    </label>
-                    
-                    <div id="dateTimeContainer">
-                        <div class="date-time-row">
-                            <div class="field-group">
-                                <label>Start Date & Time:</label>
-                                <input type="datetime-local" name="start_datetimes[]" required class="form-control">
-                            </div>
-                            <div class="field-group">
-                                <label>End Date & Time:</label>
-                                <input type="datetime-local" name="end_datetimes[]" required class="form-control">
-                            </div>
-                            <div class="btn-remove-wrapper">
-                                <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- DYNAMIC ITEMIZED BUDGET DESIGN BLOCK -->
-                <div class="field-group" style="--colspan: 2;">
-                    <label style="display:flex; justify-content:space-between; align-items:center;">
-                        Budget Ledger (Income / Expenses):
-                        <button type="button" id="btnAddBudget" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Line Item</button>
-                    </label>
-                    <div id="budgetContainer">
-                        <div class="form-row budget-row" style="margin-bottom: 8px;">
-                            <div class="form-group" style="flex:2;">
-                                <label for="budget_desc">Description:</label>   
-                                <input type="text" name="budget_desc[]" placeholder="e.g., Facility Rental / Ticket Sales" required class="form-control budget-calc-trigger">
-                            </div>
-                            <div class="form-group">
-                                <label for="budget_type">Type:</label>
-                                <select name="budget_type[]" class="form-control budget-calc-trigger">
-                                    <option value="Expense">Expense</option>
-                                    <option value="Income">Income</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="budget_amount">Amount ($):</label>
-                                <input type="number" step="0.01" name="budget_amount[]" placeholder="0.00" value="0.00" required class="form-control budget-calc-trigger">
-                            </div>
-                            <div style="display:flex; align-items:flex-end; margin-bottom:15px;">
-                                <button type="button" class="btn btn-danger btnRemoveBudget" style="padding:6px 10px;" disabled>&times;</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="field-group" style="--colspan: 2;">
-                    <label>Location:</label>
-                    <input type="text" id="location" name="location" required class="form-control">
-                </div>
-
-                <div class="field-group" style="--colspan: 2;">
-                    <label>Goal / Purpose:</label>
-                    <textarea id="goal" name="goal" rows="2" class="form-control"></textarea>
-                </div>
-
-                <!-- REGISTRATION & FEE CHECKBOXES -->
-                <div class="field-group" style="--colspan: 1;">
-                    <label>
-                        <input type="checkbox" id="requires_registration" name="requires_registration" value="1"> 
-                        Requires Registration
-                    </label>
-                </div>
-
-                <div class="field-group" style="--colspan: 1;">
-                    <label>
-                        <input type="checkbox" id="requires_fee" name="requires_fee" value="1"> 
-                        Requires Fee
-                    </label>
-                </div>
-
-                <div class="field-group" id="fee_container" style="display: none; --colspan: 2;">
-                    <label>Registration Fee ($):</label>
-                    <input type="number" step="0.01" id="registration_fee" name="registration_fee" class="form-control" value="0.00">
-                </div>
-
-                <div class="field-group" style="--colspan: 2;">
-                    <label>Additional Notes:</label>
-                    <textarea id="notes" name="notes" rows="3" class="form-control"></textarea>
-                </div>
-                <div class="button-group">
-                    <button type="submit" class="btn btn-primary">Save Event</button>
-                    <a id="btnGoRegister" href="event_registration.php" class="btn btn-accent" style="display:none; text-decoration:none;">Register Attendees</a>
-                    <button type="button" id="btnReset" class="btn btn-secondary">Reset / New</button>
-                    <button type="button" id="btnDelete" class="btn btn-danger" style="display:none;">Delete</button>
-                </div>
-            </fieldset>
-        </form>
+        <?php endif; ?>
     </div>
 
     <div class="card">
@@ -587,6 +647,6 @@ require_once __DIR__ . '/auth.php';
         </div>
     </div>
 </div>
-
+<?php include_once 'include/footer.php'; ?>
 </body>
 </html>

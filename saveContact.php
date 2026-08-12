@@ -7,7 +7,7 @@ error_reporting(E_ALL);
 header('Content-Type: application/json; charset=utf-8');
 
 require_once 'config/db.php';
-require_once 'auth.php';
+require_once 'include/auth.php';
 
 // Fallback if db.php defines $conn instead of $db
 if (!isset($db) && isset($conn)) {
