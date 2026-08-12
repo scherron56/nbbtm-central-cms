@@ -2,7 +2,7 @@
 // prg_event_api.php
 header('Content-Type: application/json; charset=utf-8');
 require_once 'config/db.php';
-require_once 'auth.php'; // Include authentication middleware
+require_once 'include/auth.php'; // Include authentication middleware
 
 $action = $_REQUEST['action'] ?? '';
 try {
@@ -111,9 +111,10 @@ try {
             $insSch = $db->prepare("INSERT INTO prg_evnt_schedules (prg_evnt_id, start_datetime, end_datetime) VALUES (?, ?, ?)");
             foreach ($starts as $idx => $startVal) {
                 if (!empty($startVal)) {
-                    $endVal = !empty($ends[$idx]) ? $ends[$idx] : $startVal;
                     $formattedStart = date('Y-m-d H:i:s', strtotime($startVal));
-                    $formattedEnd = date('Y-m-d H:i:s', strtotime($endVal));
+                    
+                    // Allow NULL if end_datetime is empty
+                    $formattedEnd = !empty($ends[$idx]) ? date('Y-m-d H:i:s', strtotime($ends[$idx])) : null;
 
                     $insSch->bind_param("iss", $id, $formattedStart, $formattedEnd);
                     $insSch->execute();
@@ -273,10 +274,40 @@ try {
         case 'save_registration':
             requireAdmin();
 
-            $regId = intval($_POST['registration_id'] ?? 0);
+            $regId     = intval($_POST['registration_id'] ?? 0);
             $prgevntId = intval($_POST['prg_evnt_id'] ?? 0);
             $contactId = intval($_POST['contact_id'] ?? 0);
 
+            // Step 1: Immediate validation for missing parameters
+            if ($prgevntId <= 0 || $contactId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Please select both an event and a contact.']);
+                break;
+            }
+
+            // Step 2: Immediate check for duplicate registrations
+            if ($regId > 0) {
+                $check = $db->prepare("SELECT registration_id FROM prg_evnt_registrations WHERE prg_evnt_id = ? AND contact_id = ? AND registration_id != ?");
+                $check->bind_param("iii", $prgevntId, $contactId, $regId);
+                $check->execute();
+                if ($check->get_result()->num_rows > 0) {
+                    $check->close();
+                    echo json_encode(['success' => false, 'message' => 'Attendee is already registered for this event.']);
+                    break;
+                }
+                $check->close();
+            } else {
+                $check = $db->prepare("SELECT registration_id FROM prg_evnt_registrations WHERE prg_evnt_id = ? AND contact_id = ?");
+                $check->bind_param("ii", $prgevntId, $contactId);
+                $check->execute();
+                if ($check->get_result()->num_rows > 0) {
+                    $check->close();
+                    echo json_encode(['success' => false, 'message' => 'Attendee is already registered for this event.']);
+                    break;
+                }
+                $check->close();
+            }
+
+            // Step 3: Event Fee verification
             $evCheck = $db->prepare("SELECT requires_fee FROM programs_events WHERE prg_evnt_id = ?");
             $evCheck->bind_param("i", $prgevntId);
             $evCheck->execute();
@@ -295,13 +326,9 @@ try {
                 $method = 'None';
             }
 
-            if ($prgevntId <= 0 || $contactId <= 0) {
-                echo json_encode(['success' => false, 'message' => 'Please select both an event and a contact.']);
-                break;
-            }
-
             $isCompleted = (!$reqFee || in_array(strtolower($status), ['paid', 'completed', 'waived', 'n/a'])) ? 1 : 0;
 
+            // Step 4: Execute Update or Insert
             if ($regId > 0) {
                 $stmt = $db->prepare("UPDATE prg_evnt_registrations SET contact_id = ?, payment_status = ?, amount_paid = ?, payment_method = ?, is_completed = ? WHERE registration_id = ?");
                 $stmt->bind_param("isdsii", $contactId, $status, $amount, $method, $isCompleted, $regId);
@@ -310,16 +337,6 @@ try {
 
                 echo json_encode(['success' => $isSuccess, 'message' => 'Registration updated successfully!']);
             } else {
-                $check = $db->prepare("SELECT registration_id FROM prg_evnt_registrations WHERE prg_evnt_id = ? AND contact_id = ?");
-                $check->bind_param("ii", $prgevntId, $contactId);
-                $check->execute();
-                if ($check->get_result()->num_rows > 0) {
-                    $check->close();
-                    echo json_encode(['success' => false, 'message' => 'Attendee is already registered for this event.']);
-                    break;
-                }
-                $check->close();
-
                 $stmt = $db->prepare("INSERT INTO prg_evnt_registrations (prg_evnt_id, contact_id, payment_status, amount_paid, payment_method, is_completed) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt->bind_param("iisdsi", $prgevntId, $contactId, $status, $amount, $method, $isCompleted);
                 $isSuccess = $stmt->execute();

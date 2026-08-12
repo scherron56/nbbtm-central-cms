@@ -11,10 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -28,6 +25,20 @@ require_once __DIR__ . '/auth.php';
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <style>
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .alert-error {
+      background-color: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
     /* Profile Summary Grid Layout */
     .profile-grid {
       display: grid;
@@ -94,6 +105,14 @@ require_once __DIR__ . '/auth.php';
   <script>
     $(document).ready(function() {
 
+      function showOnScreenError(msg) {
+        $('#status-message').addClass('alert-error').html(msg).stop(true, true).fadeIn(200);
+      }
+
+      function clearOnScreenMessage() {
+        $('#status-message').fadeOut(200).empty();
+      }
+
       // Load initial dropdown list
       loadContactList();
 
@@ -104,6 +123,7 @@ require_once __DIR__ . '/auth.php';
 
       // Fetch and display dashboard details when a contact is selected
       $('#contactID').change(function() {
+        clearOnScreenMessage();
         let contactid = $(this).val();
 
         if (!contactid) {
@@ -121,14 +141,14 @@ require_once __DIR__ . '/auth.php';
           dataType: 'json',
           success: function(data) {
             if (data.error) {
-              alert("Error: " + data.error);
+              showOnScreenError("Error: " + data.error);
               return;
             }
 
             renderDashboard(data);
           },
           error: function(xhr, status, error) {
-            console.error("Error loading dashboard data: ", error, xhr.responseText);
+            showOnScreenError("Error loading dashboard data. Please try again.");
           }
         });
       });
@@ -166,15 +186,15 @@ require_once __DIR__ . '/auth.php';
         });
       }
 
-// Helper to format 10-digit phone numbers as (XXX) XXX-XXXX
-function formatPhoneNumber(val) {
-  if (!val) return '';
-  let digits = String(val).replace(/\D/g, '');
-  if (digits.length === 10) {
-    return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-  }
-  return val;
-}
+      // Helper to format 10-digit phone numbers as (XXX) XXX-XXXX
+      function formatPhoneNumber(val) {
+        if (!val) return '';
+        let digits = String(val).replace(/\D/g, '');
+        if (digits.length === 10) {
+          return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+        }
+        return val;
+      }
 
       function renderDashboard(data) {
         let c = data.contact || {};
@@ -203,7 +223,6 @@ function formatPhoneNumber(val) {
         $('#dash-marital').text(c.marital_status || '—');
         $('#dash-head').text(String(c.is_head) === "1" ? 'Yes' : 'No');
 
-        // Contact Info
         // Contact Info
         let addressParts = [c.address_1, c.city, c.state, c.zipcode].filter(Boolean);
         $('#dash-address').text(addressParts.length > 0 ? addressParts.join(', ') : '—');
@@ -304,9 +323,11 @@ function formatPhoneNumber(val) {
 
 <body>
   <?php require_once("config/db.php") ?>
-  <?php include 'header.php' ?>
+  <?php include 'include/header.php' ?>
 
   <div class="dashboard-container">
+
+    <div id="status-message" class="alert-box"></div>
 
     <!-- TOP CONTROL BAR -->
     <div class="card" style="margin-bottom: 1.5rem;">
@@ -457,6 +478,10 @@ function formatPhoneNumber(val) {
     </div>
 
   </div>
+  
+  <?php include_once 'include/footer.php'; ?>
+
+
 </body>
 
 </html>

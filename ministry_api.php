@@ -1,7 +1,7 @@
 <?php
 // ministry_api.php
 require_once 'config/db.php';
-require_once 'auth.php'; // Load authentication & session helpers
+require_once 'include/auth.php'; // Load authentication & session helpers
 
 ob_start();
 
@@ -78,7 +78,39 @@ try {
     }
 
     /* ==========================================================================
-       4. CREATE OR UPDATE COMMITTEE (Admin Only)
+       4. GET MEMBERS ROSTER (Read-Only)
+       ========================================================================== */
+    if ($action === 'get_members') {
+        $min_comm_id = isset($_GET['min_comm_id']) ? (int)$_GET['min_comm_id'] : 0;
+        
+        if ($min_comm_id > 0) {
+            $stmt = $db->prepare("
+                SELECT c.first_name, c.last_name, c.phone_1, c.c_email, r.role_desc 
+                FROM member_alliance mm
+                JOIN contacts c ON mm.contact_id = c.contact_id
+                LEFT JOIN roles r ON mm.role_id = r.role_id
+                WHERE mm.min_comm_id = ? AND mm.is_active = 1
+                ORDER BY c.last_name ASC, c.first_name ASC
+            ");
+            $stmt->bind_param("i", $min_comm_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $members = ($result && $result->num_rows > 0) ? $result->fetch_all(MYSQLI_ASSOC) : [];
+            $stmt->close();
+
+            ob_clean();
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['status' => 'success', 'data' => $members]);
+        } else {
+            ob_clean();
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid Ministry / Committee ID provided']);
+        }
+        exit;
+    }
+
+    /* ==========================================================================
+       5. CREATE OR UPDATE COMMITTEE (Admin Only)
        ========================================================================== */
     if ($action === 'save_committee') {
         requireAdmin(); // Enforce admin permissions
@@ -123,7 +155,7 @@ try {
     }
 
     /* ==========================================================================
-       5. DELETE COMMITTEE (Admin Only)
+       6. DELETE COMMITTEE (Admin Only)
        ========================================================================== */
     if ($action === 'delete_committee') {
         requireAdmin(); // Enforce admin permissions

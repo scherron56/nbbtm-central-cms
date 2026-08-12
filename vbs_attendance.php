@@ -11,10 +11,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
-
-// Optional: Restrict page to logged-in users
-// requireRole(['admin', 'staff', 'browse']); 
+require_once __DIR__ . '/include/auth.php';
+$adminUser = isAdmin();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,6 +25,17 @@ require_once __DIR__ . '/auth.php';
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <style>
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
     .class-desc { font-size: 0.95rem; font-weight: 600; color: #1e293b; }
     
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: #fff; }
@@ -37,10 +46,40 @@ require_once __DIR__ . '/auth.php';
     .btn-action { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 0.9rem; font-weight: 600; }
     .btn-checkin { background-color: #2563eb; }
     .btn-checkout { background-color: #16a34a; }
+    .btn-action:disabled { background-color: #94a3b8; cursor: not-allowed; }
+
+    .class-group-row {
+      background-color: #e2e8f0 !important;
+      font-weight: bold;
+    }
+    .class-group-row td {
+      color: #0f172a;
+      font-size: 1.05rem;
+      padding: 0.85rem 0.75rem;
+    }
   </style>
 
   <script>
 $(document).ready(function() {
+  const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
+
+  function showStatusMessage(message, type = 'success') {
+    let $box = $('#status-message');
+    $box.removeClass('alert-success alert-error')
+        .addClass(type === 'success' ? 'alert-success' : 'alert-error')
+        .html(message)
+        .stop(true, true)
+        .fadeIn(200);
+
+    if (type === 'success') {
+      setTimeout(function() { $box.fadeOut(500); }, 5000);
+    }
+  }
+
+  function clearStatusMessage() {
+    $('#status-message').fadeOut(200).empty();
+  }
+
   // Default attendance date to today (YYYY-MM-DD)
   const today = new Date().toISOString().split('T')[0];
   $('#attendance_date').val(today);
@@ -72,6 +111,7 @@ $(document).ready(function() {
 
   // Session selection or date selection change handler
   $('#sessionSelect, #attendance_date').on('change', function() {
+    clearStatusMessage();
     loadRoster();
   });
 
@@ -79,7 +119,7 @@ $(document).ready(function() {
   $('#studentSelect').on('change', function() {
     const selectedContactId = $(this).val();
     if (selectedContactId) {
-      $('#studentTable tbody tr').hide();
+      $('#studentTable tbody tr:not(.class-group-row)').hide();
       $('#studentTable tbody tr[data-id="' + selectedContactId + '"]').show();
     } else {
       $('#studentTable tbody tr').show();
@@ -124,14 +164,13 @@ $(document).ready(function() {
         }));
       });
 
-      // Preserve existing dropdown selection after table reload
       if (currentSelected) {
         studentSelect.val(currentSelected);
       }
     }
   }
 
-  // Render Roster Table
+  // FIX 6: Render Roster Table Grouped by Class
   function renderRosterTable(students) {
     const tbody = $('#studentTable tbody').empty();
     if (!students || students.length === 0) {
@@ -139,40 +178,62 @@ $(document).ready(function() {
       return;
     }
 
+    // Group students by class description
+    const grouped = {};
     students.forEach(student => {
-      const isCheckedIn = parseInt(student.is_checked_in) === 1;
-      const classDesc = student.vbs_class_desc ? student.vbs_class_desc : ('Class #' + student.class_id);
-      const studentName = student.student_full_name_formatted || (student.last_name + ', ' + student.first_name);
-
-      const rowHtml = `
-        <tr data-id="${student.contact_id}" data-session-id="${student.vbs_sessions_id}">
-          <td><strong>${escapeHtml(studentName)}</strong></td>
-          <td><span class="class-desc">${escapeHtml(classDesc)}</span></td>
-          <td>
-            <span style="color:${isCheckedIn ? '#16a34a' : '#64748b'}; font-weight:bold;">
-              ${isCheckedIn ? 'Checked In ✓' : 'Not Checked In'}
-            </span>
-          </td>
-          <td>
-            <button class="btn-action ${isCheckedIn ? 'btn-checkout' : 'btn-checkin'} btn-toggle-checkin">
-              ${isCheckedIn ? 'Check Out' : 'Check In'}
-            </button>
-          </td>
-        </tr>
-      `;
-      tbody.append(rowHtml);
+      const className = student.vbs_class_desc ? student.vbs_class_desc : ('Class #' + student.class_id);
+      if (!grouped[className]) {
+        grouped[className] = [];
+      }
+      grouped[className].push(student);
     });
 
-    // Re-apply student dropdown filter if one was selected
+    // Output class header rows and member records
+    Object.keys(grouped).forEach(className => {
+      tbody.append(`
+        <tr class="class-group-row">
+          <td colspan="4">🏫 ${escapeHtml(className)}</td>
+        </tr>
+      `);
+
+      grouped[className].forEach(student => {
+        const isCheckedIn = parseInt(student.is_checked_in) === 1;
+        const studentName = student.student_full_name_formatted || student.student_display_name || (student.last_name + ', ' + student.first_name);
+
+        const actionBtn = IS_ADMIN ? `
+          <button class="btn-action ${isCheckedIn ? 'btn-checkout' : 'btn-checkin'} btn-toggle-checkin">
+            ${isCheckedIn ? 'Check Out' : 'Check In'}
+          </button>
+        ` : `<button class="btn-action" disabled>Read Only</button>`;
+
+        const rowHtml = `
+          <tr data-id="${student.contact_id}" data-session-id="${student.vbs_sessions_id}">
+            <td style="padding-left: 1.75rem;"><strong>${escapeHtml(studentName)}</strong></td>
+            <td><span class="class-desc">${escapeHtml(className)}</span></td>
+            <td>
+              <span style="color:${isCheckedIn ? '#16a34a' : '#64748b'}; font-weight:bold;">
+                ${isCheckedIn ? 'Checked In ✓' : 'Not Checked In'}
+              </span>
+            </td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+        tbody.append(rowHtml);
+      });
+    });
+
+    // Re-apply student dropdown filter if active
     const selectedContactId = $('#studentSelect').val();
     if (selectedContactId) {
-      $('#studentTable tbody tr').hide();
+      $('#studentTable tbody tr:not(.class-group-row)').hide();
       $('#studentTable tbody tr[data-id="' + selectedContactId + '"]').show();
     }
   }
 
   // Attendance Toggle passing the selected date
   $(document).on('click', '.btn-toggle-checkin', function() {
+    if (!IS_ADMIN) return;
+    clearStatusMessage();
     const row = $(this).closest('tr');
     const isCheckedIn = row.find('.btn-toggle-checkin').hasClass('btn-checkout');
     const selectedDate = $('#attendance_date').val();
@@ -192,7 +253,7 @@ $(document).ready(function() {
         if (res.success) {
           loadRoster();
         } else {
-          alert("Error updating attendance: " + res.message);
+          showStatusMessage("Error updating attendance: " + (res.message || "Operation failed."), 'error');
         }
       }
     });
@@ -206,12 +267,14 @@ $(document).ready(function() {
 </head>
 <body>
   <?php require_once("config/db.php"); ?>
-  <?php include 'header.php'; ?>
+  <?php include 'include/header.php'; ?>
 
   <h1>VBS Daily Attendance Tracker</h1>
 
+  <div id="status-message" class="alert-box"></div>
+
   <!-- Top Filters: Session, Date, and Student Select -->
-  <fieldset id="session-set" class="form-grid-section-short-40" style="display: flex; gap: 1.5rem; align-items: flex-end; margin-bottom: 1.5rem;">
+  <fieldset id="session-set" style="display: flex; gap: 1.5rem; align-items: flex-end; margin-bottom: 1.5rem; width:100%; box-sizing:border-box;">
     <div class="field-group" style="flex: 1;">
       <label for="sessionSelect">
         <h3 style="color: blue; margin: 0;">Select Session Year</h3>
@@ -241,7 +304,7 @@ $(document).ready(function() {
   </fieldset>
 
   <!-- Student Roster Table -->
-  <table id="studentTable">
+  <table id="studentTable" style="width: 100%;">
     <thead>
       <tr>
         <th>Student Name</th>
@@ -252,6 +315,6 @@ $(document).ready(function() {
     </thead>
     <tbody></tbody>
   </table>
-
+<?php include_once 'include/footer.php'; ?>
 </body>
 </html>

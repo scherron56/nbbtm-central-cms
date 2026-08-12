@@ -9,7 +9,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 header('Content-Type: application/json; charset=utf-8');
 
 require_once 'config/db.php';
-require_once 'auth.php';
+require_once 'include/auth.php';
 
 $action = $_REQUEST['action'] ?? '';
 
@@ -219,7 +219,7 @@ switch ($action) {
         break;
 
     default:
-        echo json_encode(["success" => false, "message" => "Invalid action action"]);
+        echo json_encode(["success" => false, "message" => "Invalid action requested"]);
         break;
 }
 

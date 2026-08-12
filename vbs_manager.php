@@ -11,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/include/auth.php';
 
 // Optional: Restrict page to logged-in users
 // requireRole(['admin', 'staff', 'browse']); 
@@ -361,7 +361,7 @@ $(document).ready(function() {
 </head>
 <body>
   <?php require_once("config/db.php"); ?>
-  <?php include 'header.php'; ?>
+  <?php include 'include/header.php'; ?>
 
   <h1>VBS Attendance & Roster Management</h1>
 
@@ -444,6 +444,6 @@ $(document).ready(function() {
     </thead>
     <tbody></tbody>
   </table>
-
+<?php include_once 'include/footer.php'; ?>
 </body>
 </html>

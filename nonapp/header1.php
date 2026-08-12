@@ -329,11 +329,11 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       try {
-        const res = await fetch('auth.php?action=logout&ajax=1');
+        const res = await fetch('include/auth.php?action=logout&ajax=1');
         const result = await res.json();
         if (result.success) window.location.reload();
       } catch (err) {
-        window.location.href = 'auth.php?action=logout';
+        window.location.href = 'include/auth.php?action=logout';
       }
     });
   }

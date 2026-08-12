@@ -33,7 +33,7 @@ function formatPhoneNumber($val) {
 require_once __DIR__ . '/config/db.php';
 
 // Require auth helper
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/include/auth.php';
 
 // Optional: Restrict page to logged-in users
 // requireRole(['admin', 'staff', 'browse']); 
@@ -187,7 +187,7 @@ try {
 </head>
 <body>
 
-<?php include 'header.php'; ?>
+<?php include 'include/header.php'; ?>
 
 <!-- Main Dashboard Container -->
 <main class="dashboard-container">
@@ -439,6 +439,6 @@ try {
 
   </div>
 </main>
-
+<?php include_once 'include/footer.php'; ?>
 </body>
 </html>

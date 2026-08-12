@@ -1,9 +1,15 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 require_once "config/db.php";
+require_once "include/auth.php";
 
 $action = $_REQUEST['action'] ?? '';
 $today  = date('Y-m-d');
+
+// Enforce admin privileges on create/update/delete API actions
+if (in_array($action, ['save_student', 'delete_student', 'toggle_attendance'])) {
+    requireAdmin();
+}
 
 try {
     switch ($action) {
@@ -106,7 +112,7 @@ try {
             echo json_encode(['success' => true, 'data' => $data]);
             break;
 
-        // CREATE & UPDATE STUDENT REGISTRATION
+        // CREATE & UPDATE STUDENT REGISTRATION (Admin Only)
         case 'save_student':
             $vbs_id          = !empty($_POST['vbs_id']) ? intval($_POST['vbs_id']) : null;
             $vbs_sessions_id = intval($_POST['vbs_sessions_id'] ?? 0);
@@ -122,6 +128,7 @@ try {
             }
 
             if ($vbs_id) {
+                // UPDATE RECORD
                 $stmt = $db->prepare("
                     UPDATE vbs_students 
                     SET vbs_sessions_id = ?, contact_id = ?, class_id = ?, allergies = ?, food_restrictions = ?, medical_notes = ? 
@@ -129,6 +136,19 @@ try {
                 ");
                 $stmt->bind_param("iiisssi", $vbs_sessions_id, $contact_id, $class_id, $allergies, $food, $medical, $vbs_id);
             } else {
+                // CREATE NEW RECORD: Prevent Duplicate Student Registration per Session
+                $checkStmt = $db->prepare("SELECT vbs_id FROM vbs_students WHERE vbs_sessions_id = ? AND contact_id = ?");
+                $checkStmt->bind_param("ii", $vbs_sessions_id, $contact_id);
+                $checkStmt->execute();
+                $checkResult = $checkStmt->get_result();
+
+                if ($checkResult->num_rows > 0) {
+                    $checkStmt->close();
+                    echo json_encode(['success' => false, 'message' => 'This student is already registered for the selected VBS session.']);
+                    exit;
+                }
+                $checkStmt->close();
+
                 $stmt = $db->prepare("
                     INSERT INTO vbs_students (vbs_sessions_id, contact_id, class_id, allergies, food_restrictions, medical_notes) 
                     VALUES (?, ?, ?, ?, ?, ?)
@@ -140,7 +160,7 @@ try {
             echo json_encode(['success' => true]);
             break;
 
-        // DELETE STUDENT REGISTRATION
+        // DELETE STUDENT REGISTRATION (Admin Only)
         case 'delete_student':
             $vbs_id = intval($_POST['vbs_id'] ?? 0);
             $stmt = $db->prepare("DELETE FROM vbs_students WHERE vbs_id = ?");
@@ -149,7 +169,7 @@ try {
             echo json_encode(['success' => true]);
             break;
 
-        // CHECK-IN / CHECK-OUT TOGGLE
+        // CHECK-IN / CHECK-OUT TOGGLE (Admin Only)
         case 'toggle_attendance':
             $student_id     = intval($_POST['student_id'] ?? 0);
             $vbs_session_id = intval($_POST['vbs_session_id'] ?? 0);
