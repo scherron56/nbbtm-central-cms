@@ -392,7 +392,7 @@ $(document).ready(function() {
   <?php require_once("config/db.php"); ?>
   <?php include 'include/header.php'; ?>
 
-  <h1>VBS Attendance & Student Management</h1>
+  <h1>VBS Registration & Student Management</h1>
 
   <div id="status-message" class="alert-box"></div>
 

@@ -19,8 +19,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Resilient DB file include path handling for Debian Apache
-$dbPathConfig = __DIR__ . '/config/db.php';
-$dbPathRoot   = __DIR__ . '/db.php';
+$dbPathConfig = __DIR__ . '/../config/db.php';
+$dbPathRoot   = dirname(__DIR__) . '/config/db.php';
 
 if (file_exists($dbPathConfig)) {
     require_once $dbPathConfig;
@@ -28,8 +28,8 @@ if (file_exists($dbPathConfig)) {
     require_once $dbPathRoot;
 } elseif (file_exists('config/db.php')) {
     require_once 'config/db.php';
-} elseif (file_exists('db.php')) {
-    require_once 'db.php';
+} elseif (file_exists('../config/db.php')) {
+    require_once '../config/db.php';
 } else {
     ob_clean();
     header('Content-Type: application/json; charset=utf-8');
@@ -37,7 +37,6 @@ if (file_exists($dbPathConfig)) {
     echo json_encode(['status' => 'error', 'success' => false, 'message' => 'Database configuration file missing.']);
     exit;
 }
-
 /**
  * Check if current user is an authenticated Admin
  */

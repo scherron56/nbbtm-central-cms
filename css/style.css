@@ -8,7 +8,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
+  align-items: stretch; /* Fixed: Allows full-width elements like footer & header to span 100% */
   min-height: 100vh;
   font-family: 'Bespoke Sans', sans-serif;
   color: #28089a;
@@ -269,6 +269,14 @@ form {
   margin-right: auto;
 }
 
+.form-grid-section-70 {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr); 
+  gap: 1rem;
+  width: 70%;
+  margin-right: auto;
+}
+
 .form-grid-section-short-40 {
   display: grid;
   grid-template-columns: repeat(4, 1fr); 
@@ -522,8 +530,6 @@ form {
   gap: 1.25rem;
 }
 
-
-
 .main-content,
 .sidebar {
   display: flex;
@@ -537,10 +543,6 @@ form {
   padding: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
-
-
-
-
 
 .card h3 {
   margin-top: 0;
@@ -672,8 +674,8 @@ form {
 .dateTimeContainer{
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-
 }
+
 /* --- MULTI-LEVEL NAVIGATION DROPDOWNS --- */
 .navbar ul.nav-links li {
   position: relative;
@@ -748,6 +750,7 @@ form {
 /* --- SITE FOOTER STYLES --- */
 .site-footer {
   width: 100%;
+  flex-shrink: 0; /* Fixed: Prevents footer compression on low height viewports */
   background-image: linear-gradient(to right, #043b8f, #0a4b9e);
   color: #ffffff;
   margin-top: auto; /* Ensures footer stays at the bottom on short pages */

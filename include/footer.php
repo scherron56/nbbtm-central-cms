@@ -1,7 +1,7 @@
 <footer class="site-footer">
   <div class="footer-container">
     <!-- Section 1: Brand & Bio -->
-    <div class="footer-brand">include/auth.php
+    <div class="footer-brand">
       <div class="footer-logo">
         <svg viewBox="0 0 100 100" class="scaled-svg" aria-label="Logo">
           <use href="assets/img/nbbtm-logo-white.svg#logo" />

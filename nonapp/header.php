@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const formData = new FormData(loginForm);
 
       try {
-        const res = await fetch('include/include/auth.php?action=login', { method: 'POST', body: formData });
+        const res = await fetch('./include/auth.php?action=login', { method: 'POST', body: formData });
         const result = await res.json();
         if (result.success) {
           window.location.reload();
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const formData = new FormData(changePwdForm);
 
       try {
-        const res = await fetch('include/include/auth.php?action=change_password', { method: 'POST', body: formData });
+        const res = await fetch('./include/auth.php?action=change_password', { method: 'POST', body: formData });
         const result = await res.json();
 
         if (result.success) {
