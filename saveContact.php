@@ -123,8 +123,12 @@ $db->begin_transaction();
 try {
     // 2. Insert or Update Contacts Table
     if ($contact_id && $contact_id > 0) {
+        
+        // If contact is Head of Household, family_id points to their own contact_id
+        $assigned_family = ($is_head === 1) ? $contact_id : $family_id;
+
         $stmt = $db->prepare("UPDATE contacts SET 
-            title_id = ?, first_name = ?, middle_name = ?, last_name = ?, date_of_birth = ?, 
+            family_id = ?, title_id = ?, first_name = ?, middle_name = ?, last_name = ?, date_of_birth = ?, 
             gender = ?, address_1 = ?, city = ?, state = ?, zipcode = ?, 
             phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
             emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
@@ -132,9 +136,9 @@ try {
             join_date = ?, baptized_date = ?, is_child = ?, is_head = ?, is_active = ?
             WHERE contact_id = ?");
 
-        // 28 parameters -> 28 types: issssssssssisisisssssssiiiii
-        $stmt->bind_param("issssssssssisisisssssssiiiii", 
-            $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
+        // 29 parameters -> 29 types: iissssssssssisisisssssssiiiii
+        $stmt->bind_param("iissssssssssisisisssssssiiiii", 
+            $assigned_family, $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
             $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $emergency_contact, $phone_3, $phone_3_type, $c_email,
@@ -145,18 +149,21 @@ try {
         $stmt->execute();
         $stmt->close();
     } else {
+        // Initial insert uses chosen family_id (or NULL if new Head)
+        $assigned_family = ($is_head === 1) ? null : $family_id;
+
         $stmt = $db->prepare("INSERT INTO contacts (
-            title_id, first_name, middle_name, last_name, date_of_birth, 
+            family_id, title_id, first_name, middle_name, last_name, date_of_birth, 
             gender, address_1, city, state, zipcode, 
             phone_1, phone_1_type, phone_2, phone_2_type, 
             emergency_contact, phone_3, phone_3_type, c_email, 
             is_member, is_baptized, anniv_date, marital_status, 
             join_date, baptized_date, is_child, is_head, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        // 27 parameters -> 27 types: issssssssssisisisssssssiiii
-        $stmt->bind_param("issssssssssisisisssssssiiii", 
-            $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
+        // 28 parameters -> 28 types: iissssssssssisisisssssssiiii
+        $stmt->bind_param("iissssssssssisisisssssssiiii", 
+            $assigned_family, $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
             $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $emergency_contact, $phone_3, $phone_3_type, $c_email,
@@ -166,15 +173,23 @@ try {
         $stmt->execute();
         $contact_id = $stmt->insert_id;
         $stmt->close();
+
+        // If new contact is Head of Household, update its family_id to match its newly generated contact_id
+        if ($is_head === 1 && $contact_id > 0) {
+            $assigned_family = $contact_id;
+            $updFamCol = $db->prepare("UPDATE contacts SET family_id = ? WHERE contact_id = ?");
+            $updFamCol->bind_param("ii", $assigned_family, $contact_id);
+            $updFamCol->execute();
+            $updFamCol->close();
+        }
     }
 
-    // 3. Update Families Mapping
+    // 3. Update Families Mapping Table
     $delFam = $db->prepare("DELETE FROM Families WHERE contact_id = ?");
     $delFam->bind_param("i", $contact_id);
     $delFam->execute();
     $delFam->close();
 
-    $assigned_family = ($is_head === 1) ? $contact_id : $family_id;
     if (!empty($assigned_family)) {
         $insFam = $db->prepare("INSERT INTO Families (contact_id, family_id) VALUES (?, ?)");
         $insFam->bind_param("ii", $contact_id, $assigned_family);

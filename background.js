@@ -1,9 +1,12 @@
-chrome.runtime.sendMessage({ data: "test" }, (response) => {
-  if (chrome.runtime.lastError) {
-    // This safely catches and acknowledges the error instead of letting it blow up
-    console.warn("Connection could not be established; target might be closed.");
-    return;
+// Listen for incoming messages from popup or content scripts
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("Background received message:", request);
+
+  if (request.data === "test") {
+    // Send a response back to acknowledge receipt
+    sendResponse({ status: "Received successfully!" });
   }
-  // Proceed with normal response handling
-  console.log("Success:", response);
+
+  // Return true to keep the message channel open if handling responses asynchronously
+  return true;
 });

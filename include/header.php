@@ -61,7 +61,7 @@ $userRole    = $_SESSION['user_role'] ?? 'browse';
         <a href="#" class="<?= in_array($currentPage, ['vbs_sessions.php', 'vbs_manager.php', 'vbs_attendance.php']) ? 'active' : '' ?>">VBS</a>
         <ul class="submenu">
           <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-          <li><a href="vbs_manager.php" class="<?= ($currentPage === 'vbs_manager.php') ? 'active' : '' ?>">Registration</a></li>
+          <li><a href="vbs_roster.php" class="<?= ($currentPage === 'vbs_roster.php') ? 'active' : '' ?>">Registration</a></li>
           <li><a href="vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
         </ul>
       </li>
@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const formData = new FormData(loginForm);
 
       try {
-        const res = await fetch('include/include/auth.php?action=login', { method: 'POST', body: formData });
+        const res = await fetch('./include/auth.php?action=login', { method: 'POST', body: formData });
         const result = await res.json();
         if (result.success) {
           window.location.reload();
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const formData = new FormData(changePwdForm);
 
       try {
-        const res = await fetch('include/auth.php?action=change_password', { method: 'POST', body: formData });
+        const res = await fetch('./include/auth.php?action=change_password', { method: 'POST', body: formData });
         const result = await res.json();
 
         if (result.success) {
@@ -328,11 +328,11 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       try {
-        const res = await fetch('include/auth.php?action=logout&ajax=1', { method: 'GET' });
+        const res = await fetch('./include/auth.php?action=logout&ajax=1', { method: 'GET' });
         const result = await res.json();
         if (result.success) window.location.reload();
       } catch (err) {
-        window.location.href = 'include/auth.php?action=logout';
+        window.location.href = './include/auth.php?action=logout';
       }
     });
   }

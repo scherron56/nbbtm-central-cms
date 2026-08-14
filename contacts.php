@@ -710,7 +710,7 @@ $(document).ready(function() {
       </fieldset>
 
       <!-- MEMBERSHIP INFORMATION FIELDSET -->
-      <fieldset id="membership-section" class="form-grid-section-short">
+      <fieldset id="membership-section" class="form-grid-section-70">
         <legend>
           <h2>Membership Information</h2>
         </legend>

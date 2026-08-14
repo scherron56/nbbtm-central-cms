@@ -100,6 +100,22 @@ require_once __DIR__ . '/include/auth.php';
       padding: 2.5rem 1rem;
       color: #64748b;
     }
+
+    .btn-switch-family {
+      background-color: #28089a;
+      color: #ffffff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .btn-switch-family:hover {
+      background-color: #1e0573;
+    }
   </style>
 
   <script>
@@ -198,11 +214,12 @@ require_once __DIR__ . '/include/auth.php';
 
       function renderDashboard(data) {
         let c = data.contact || {};
+        let familyMembers = data.familyMembers || [];
         let ministries = data.ministries || [];
         let ministryList = data.ministryList || [];
         let roleList = data.roleList || [];
 
-        // Render Primary Information Header
+        // Primary Information Header
         let fullName = [c.first_name, c.middle_name, c.last_name].filter(Boolean).join(' ');
         $('#dash-fullname').text(fullName || 'N/A');
 
@@ -217,33 +234,105 @@ require_once __DIR__ . '/include/auth.php';
           .text(isActive ? 'Active' : 'Inactive')
           .attr('class', 'status-badge ' + (isActive ? 'badge-success' : 'badge-secondary'));
 
-        // Demographics
+        // Demographics (Displaying Joined Text Description for Marital Status)
         $('#dash-dob').text(c.date_of_birth || '—');
         $('#dash-gender').text(c.gender === 'M' ? 'Male' : (c.gender === 'F' ? 'Female' : '—'));
-        $('#dash-marital').text(c.marital_status || '—');
+        $('#dash-marital').text(c.marital_status_desc || '—');
         $('#dash-head').text(String(c.is_head) === "1" ? 'Yes' : 'No');
 
-        // Contact Info
+        // Address & Email
         let addressParts = [c.address_1, c.city, c.state, c.zipcode].filter(Boolean);
         $('#dash-address').text(addressParts.length > 0 ? addressParts.join(', ') : '—');
         $('#dash-email').text(c.c_email || '—');
 
-        // Format phone numbers
-        $('#dash-phone1').text(c.phone_1 ? `${formatPhoneNumber(c.phone_1)} (${c.phone_1_type || 'Primary'})` : '—');
-        $('#dash-phone2').text(c.phone_2 ? `${formatPhoneNumber(c.phone_2)} (${c.phone_2_type || 'Secondary'})` : '—');
-        $('#dash-emergency').text(c.emergency_contact ? `${c.emergency_contact} - ${formatPhoneNumber(c.phone_3)}` : '—');
+        // Format Phone Numbers with Actual Phone Type Text Descriptions
+        let p1Type = c.phone_1_type_desc ? ` (${c.phone_1_type_desc})` : '';
+        let p2Type = c.phone_2_type_desc ? ` (${c.phone_2_type_desc})` : '';
+        let p3Type = c.phone_3_type_desc ? ` (${c.phone_3_type_desc})` : '';
+
+        $('#dash-phone1').text(c.phone_1 ? `${formatPhoneNumber(c.phone_1)}${p1Type}` : '—');
+        $('#dash-phone2').text(c.phone_2 ? `${formatPhoneNumber(c.phone_2)}${p2Type}` : '—');
+
+        if (c.emergency_contact || c.phone_3) {
+          let emergencyText = [c.emergency_contact, formatPhoneNumber(c.phone_3)].filter(Boolean).join(' - ');
+          $('#dash-emergency').text(`${emergencyText}${p3Type}`);
+        } else {
+          $('#dash-emergency').text('—');
+        }
 
         // Membership Info
         $('#dash-joined').text(c.join_date || '—');
         $('#dash-baptized').text(String(c.is_baptized) === "1" ? (c.baptized_date ? `Yes (${c.baptized_date})` : 'Yes') : 'No');
 
-        // Render Ministries Table / Grouped View
+        // Render Sub-Tables
+        renderFamilyMembers(familyMembers);
         renderMinistryAssociations(ministries, ministryList, roleList);
 
-        // Show View
+        // Show Dashboard
         $('#empty-state').hide();
         $('#contact-dashboard-view').fadeIn(200);
       }
+
+      function renderFamilyMembers(members) {
+        let container = $('#family-table-container');
+        container.empty();
+
+        if (!members || members.length === 0) {
+          container.html('<p style="color: #64748b; font-style: italic;">No associated family members found in this household.</p>');
+          return;
+        }
+
+        let table = $(`
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Household Role</th>
+                <th>Membership</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        `);
+
+        let tbody = table.find('tbody');
+        $.each(members, function(i, m) {
+          let mName = `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'N/A';
+          
+          let roleTag = 'Family Member';
+          if (String(m.is_head) === "1") {
+            roleTag = 'Head of Household';
+          } else if (String(m.is_child) === "1") {
+            roleTag = 'Child';
+          }
+
+          let isMem = String(m.is_member) === "1";
+
+          tbody.append(`
+            <tr>
+              <td><strong>${mName}</strong></td>
+              <td><span class="status-badge badge-secondary">${roleTag}</span></td>
+              <td><span class="status-badge ${isMem ? 'badge-success' : 'badge-secondary'}">${isMem ? 'Member' : 'Non-Member'}</span></td>
+              <td style="text-align: right;">
+                <button type="button" class="btn-switch-family" data-id="${m.contact_id}">
+                  View Dashboard
+                </button>
+              </td>
+            </tr>
+          `);
+        });
+
+        container.append(table);
+      }
+
+      // Quick Switch to Family Member's Dashboard
+      $(document).on('click', '.btn-switch-family', function() {
+        let targetId = $(this).data('id');
+        if (targetId) {
+          $('#contactID').val(targetId).trigger('change');
+        }
+      });
 
       function renderMinistryAssociations(userMinistries, fullMinistryList, roleList) {
         let container = $('#ministry-table-container');
@@ -394,7 +483,7 @@ require_once __DIR__ . '/include/auth.php';
       <!-- MAIN LAYOUT (2 COLUMNS) -->
       <div class="dashboard-layout">
 
-        <!-- LEFT COLUMN: PERSONAL DETAILS & MINISTRIES -->
+        <!-- LEFT COLUMN: PERSONAL DETAILS, FAMILY & MINISTRIES -->
         <div class="main-content">
 
           <!-- PERSONAL INFORMATION -->
@@ -417,6 +506,14 @@ require_once __DIR__ . '/include/auth.php';
                 <span class="info-label">Head of Household</span>
                 <span class="info-value" id="dash-head">—</span>
               </div>
+            </div>
+          </div>
+
+          <!-- HOUSEHOLD / FAMILY MEMBERS -->
+          <div class="card">
+            <h3>Household / Family Members</h3>
+            <div id="family-table-container">
+              <!-- Dynamically populated table -->
             </div>
           </div>
 
@@ -480,7 +577,6 @@ require_once __DIR__ . '/include/auth.php';
   </div>
   
   <?php include_once 'include/footer.php'; ?>
-
 
 </body>
 
