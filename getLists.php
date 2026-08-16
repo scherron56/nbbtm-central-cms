@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         // 1. Fetch Contacts (Filtered dynamically)
-        $contactQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
+        $contactQuery = "SELECT contact_id, CONCAT(COALESCE(last_name, ''), ', ', COALESCE(first_name, '')) AS fullname 
                          FROM contacts 
                          {$whereClause} 
                          ORDER BY last_name ASC, first_name ASC";
@@ -44,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $contacts = $contactsResult ? $contactsResult->fetch_all(MYSQLI_ASSOC) : [];
 
         // 2. Fetch Heads of Household for the Family Dropdown
-        $headQuery = "SELECT contact_id, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) AS fullname 
+        $headQuery = "SELECT contact_id, CONCAT(COALESCE(last_name, ''), ', ', COALESCE(first_name, '')) AS fullname 
                       FROM contacts 
                       WHERE is_head = 1 
                       ORDER BY last_name ASC, first_name ASC";
