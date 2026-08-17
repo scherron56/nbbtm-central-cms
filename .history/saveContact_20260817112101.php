@@ -138,8 +138,8 @@ try {
             join_date = ?, baptized_date = ?, is_child = ?, is_head = ?, is_active = ?
             WHERE contact_id = ?");
 
-        // Fixed bind parameters: 31 accurate mappings 
-        $stmt->bind_param("iisssssissssssisissisiisissiiii", 
+        // 31 parameters
+        $stmt->bind_param("iissssssissssssisisisssssssiiiii", 
             $assigned_family, $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
             $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,
@@ -163,8 +163,8 @@ try {
             join_date, baptized_date, is_child, is_head, is_active
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        // Fixed bind parameters: 30 accurate mappings
-        $stmt->bind_param("iisssssissssssisissisiisissiii", 
+        // 30 parameters
+        $stmt->bind_param("iissssssissssssisisisssssssiiii", 
             $assigned_family, $title_id, $first_name, $middle_name, $last_name, $date_of_birth, $date_of_death, $is_deceased,
             $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,

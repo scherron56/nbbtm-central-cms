@@ -62,7 +62,6 @@ $adminUser = isAdmin();
   <script>
 $(document).ready(function() {
   const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
-  let sessionsList = []; // Used to store session start and end dates locally
 
   function showStatusMessage(message, type = 'success') {
     let $box = $('#status-message');
@@ -81,6 +80,10 @@ $(document).ready(function() {
     $('#status-message').fadeOut(200).empty();
   }
 
+  // Default attendance date to today (YYYY-MM-DD)
+  const today = new Date().toISOString().split('T')[0];
+  $('#attendance_date').val(today);
+
   // Initial Page Load
   loadSessions();
   loadRoster();
@@ -94,8 +97,7 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(res) {
         if (res.success && Array.isArray(res.data)) {
-          sessionsList = res.data;
-          const select = $('#sessionSelect').empty().append('<option value="">-- Select Session First --</option>');
+          const select = $('#sessionSelect').empty().append('<option value="">-- All Sessions --</option>');
           res.data.forEach(session => {
             select.append($('<option>', { 
               value: session.vbs_sessions_id, 
@@ -107,72 +109,8 @@ $(document).ready(function() {
     });
   }
 
-  // Populate dynamic dates dropdown based on session start/end
-  function populateDateDropdown(startDateStr, endDateStr) {
-    const dateSelect = $('#attendance_date').empty();
-    
-    if (!startDateStr || !endDateStr) {
-      dateSelect.append('<option value="">-- No Dates Defined --</option>').prop('disabled', true);
-      return;
-    }
-
-    dateSelect.prop('disabled', false);
-
-    const startParts = startDateStr.split('-');
-    const endParts = endDateStr.split('-');
-    let current = new Date(startParts[0], startParts[1] - 1, startParts[2]);
-    const end = new Date(endParts[0], endParts[1] - 1, endParts[2]);
-    
-    const todayObj = new Date();
-    const todayFormatted = todayObj.getFullYear() + '-' + String(todayObj.getMonth() + 1).padStart(2, '0') + '-' + String(todayObj.getDate()).padStart(2, '0');
-
-    let foundToday = false;
-    let count = 0;
-
-    // Loop through and generate an option for each day within the boundaries
-    while (current <= end && count < 30) { 
-      const yyyy = current.getFullYear();
-      const mm = String(current.getMonth() + 1).padStart(2, '0');
-      const dd = String(current.getDate()).padStart(2, '0');
-      const val = `${yyyy}-${mm}-${dd}`;
-      
-      const display = current.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      
-      dateSelect.append($('<option>', { value: val, text: display }));
-      
-      if (val === todayFormatted) {
-        foundToday = true;
-      }
-
-      current.setDate(current.getDate() + 1);
-      count++;
-    }
-
-    // Auto-select today if it falls within the session block
-    if (foundToday) {
-      dateSelect.val(todayFormatted);
-    }
-  }
-
-  // Session selection change handler
-  $('#sessionSelect').on('change', function() {
-    clearStatusMessage();
-    const sessionId = $(this).val();
-    
-    if (sessionId) {
-      const selectedSession = sessionsList.find(s => String(s.vbs_sessions_id) === String(sessionId));
-      if (selectedSession) {
-        populateDateDropdown(selectedSession.vbs_start_date, selectedSession.vbs_end_date);
-      }
-    } else {
-      $('#attendance_date').empty().append('<option value="">-- Select Session First --</option>').prop('disabled', true);
-    }
-
-    loadRoster();
-  });
-
-  // Date selection change handler
-  $('#attendance_date').on('change', function() {
+  // Session selection or date selection change handler
+  $('#sessionSelect, #attendance_date').on('change', function() {
     clearStatusMessage();
     loadRoster();
   });
@@ -356,18 +294,16 @@ $(document).ready(function() {
         <h3 style="color: blue; margin: 0;">Select Session Year</h3>
       </label>
       <select id="sessionSelect" style="width: 100%; padding: 0.4rem;">
-        <option value="">-- Select Session First --</option>
+        <option value="">-- All Sessions --</option>
       </select>
     </div>
 
-    <!-- Dynamic Attendance Date Selector -->
+    <!-- Attendance Date Selector -->
     <div class="field-group" style="flex: 1;">
       <label for="attendance_date">
         <h3 style="color: blue; margin: 0;">Attendance Date</h3>
       </label>
-      <select id="attendance_date" name="attendance_date" style="width: 100%; padding: 0.4rem;" disabled>
-        <option value="">-- Select Session First --</option>
-      </select>
+      <input type="date" id="attendance_date" name="attendance_date" style="width: 100%; padding: 0.35rem;">
     </div>
 
     <!-- Registered Student Dropdown Filter -->

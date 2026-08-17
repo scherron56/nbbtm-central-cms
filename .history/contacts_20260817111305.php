@@ -81,7 +81,6 @@ $adminUser = isAdmin();
 $(document).ready(function() {
 
   const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
-  const DEFAULT_STATE = 'MN';
   let globalMinistryList = [];
   let globalRoleList = [];
 
@@ -144,72 +143,6 @@ $(document).ready(function() {
     let newLength = this.value.length;
     cursorPosition += (newLength - originalLength);
     this.setSelectionRange(cursorPosition, cursorPosition);
-  });
-
-  // --- MULTI-STATE & CITY/ZIP POPULATION LOGIC ---
-  function populateCities(stateCode, selectedCity = '', callback = null) {
-    let $cityDropdown = $('#city');
-    $cityDropdown.empty().append($('<option>', { value: '', text: '--Loading Cities...--' }));
-
-    if (!stateCode) {
-      $cityDropdown.empty().append($('<option>', { value: '', text: '--Select City--' }));
-      return;
-    }
-
-    $.getJSON('lookupZip.php', { action: 'getCities', state: stateCode }, function(response) {
-      $cityDropdown.empty().append($('<option>', { value: '', text: '--Select City--' }));
-      if (response.status === 'success' && response.cities) {
-        $.each(response.cities, function(idx, item) {
-          let cityName = item.city;
-          $cityDropdown.append($('<option>', { value: cityName, text: cityName }));
-        });
-        if (selectedCity) {
-          $cityDropdown.val(selectedCity);
-        }
-      }
-      if (typeof callback === 'function') callback();
-    });
-  }
-
-  // Initial load: Set state to MN and populate MN cities
-  $('#state').val(DEFAULT_STATE);
-  populateCities(DEFAULT_STATE);
-
-  // 1. When State changes, fetch available cities for that state
-  $('#state').on('change', function() {
-    let stateCode = $(this).val();
-    $('#zipcode').val('');
-    populateCities(stateCode);
-  });
-
-  // 2. When City is selected, populate ZIP code
-  $('#city').on('change', function() {
-    let city = $(this).val();
-    let state = $('#state').val();
-
-    if (city && state) {
-      $.getJSON('lookupZip.php', { action: 'getZip', city: city, state: state }, function(res) {
-        if (res.status === 'success' && res.found) {
-          $('#zipcode').val(res.zipcode);
-        }
-      });
-    }
-  });
-
-  // 3. When 5-digit ZIP is typed, auto-select State and load City
-  $('#zipcode').on('input', function() {
-    let zip = $(this).val().trim();
-    if (zip.length === 5 && /^\d{5}$/.test(zip)) {
-      $.getJSON('lookupZip.php', { action: 'getDetailsByZip', zip: zip }, function(res) {
-        if (res.status === 'success' && res.found) {
-          let stateCode = res.data.state_code;
-          let cityName = res.data.city;
-
-          $('#state').val(stateCode);
-          populateCities(stateCode, cityName);
-        }
-      });
-    }
   });
 
   // Initial Load of Dropdown Components
@@ -432,13 +365,6 @@ $(document).ready(function() {
       $('#contactID').val('');
       $('#date_of_death').val('');
       $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
-      
-      // Reset State to MN and reload MN cities
-      $('#state').val(DEFAULT_STATE);
-      $('#city').val('');
-      $('#zipcode').val('');
-      populateCities(DEFAULT_STATE);
-
       buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
       toggleMemberSections(false);
       $('#submitBtn').text('Save');
@@ -456,10 +382,6 @@ $(document).ready(function() {
         $('#contact_id').val('');
         $('#date_of_death').val('');
         $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
-        $('#state').val(DEFAULT_STATE);
-        $('#city').val('');
-        $('#zipcode').val('');
-        populateCities(DEFAULT_STATE);
         buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
         toggleMemberSections(false);
       }
@@ -485,11 +407,8 @@ $(document).ready(function() {
         $('#middle_name').val(contact.middle_name || '');
         $('#last_name').val(contact.last_name || '');
         $('#address_1').val(contact.address_1 || '');
-
-        let contactState = contact.state || DEFAULT_STATE;
-        $('#state').val(contactState);
-        populateCities(contactState, contact.city || '');
-
+        $('#city').val(contact.city || '');
+        $('#state').val(contact.state || '');
         $('#zipcode').val(contact.zipcode || '');
         $('#date_of_birth').val(contact.date_of_birth || '');
         $('#date_of_death').val(contact.date_of_death || '');
@@ -616,7 +535,7 @@ $(document).ready(function() {
 
   toggleMemberSections($('#is_member').is(':checked'));
 });
-  </script>
+</script>
 </head>
 
 <body>
@@ -627,19 +546,19 @@ $(document).ready(function() {
 
   <div id="status-message" class="alert-box"></div>
 
-  <fieldset id="contact-select" class="form-grid-section-short" style="width: 80%;">
+  <fieldset id="contact-select" class="form-grid-section-short">
     <div class="field-group" style="--colspan: 2;">
       <label><h3 style="color: blue; margin-bottom: 5px;">View Option</h3></label>
-      <div style="display: flex; gap: 10px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
-        <label for="filter_all" style="font-weight: normal; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
+      <div style="display: flex; gap: 12px; align-items: center; margin-top: 4px;">
+        <label for="filter_all" style="font-weight: normal; cursor: pointer;">
           <input type="radio" id="filter_all" name="contact_filter" value="0" checked>
           All Contacts
         </label>
-        <label for="filter_members" style="font-weight: normal; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
+        <label for="filter_members" style="font-weight: normal; cursor: pointer;">
           <input type="radio" id="filter_members" name="contact_filter" value="1">
           Members
         </label>
-        <label for="filter_non_members" style="font-weight: normal; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
+        <label for="filter_non_members" style="font-weight: normal; cursor: pointer;">
           <input type="radio" id="filter_non_members" name="contact_filter" value="2">
           Non-Members
         </label>
@@ -748,57 +667,18 @@ $(document).ready(function() {
           <label for="address_1">Address</label>
           <input type="text" id="address_1" name="address_1" autocomplete="off" />
         </div>
-
-        <div class="field-group" style="--colspan: 3;">
-          <label for="state">State</label>
-          <select id="state" name="state">
-            <optgroup label="Default Region">
-              <option value="MN" selected>Minnesota (MN)</option>
-              <option value="WI">Wisconsin (WI)</option>
-              <option value="IA">Iowa (IA)</option>
-              <option value="ND">North Dakota (ND)</option>
-              <option value="SD">South Dakota (SD)</option>
-            </optgroup>
-            <optgroup label="All States">
-              <option value="AL">Alabama (AL)</option><option value="AK">Alaska (AK)</option>
-              <option value="AZ">Arizona (AZ)</option><option value="AR">Arkansas (AR)</option>
-              <option value="CA">California (CA)</option><option value="CO">Colorado (CO)</option>
-              <option value="CT">Connecticut (CT)</option><option value="DE">Delaware (DE)</option>
-              <option value="DC">District of Columbia (DC)</option><option value="FL">Florida (FL)</option>
-              <option value="GA">Georgia (GA)</option><option value="HI">Hawaii (HI)</option>
-              <option value="ID">Idaho (ID)</option><option value="IL">Illinois (IL)</option>
-              <option value="IN">Indiana (IN)</option><option value="KS">Kansas (KS)</option>
-              <option value="KY">Kentucky (KY)</option><option value="LA">Louisiana (LA)</option>
-              <option value="ME">Maine (ME)</option><option value="MD">Maryland (MD)</option>
-              <option value="MA">Massachusetts (MA)</option><option value="MI">Michigan (MI)</option>
-              <option value="MS">Mississippi (MS)</option><option value="MO">Missouri (MO)</option>
-              <option value="MT">Montana (MT)</option><option value="NE">Nebraska (NE)</option>
-              <option value="NV">Nevada (NV)</option><option value="NH">New Hampshire (NH)</option>
-              <option value="NJ">New Jersey (NJ)</option><option value="NM">New Mexico (NM)</option>
-              <option value="NY">New York (NY)</option><option value="NC">North Carolina (NC)</option>
-              <option value="OH">Ohio (OH)</option><option value="OK">Oklahoma (OK)</option>
-              <option value="OR">Oregon (OR)</option><option value="PA">Pennsylvania (PA)</option>
-              <option value="RI">Rhode Island (RI)</option><option value="SC">South Carolina (SC)</option>
-              <option value="TN">Tennessee (TN)</option><option value="TX">Texas (TX)</option>
-              <option value="UT">Utah (UT)</option><option value="VT">Vermont (VT)</option>
-              <option value="VA">Virginia (VA)</option><option value="WA">Washington (WA)</option>
-              <option value="WV">West Virginia (WV)</option><option value="WY">Wyoming (WY)</option>
-            </optgroup>
-          </select>
-        </div>
-
         <div class="field-group" style="--colspan: 3; --rowspan: 1;">
           <label for="city">City</label>
-          <select id="city" name="city">
-            <option value="">--Select City--</option>
-          </select>
+          <input type="text" id="city" name="city" autocomplete="off" />
         </div>
-
+        <div class="field-group" style="--colspan: 3;">
+          <label for="state">State</label>
+          <input type="text" id="state" name="state" autocomplete="off" />
+        </div>
         <div class="field-group" style="--colspan: 3;">
           <label for="zipcode">Zip Code</label>
-          <input type="text" id="zipcode" name="zipcode" maxlength="5" autocomplete="off" placeholder="Enter ZIP" />
+          <input type="text" id="zipcode" name="zipcode" autocomplete="off" />
         </div>
-
         <div class="field-group" style="--colspan: 2; --rowspan: 1;">
           <label for="phone_1">Primary Phone</label>
           <input type="tel" id="phone_1" name="phone_1" placeholder="(123) 456-7890" maxlength="14" inputmode="tel" autocomplete="tel">

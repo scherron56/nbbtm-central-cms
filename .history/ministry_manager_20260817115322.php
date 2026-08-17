@@ -54,7 +54,12 @@ $adminUser = isAdmin();
     .badge-danger { background-color: #fee2e2; color: #991b1b; }
     .filter-bar { background: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); display: flex; align-items: center; gap: 1rem; }
     
-    /* View Details Modal Content Styling */
+    /* View Details Modal Styles */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5); z-index: 2000;
+      display: none; justify-content: center; align-items: center;
+    }
     .modal-content {
       background: #ffffff; padding: 2.5rem; border-radius: 8px;
       width: 90%; max-width: 600px; position: relative;
@@ -223,7 +228,7 @@ $adminUser = isAdmin();
               $('#modal-comm-name').text(d.min_comm_name);
               $('#modal-desc').text(d.description ? d.description : 'No description provided.');
               $('#modal-mission').text(d.mission_purpose ? d.mission_purpose : 'No mission or purpose recorded.');
-              $('#view-details-modal').removeClass('hidden');
+              $('#view-details-modal').css('display', 'flex');
             } else {
               showStatusMessage('Could not load details.', 'error');
             }
@@ -236,13 +241,13 @@ $adminUser = isAdmin();
 
       // Close Details Modal
       $('#close-details-btn').on('click', function() {
-        $('#view-details-modal').addClass('hidden');
+        $('#view-details-modal').hide();
       });
 
       // Close Modal if user clicks completely outside of the content box
       $('#view-details-modal').on('click', function(e) {
         if (e.target === this) {
-          $(this).addClass('hidden');
+          $(this).hide();
         }
       });
 
@@ -450,7 +455,7 @@ $adminUser = isAdmin();
   </div>
   
   <!-- VIEW DETAILS MODAL -->
-  <div id="view-details-modal" class="modal-overlay hidden">
+  <div id="view-details-modal" class="modal-overlay">
     <div class="modal-content">
       <button type="button" class="modal-close" id="close-details-btn">&times;</button>
       <h3 id="modal-comm-name" style="color: #28089a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.25rem;">Ministry Name</h3>

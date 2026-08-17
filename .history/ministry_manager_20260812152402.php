@@ -53,18 +53,6 @@ $adminUser = isAdmin();
     .badge-success { background-color: #d1fae5; color: #065f46; }
     .badge-danger { background-color: #fee2e2; color: #991b1b; }
     .filter-bar { background: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); display: flex; align-items: center; gap: 1rem; }
-    
-    /* View Details Modal Content Styling */
-    .modal-content {
-      background: #ffffff; padding: 2.5rem; border-radius: 8px;
-      width: 90%; max-width: 600px; position: relative;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    }
-    .modal-close {
-      position: absolute; top: 10px; right: 15px; background: none;
-      border: none; font-size: 1.5rem; font-weight: bold; color: #64748b; cursor: pointer;
-    }
-    .modal-close:hover { color: #dc2626; }
   </style>
 
   <script>
@@ -181,13 +169,10 @@ $adminUser = isAdmin();
             const badgeText = row.is_active == 1 ? 'Active' : 'Inactive';
             const shortDesc = row.description ? escapeHtml(row.description).substring(0, 50) + (row.description.length > 50 ? '...' : '') : '';
 
-            // Generate view button for all roles, but restrict Edit/Delete to Admin
-            let viewBtn = `<a href="#" class="link-btn view-btn" data-id="${row.min_comm_id}">View</a>`;
             let actionsHtml = IS_ADMIN ? `
-              ${viewBtn} | 
               <a href="#" class="link-btn edit-btn" data-id="${row.min_comm_id}">Edit</a> | 
               <a href="#" class="link-btn delete-btn" style="color: #dc2626;" data-id="${row.min_comm_id}">Delete</a>
-            ` : viewBtn;
+            ` : '<em>Read Only</em>';
 
             html += `
               <tr>
@@ -206,47 +191,7 @@ $adminUser = isAdmin();
         }
       }
 
-      // 5. View Details Click Handler (Opens Modal)
-      tableBody.on('click', '.view-btn', function(e) {
-        e.preventDefault();
-        clearStatusMessage();
-        const id = $(this).data('id');
-        
-        $.ajax({
-          url: 'ministry_api.php',
-          type: 'GET',
-          data: { action: 'get_committee', id: id },
-          dataType: 'json',
-          success: function(res) {
-            if (res.status === 'success' && res.data) {
-              const d = res.data;
-              $('#modal-comm-name').text(d.min_comm_name);
-              $('#modal-desc').text(d.description ? d.description : 'No description provided.');
-              $('#modal-mission').text(d.mission_purpose ? d.mission_purpose : 'No mission or purpose recorded.');
-              $('#view-details-modal').removeClass('hidden');
-            } else {
-              showStatusMessage('Could not load details.', 'error');
-            }
-          },
-          error: function() {
-            showStatusMessage('Server error while retrieving details.', 'error');
-          }
-        });
-      });
-
-      // Close Details Modal
-      $('#close-details-btn').on('click', function() {
-        $('#view-details-modal').addClass('hidden');
-      });
-
-      // Close Modal if user clicks completely outside of the content box
-      $('#view-details-modal').on('click', function(e) {
-        if (e.target === this) {
-          $(this).addClass('hidden');
-        }
-      });
-
-      // 6. Form Submit (Save / Update)
+      // 5. Form Submit (Save / Update)
       ministryForm.on('submit', function(e) {
         e.preventDefault();
         clearStatusMessage();
@@ -276,7 +221,7 @@ $adminUser = isAdmin();
         });
       });
 
-      // 7. Edit Click
+      // 6. Edit Click
       tableBody.on('click', '.edit-btn', function(e) {
         e.preventDefault();
         if (!IS_ADMIN) return;
@@ -309,7 +254,7 @@ $adminUser = isAdmin();
         });
       });
 
-      // 8. Delete Click
+      // 7. Delete Click
       tableBody.on('click', '.delete-btn', function(e) {
         e.preventDefault();
         if (!IS_ADMIN) return;
@@ -448,25 +393,6 @@ $adminUser = isAdmin();
     <?php endif; ?>
 
   </div>
-  
-  <!-- VIEW DETAILS MODAL -->
-  <div id="view-details-modal" class="modal-overlay hidden">
-    <div class="modal-content">
-      <button type="button" class="modal-close" id="close-details-btn">&times;</button>
-      <h3 id="modal-comm-name" style="color: #28089a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.25rem;">Ministry Name</h3>
-      
-      <div style="margin-bottom: 1.5rem;">
-        <h4 style="color: #64748b; margin: 0 0 0.25rem 0; font-size: 0.85rem; text-transform: uppercase;">Description</h4>
-        <p id="modal-desc" style="font-size: 1rem; color: #1e293b; margin: 0; white-space: pre-wrap; line-height: 1.5;"></p>
-      </div>
-      
-      <div>
-        <h4 style="color: #64748b; margin: 0 0 0.25rem 0; font-size: 0.85rem; text-transform: uppercase;">Mission & Purpose</h4>
-        <p id="modal-mission" style="font-size: 1rem; color: #1e293b; margin: 0; white-space: pre-wrap; line-height: 1.5;"></p>
-      </div>
-    </div>
-  </div>
-
 <?php include_once 'include/footer.php'; ?>
 </body>
 </html>
