@@ -16,8 +16,7 @@ try {
 
         // READ: Sessions list for dropdown filter
         case 'fetch_sessions':
-            // Added vbs_start_date and vbs_end_date to the select statement
-            $stmt = $db->prepare("SELECT vbs_sessions_id, vbs_year, vbs_theme, vbs_start_date, vbs_end_date FROM vbs_sessions ORDER BY vbs_year DESC");
+            $stmt = $db->prepare("SELECT vbs_sessions_id, vbs_year, vbs_theme FROM vbs_sessions ORDER BY vbs_year DESC");
             $stmt->execute();
             $result = $stmt->get_result();
             $sessions = [];

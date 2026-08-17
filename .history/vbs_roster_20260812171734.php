@@ -219,12 +219,12 @@ $(document).ready(function() {
     const selectedSession = $('#sessionSelect').val();
 
     if (!selectedSession) {
-      tbody.append('<tr><td colspan="3" style="text-align:center; padding:1.5rem; color:#64748b;">Please select a Session Year above to view registered students.</td></tr>');
+      tbody.append('<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:#64748b;">Please select a Session Year above to view registered students.</td></tr>');
       return;
     }
 
     if (!students || students.length === 0) {
-      tbody.append('<tr><td colspan="3" style="text-align:center; padding:1.5rem; color:#64748b;">No VBS students registered for this session.</td></tr>');
+      tbody.append('<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:#64748b;">No VBS students registered for this session.</td></tr>');
       return;
     }
 
@@ -242,11 +242,12 @@ $(document).ready(function() {
     Object.keys(grouped).forEach(className => {
       tbody.append(`
         <tr class="class-group-row">
-          <td colspan="3">🏫 ${escapeHtml(className)}</td>
+          <td colspan="4">🏫 ${escapeHtml(className)}</td>
         </tr>
       `);
 
       grouped[className].forEach(student => {
+        const isCheckedIn = parseInt(student.is_checked_in) === 1;
         const studentDisplayName = student.student_full_name_formatted || student.student_display_name || student.child_name || ((student.last_name || '') + ', ' + (student.first_name || '')).trim();
 
         const actionBtns = IS_ADMIN ? `
@@ -258,6 +259,11 @@ $(document).ready(function() {
           <tr data-id="${student.contact_id}" data-vbs-id="${student.vbs_id}" data-session-id="${student.vbs_sessions_id}" data-class-id="${student.class_id}">
             <td style="padding-left: 1.75rem;"><strong>${escapeHtml(studentDisplayName)}</strong></td>
             <td><span class="class-desc">${escapeHtml(className)}</span></td>
+            <td>
+              <span style="color:${isCheckedIn ? '#16a34a' : '#64748b'}; font-weight:bold;">
+                ${isCheckedIn ? 'Checked In ✓' : 'Not Checked In'}
+              </span>
+            </td>
             <td><div style="display:flex; gap:0.4rem;">${actionBtns}</div></td>
           </tr>
         `;
@@ -469,6 +475,7 @@ $(document).ready(function() {
       <tr>
         <th>Student Name</th>
         <th>Class</th>
+        <th>Status</th>
         <th>Actions</th>
       </tr>
     </thead>

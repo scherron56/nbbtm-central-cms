@@ -15,7 +15,7 @@ require_once __DIR__ . '/include/auth.php';
 $adminUser = isAdmin();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en">a
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -106,6 +106,38 @@ $adminUser = isAdmin();
       color: #ffffff !important;
       cursor: not-allowed !important;
       opacity: 0.6;
+    }
+    .pay-inline-form {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .pay-inline-form select, .pay-inline-form input {
+      height: 32px;
+      font-size: 0.85rem;
+      padding: 0 6px;
+    }
+    .btn-update-pay {
+      background-color: #28089a;
+      color: #ffffff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-waive-pay {
+      background-color: #d97706;
+      color: #ffffff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
     }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -239,7 +271,7 @@ $adminUser = isAdmin();
             });
 
             if (filteredList.length === 0) {
-                $tbody.append('<tr><td colspan="5" style="text-align:center; color:#64748b; padding:20px;">No matching registered attendees found.</td></tr>');
+                $tbody.append('<tr><td colspan="6" style="text-align:center; color:#64748b; padding:20px;">No matching registered attendees found.</td></tr>');
                 return;
             }
 
@@ -278,13 +310,39 @@ $adminUser = isAdmin();
                     actionBtn = `<button type="button" class="btn-toggle-disabled" disabled title="Registration must be Paid or Waived before check-in.">Check In</button>`;
                 }
 
+                // Payment column content depending on requires_fee
                 let paymentStatusDisp = reqFee ? (r.payment_status || 'Pending') : 'N/A (Free Event)';
+                let paymentCell = '';
+                if (!reqFee) {
+                    paymentCell = '<em>$0.00 (No Fee)</em>';
+                } else if (!isCompleted) {
+                    if (IS_ADMIN) {
+                        paymentCell = `
+                            <div class="pay-inline-form">
+                                <select class="pay-method" data-reg="${regId}">
+                                    <option value="Cash">Cash</option>
+                                    <option value="Check">Check</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                </select>
+                                <input type="number" step="0.01" class="pay-amount" data-reg="${regId}" value="${parseFloat(r.amount_paid || 0).toFixed(2)}" style="width:75px;">
+                                <button type="button" class="btn-update-pay" data-reg="${regId}">Pay & Enable</button>
+                                <button type="button" class="btn-waive-pay" data-reg="${regId}">Waive</button>
+                            </div>
+                        `;
+                    } else {
+                        paymentCell = `<em>Pending Payment</em>`;
+                    }
+                } else {
+                    let methodDisp = r.payment_method && r.payment_method !== 'None' ? ` (${r.payment_method})` : '';
+                    paymentCell = `<strong>$${parseFloat(r.amount_paid || 0).toFixed(2)}</strong>${methodDisp}`;
+                }
 
                 $tbody.append(`
                     <tr>
                         <td><strong>${r.full_name || 'Unknown Contact'}</strong></td>
                         <td>${regBadge}</td>
                         <td>${paymentStatusDisp}</td>
+                        <td>${paymentCell}</td>
                         <td>${attBadge}</td>
                         <td style="text-align:right;">${actionBtn}</td>
                     </tr>
@@ -295,6 +353,68 @@ $adminUser = isAdmin();
         // Live Search / Filter Triggers
         $(document).on('input', '#searchAttendee', renderRosterTable);
         $(document).on('change', '#filterStatus', renderRosterTable);
+
+        // Save Payment at Check-In
+        $(document).on('click', '.btn-update-pay', function() {
+            if (!IS_ADMIN) return;
+            clearStatusMessage();
+            let regId = $(this).data('reg');
+            let method = $(`.pay-method[data-reg="${regId}"]`).val();
+            let amount = $(`.pay-amount[data-reg="${regId}"]`).val();
+            let eventId = $('#prg_evnt_id').val();
+
+            $.ajax({
+                url: 'prg_event_api.php',
+                type: 'POST',
+                data: {
+                    action: 'update_checkin_payment',
+                    registration_id: regId,
+                    payment_method: method,
+                    amount_paid: amount,
+                    payment_status: 'Paid'
+                },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        showStatusMessage("Payment updated successfully.", 'success');
+                        loadRoster(eventId);
+                    } else {
+                        showStatusMessage('Error updating payment: ' + (res.message || res.error), 'error');
+                    }
+                }
+            });
+        });
+
+        // Waive Fee at Check-In
+        $(document).on('click', '.btn-waive-pay', function() {
+            if (!IS_ADMIN) return;
+            clearStatusMessage();
+            let regId = $(this).data('reg');
+            let eventId = $('#prg_evnt_id').val();
+
+            if (!confirm('Are you sure you want to waive the fee for this registration?')) return;
+
+            $.ajax({
+                url: 'prg_event_api.php',
+                type: 'POST',
+                data: {
+                    action: 'update_checkin_payment',
+                    registration_id: regId,
+                    payment_method: 'None',
+                    amount_paid: 0.00,
+                    payment_status: 'Waived'
+                },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        showStatusMessage("Fee waived successfully.", 'success');
+                        loadRoster(eventId);
+                    } else {
+                        showStatusMessage('Error waiving registration fee: ' + (res.message || res.error), 'error');
+                    }
+                }
+            });
+        });
 
         // Toggle Attendance Action
         $(document).on('click', '.btn-toggle', function() {
@@ -387,6 +507,7 @@ $adminUser = isAdmin();
               <th>Attendee Name</th>
               <th>Reg. Status</th>
               <th>Payment Status</th>
+              <th>Amount / Update Payment</th>
               <th>Attendance Status</th>
               <th style="text-align:right;">Action</th>
             </tr>

@@ -250,25 +250,17 @@ require_once __DIR__ . '/include/auth.php';
 
         // Demographics
         let maritalDesc = c.marital_status_desc || '—';
-        
-        // Format Date of Birth to Month/Day
-        if (c.date_of_birth) {
-            const [bYear, bMonth, bDay] = c.date_of_birth.split('-');
-            const bDate = new Date(bYear, bMonth - 1, bDay);
-            $('#dash-dob').text(bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-        } else {
-            $('#dash-dob').text('—');
-        }
-        
+        $('#dash-dob').text(c.date_of_birth || '—');
         $('#dash-gender').text(c.gender === 'M' ? 'Male' : (c.gender === 'F' ? 'Female' : '—'));
         $('#dash-marital').text(maritalDesc);
         $('#dash-head').text(String(c.is_head) === "1" ? 'Yes' : 'No');
 
-        // Format Anniversary to Month/Day
         if (String(maritalDesc).toLowerCase() === 'married' && c.anniv_date) {
-            const [aYear, aMonth, aDay] = c.anniv_date.split('-');
-            const aDate = new Date(aYear, aMonth - 1, aDay);
-            $('#dash-anniv').text(aDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            // Manually parse to prevent timezone day-shifting
+            const [year, month, day] = c.anniv_date.split('-');
+            const d = new Date(year, month - 1, day);
+            const options = { month: 'short', day: 'numeric' };
+            $('#dash-anniv').text(d.toLocaleDateString('en-US', options));
             $('#anniv-group').show();
         } else {
             $('#anniv-group').hide();
