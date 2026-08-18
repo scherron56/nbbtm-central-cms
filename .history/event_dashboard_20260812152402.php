@@ -1,5 +1,4 @@
 <?php
-// event_dashboard.php
 // Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -20,7 +19,7 @@ $adminUser = isAdmin();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Event Information Dashboard - NBBTM CMS</title>
+  <title>Event Viewer Dashboard</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
@@ -96,22 +95,11 @@ $adminUser = isAdmin();
     }
     table.data-table th {
       background-color: #f1f5f9;
-      color: #28089a;
-    }
-    .action-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 15px;
     }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script>
     $(document).ready(function() {
-        let currentEventData = null;
-        let currentRosterData = null;
-
-        // Load All Events into the Top Select Dropdown
         function loadEventDropdown() {
             $.ajax({
                 url: 'prg_event_api.php',
@@ -124,19 +112,16 @@ $adminUser = isAdmin();
                         $select.find('option:not(:first)').remove();
                         $.each(data.programs_events, function(i, ev) {
                             let dispDate = ev.primary_start ? ` (${ev.primary_start.substring(0,10)})` : '';
-                            $select.append(`<option value="${ev.prg_evnt_id}">${escapeHtml(ev.prg_evnt_name)}${dispDate}</option>`);
+                            $select.append(`<option value="${ev.prg_evnt_id}">${ev.prg_evnt_name}${dispDate}</option>`);
                         });
                     }
                 }
             });
         }
 
-        // Trigger Event Details Fetch on Dropdown Change
         $('#event_select').on('change', function() {
             let id = $(this).val();
             if(!id) {
-                currentEventData = null;
-                currentRosterData = null;
                 $('#dashboardContent').hide();
                 $('#dashboardPlaceholder').show();
                 return;
@@ -149,7 +134,6 @@ $adminUser = isAdmin();
                 dataType: 'json',
                 success: function(data) {
                     if(data.success && data.prgevnt) {
-                        currentEventData = data;
                         let ev = data.prgevnt;
                         
                         // Populate Overview Details
@@ -157,25 +141,6 @@ $adminUser = isAdmin();
                         $('#dash_location').text(ev.location || 'N/A');
                         $('#dash_goal').text(ev.goal || 'N/A');
                         $('#dash_notes').text(ev.notes || 'N/A');
-                        
-                        // Check if document exists in table (document_name is NOT NULL and not empty)
-                        let hasDocument = ev.document_name && ev.document_name.trim() !== '';
-
-                        if (hasDocument) {
-                            let downloadUrl = `download_document.php?prg_evnt_id=${ev.prg_evnt_id}`;
-                            
-                            $('#dash_document_section').show();
-                            $('#dash_document_link')
-                                .attr('href', downloadUrl)
-                                .text(`📄 ${ev.document_name}`);
-                            
-                            $('#btnDownloadPacket')
-                                .attr('href', downloadUrl)
-                                .show();
-                        } else {
-                            $('#dash_document_section').hide();
-                            $('#btnDownloadPacket').hide();
-                        }
                         
                         let reqReg = parseInt(ev.requires_registration) === 1;
                         let reqFee = parseInt(ev.requires_fee) === 1;
@@ -189,7 +154,7 @@ $adminUser = isAdmin();
                             $('#btnGoRegister').hide();
                         }
 
-                        // Populate Schedule List
+                        // Schedule List (Handles optional end_datetime)
                         let $schedList = $('#dash_schedules').empty();
                         if (data.schedules && data.schedules.length > 0) {
                             $.each(data.schedules, function(i, sch) {
@@ -200,7 +165,7 @@ $adminUser = isAdmin();
                             $schedList.append('<li>No schedule available.</li>');
                         }
 
-                        // Calculate Financials & Populate Budget Breakdown Table
+                        // Financial Calculations & Ledger Table
                         let totalExpenses = 0;
                         let totalIncome = 0;
                         let $budgetBody = $('#dash_budget_table tbody').empty();
@@ -216,14 +181,14 @@ $adminUser = isAdmin();
 
                                 $budgetBody.append(`
                                     <tr>
-                                        <td>${escapeHtml(bud.item_description)}</td>
-                                        <td><span class="badge ${bud.item_type === 'Expense' ? 'badge-secondary' : 'badge-success'}">${escapeHtml(bud.item_type)}</span></td>
+                                        <td>${bud.item_description}</td>
+                                        <td><span class="badge ${bud.item_type === 'Expense' ? 'badge-secondary' : 'badge-success'}">${bud.item_type}</span></td>
                                         <td>$${amt.toFixed(2)}</td>
                                     </tr>
                                 `);
                             });
                         } else {
-                            $budgetBody.append('<tr><td colspan="3" style="text-align:center; color:#64748b;">No budget entries recorded.</td></tr>');
+                            $budgetBody.append('<tr><td colspan="3">No budget entries recorded.</td></tr>');
                         }
 
                         let net = totalIncome - totalExpenses;
@@ -231,7 +196,7 @@ $adminUser = isAdmin();
                         $('#dash_income').text('$' + totalIncome.toFixed(2));
                         $('#dash_net').text((net >= 0 ? '+' : '') + '$' + net.toFixed(2));
 
-                        // Load Attendance Roster
+                        // Load Attendance Roster Data
                         loadDashboardRoster(id);
 
                         $('#dashboardPlaceholder').hide();
@@ -241,7 +206,6 @@ $adminUser = isAdmin();
             });
         });
 
-        // Load Attendees Roster and Metrics
         function loadDashboardRoster(eventId) {
             $.ajax({
                 url: 'prg_event_api.php',
@@ -250,14 +214,13 @@ $adminUser = isAdmin();
                 dataType: 'json',
                 success: function(data) {
                     if(data.success) {
-                        currentRosterData = data;
                         let checkedInIds = data.attendance.map(a => parseInt(a.contact_id));
                         let $rosterBody = $('#dash_roster_table tbody').empty();
                         let totalRegistered = data.registrations.length;
                         let totalCheckedIn = 0;
 
                         if (totalRegistered === 0) {
-                            $rosterBody.append('<tr><td colspan="2" style="text-align:center; color:#64748b;">No registrations found.</td></tr>');
+                            $rosterBody.append('<tr><td colspan="2">No registrations found.</td></tr>');
                         } else {
                             $.each(data.registrations, function(i, r) {
                                 let isCheckedIn = checkedInIds.includes(parseInt(r.contact_id));
@@ -265,8 +228,8 @@ $adminUser = isAdmin();
 
                                 $rosterBody.append(`
                                     <tr>
-                                        <td><strong>${escapeHtml(r.full_name)}</strong></td>
-                                        <td>${isCheckedIn ? '<span class="badge badge-success">Checked In ✓</span>' : '<span class="badge badge-secondary">Registered</span>'}</td>
+                                        <td>${r.full_name}</td>
+                                        <td>${isCheckedIn ? '<span class="badge badge-success">Checked In</span>' : '<span class="badge badge-secondary">Registered</span>'}</td>
                                     </tr>
                                 `);
                             });
@@ -279,43 +242,34 @@ $adminUser = isAdmin();
             });
         }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-
         loadEventDropdown();
     });
   </script>
 </head>
 <body>
-  <?php include_once __DIR__ . '/include/header.php'; ?> 
+  <?php include 'include/header.php'; ?> 
 
-  <main style="max-width: 1200px; margin: 20px auto; padding: 0 15px;">
-      
-      <!-- Top Selection Bar -->
+  <div style="max-width: 1200px; margin: 20px auto; padding: 0 15px;">
       <div class="card">
-          <h2 style="margin-top:0; color:#28089a;">Event Information Dashboard</h2>
-          <div class="form-group" style="max-width: 450px;">
-              <label for="event_select" style="font-weight:600; color:#28089a; margin-bottom:5px; display:inline-block;">Select Program / Event:</label>
-              <select id="event_select" class="form-control" style="width:100%; padding:8px; border-radius:4px; border:1px solid #cbd5e1;">
+          <h2>Event Information Dashboard</h2>
+          <div class="form-group" style="max-width: 400px;">
+              <label for="event_select">Select Event:</label>
+              <select id="event_select" class="form-control">
                   <option value="">-- Choose an Event --</option>
               </select>
           </div>
       </div>
 
-      <!-- Placeholder when nothing is selected -->
-      <div id="dashboardPlaceholder" class="card" style="margin-top: 20px; text-align: center; color: #64748b; padding: 3rem 1rem;">
-          <p style="font-size: 1.1rem; margin:0;">Please select an event above to view its details, budget ledger, schedule, and attendance roster.</p>
+      <div id="dashboardPlaceholder" class="card" style="margin-top: 20px; text-align: center; color: #64748b;">
+          <p>Please select an event above to display its information, budget summary, and attendance roster.</p>
       </div>
 
-      <!-- Active Dashboard Content -->
       <div id="dashboardContent" class="dashboard-container" style="display: none;">
           
-          <!-- Left Column: Event Metadata & Operations -->
+          <!-- Left Column -->
           <div>
               <div class="card">
-                  <h2 id="dash_event_name" style="margin-top: 0; color:#28089a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">Event Details</h2>
+                  <h2 id="dash_event_name" style="margin-top: 0;">Event Details</h2>
                   
                   <div class="detail-section">
                       <div class="detail-label">Location</div>
@@ -325,16 +279,6 @@ $adminUser = isAdmin();
                   <div class="detail-section">
                       <div class="detail-label">Goal / Purpose</div>
                       <div id="dash_goal" class="detail-value">-</div>
-                  </div>
-
-                  <!-- Attached Document Module (Only shown if document_name is not null) -->
-                  <div class="detail-section" id="dash_document_section" style="display: none;">
-                      <div class="detail-label">Attached Planning Packet / Document</div>
-                      <div class="detail-value">
-                          <a id="dash_document_link" href="#" target="_blank" class="link-btn" style="font-weight: 600;">
-                              📄 Download Document
-                          </a>
-                      </div>
                   </div>
 
                   <div class="detail-section">
@@ -355,23 +299,13 @@ $adminUser = isAdmin();
                       <div id="dash_notes" class="detail-value">-</div>
                   </div>
 
-                  <!-- Action Buttons Stack -->
-                  <div class="action-stack">
-                      <!-- Direct Table Download Link -->
-                      <a id="btnDownloadPacket" href="#" target="_blank" class="btn btn-primary" style="display:none; text-decoration:none; width: 100%; text-align: center; box-sizing: border-box;">
-                          📥 Download Planning Packet
-                      </a>
-                      
-                      <a id="btnGoRegister" href="#" class="btn btn-accent" style="display:none; text-decoration:none; width: 100%; text-align: center; box-sizing: border-box;">
-                          Register Attendees &rarr;
-                      </a>
-                  </div>
+                  <a id="btnGoRegister" href="#" class="btn btn-accent" style="display:none; text-decoration:none; width: 100%; text-align: center; box-sizing: border-box;">Register Attendees</a>
               </div>
           </div>
 
-          <!-- Right Column: Financials & Attendee Rosters -->
+          <!-- Right Column -->
           <div>
-              <!-- Financial KPI Row -->
+              <!-- Financial KPI Cards -->
               <div class="metrics-row">
                   <div class="metric-card expense">
                       <span class="detail-label">Total Expenses</span>
@@ -387,9 +321,9 @@ $adminUser = isAdmin();
                   </div>
               </div>
 
-              <!-- Attendance KPI Row -->
+              <!-- Attendance KPI Cards -->
               <div class="card" style="margin-bottom: 20px;">
-                  <h2 style="margin-top:0; color:#28089a;">Attendance Summary</h2>
+                  <h2>Attendance Summary</h2>
                   <div class="metrics-row" style="margin-bottom: 0;">
                       <div class="metric-card">
                           <span class="detail-label">Total Registered</span>
@@ -402,9 +336,9 @@ $adminUser = isAdmin();
                   </div>
               </div>
 
-              <!-- Budget Ledger Table -->
+              <!-- Budget Ledger Breakdown -->
               <div class="card" style="margin-bottom: 20px;">
-                  <h2 style="margin-top:0; color:#28089a;">Budget Breakdown Ledger</h2>
+                  <h2>Budget Breakdown Ledger</h2>
                   <table class="data-table" id="dash_budget_table">
                       <thead>
                           <tr>
@@ -419,14 +353,14 @@ $adminUser = isAdmin();
                   </table>
               </div>
 
-              <!-- Registered Attendees Table -->
+              <!-- Attendees Roster -->
               <div class="card">
-                  <h2 style="margin-top:0; color:#28089a;">Registered Attendees Roster</h2>
+                  <h2>Registered Attendees Roster</h2>
                   <table class="data-table" id="dash_roster_table">
                       <thead>
                           <tr>
                               <th>Attendee Name</th>
-                              <th>Check-In Status</th>
+                              <th>Status</th>
                           </tr>
                       </thead>
                       <tbody>
@@ -437,8 +371,7 @@ $adminUser = isAdmin();
           </div>
 
       </div>
-  </main>
-
-  <?php include_once __DIR__ . '/include/footer.php'; ?>
+  </div>
+  <?php include_once 'include/footer.php'; ?>
 </body>
 </html>

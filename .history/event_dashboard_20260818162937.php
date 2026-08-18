@@ -98,19 +98,10 @@ $adminUser = isAdmin();
       background-color: #f1f5f9;
       color: #28089a;
     }
-    .action-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 15px;
-    }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script>
     $(document).ready(function() {
-        let currentEventData = null;
-        let currentRosterData = null;
-
         // Load All Events into the Top Select Dropdown
         function loadEventDropdown() {
             $.ajax({
@@ -135,8 +126,6 @@ $adminUser = isAdmin();
         $('#event_select').on('change', function() {
             let id = $(this).val();
             if(!id) {
-                currentEventData = null;
-                currentRosterData = null;
                 $('#dashboardContent').hide();
                 $('#dashboardPlaceholder').show();
                 return;
@@ -149,7 +138,6 @@ $adminUser = isAdmin();
                 dataType: 'json',
                 success: function(data) {
                     if(data.success && data.prgevnt) {
-                        currentEventData = data;
                         let ev = data.prgevnt;
                         
                         // Populate Overview Details
@@ -158,23 +146,14 @@ $adminUser = isAdmin();
                         $('#dash_goal').text(ev.goal || 'N/A');
                         $('#dash_notes').text(ev.notes || 'N/A');
                         
-                        // Check if document exists in table (document_name is NOT NULL and not empty)
-                        let hasDocument = ev.document_name && ev.document_name.trim() !== '';
-
-                        if (hasDocument) {
-                            let downloadUrl = `download_document.php?prg_evnt_id=${ev.prg_evnt_id}`;
-                            
+                        // Render Document / Flyer Section
+                        if (ev.document_path) {
                             $('#dash_document_section').show();
                             $('#dash_document_link')
-                                .attr('href', downloadUrl)
-                                .text(`📄 ${ev.document_name}`);
-                            
-                            $('#btnDownloadPacket')
-                                .attr('href', downloadUrl)
-                                .show();
+                                .attr('href', ev.document_path)
+                                .text(ev.document_name || 'Download Attached Document');
                         } else {
                             $('#dash_document_section').hide();
-                            $('#btnDownloadPacket').hide();
                         }
                         
                         let reqReg = parseInt(ev.requires_registration) === 1;
@@ -250,7 +229,6 @@ $adminUser = isAdmin();
                 dataType: 'json',
                 success: function(data) {
                     if(data.success) {
-                        currentRosterData = data;
                         let checkedInIds = data.attendance.map(a => parseInt(a.contact_id));
                         let $rosterBody = $('#dash_roster_table tbody').empty();
                         let totalRegistered = data.registrations.length;
@@ -327,12 +305,12 @@ $adminUser = isAdmin();
                       <div id="dash_goal" class="detail-value">-</div>
                   </div>
 
-                  <!-- Attached Document Module (Only shown if document_name is not null) -->
+                  <!-- Attached Document / Flyer Module -->
                   <div class="detail-section" id="dash_document_section" style="display: none;">
-                      <div class="detail-label">Attached Planning Packet / Document</div>
+                      <div class="detail-label">Attached Document / Flyer</div>
                       <div class="detail-value">
                           <a id="dash_document_link" href="#" target="_blank" class="link-btn" style="font-weight: 600;">
-                              📄 Download Document
+                              📄 Download Attached Document
                           </a>
                       </div>
                   </div>
@@ -355,17 +333,7 @@ $adminUser = isAdmin();
                       <div id="dash_notes" class="detail-value">-</div>
                   </div>
 
-                  <!-- Action Buttons Stack -->
-                  <div class="action-stack">
-                      <!-- Direct Table Download Link -->
-                      <a id="btnDownloadPacket" href="#" target="_blank" class="btn btn-primary" style="display:none; text-decoration:none; width: 100%; text-align: center; box-sizing: border-box;">
-                          📥 Download Planning Packet
-                      </a>
-                      
-                      <a id="btnGoRegister" href="#" class="btn btn-accent" style="display:none; text-decoration:none; width: 100%; text-align: center; box-sizing: border-box;">
-                          Register Attendees &rarr;
-                      </a>
-                  </div>
+                  <a id="btnGoRegister" href="#" class="btn btn-accent" style="display:none; text-decoration:none; width: 100%; text-align: center; box-sizing: border-box; margin-top: 10px;">Register Attendees &rarr;</a>
               </div>
           </div>
 

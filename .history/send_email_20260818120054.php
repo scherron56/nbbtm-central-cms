@@ -5,20 +5,20 @@ use Dotenv\Dotenv;
 
 require __DIR__ . '/vendor/autoload.php';
 
-// Load variables from .env
+// Load environment variables from .env
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 /**
- * Send an email via Brevo SMTP with dynamic recipients, senders, and attachments.
+ * Send an email with dynamic recipients, optional custom senders, and file attachments.
  *
  * @param string      $toEmail
  * @param string      $toName
  * @param string      $subject
  * @param string      $htmlContent
  * @param array       $attachments        Array of file paths or [['path' => '...', 'name' => '...']]
- * @param string|null $customSenderEmail  Optional sender address (defaults to .env FROM_EMAIL)
- * @param string|null $customSenderName   Optional sender display name (defaults to .env FROM_NAME)
+ * @param string|null $customSenderEmail  Optional sender email (defaults to .env FROM_EMAIL)
+ * @param string|null $customSenderName   Optional sender name (defaults to .env FROM_NAME)
  * @return array ['success' => bool, 'error' => string|null]
  */
 function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [], $customSenderEmail = null, $customSenderName = null) {
@@ -34,7 +34,7 @@ function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [],
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = (int)$_ENV['BREVO_SMTP_PORT'];
 
-        // Sender Configuration (Dynamic with fallback to .env)
+        // Sender Configuration (Dynamic fallback to .env)
         $senderEmail = $customSenderEmail ?: $_ENV['FROM_EMAIL'];
         $senderName  = $customSenderName  ?: $_ENV['FROM_NAME'];
         $mail->setFrom($senderEmail, $senderName);
@@ -54,7 +54,7 @@ function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [],
             }
         }
 
-        // Message Content
+        // Content
         $mail->isHTML(true);
         $mail->Subject = $subject;
         $mail->Body    = $htmlContent;

@@ -1,5 +1,4 @@
 <?php
-// events.php
 // Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -20,7 +19,7 @@ $adminUser = isAdmin();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Event Management Module - NBBTM CMS</title>
+  <title>Event Management Module</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
@@ -41,21 +40,6 @@ $adminUser = isAdmin();
       margin-bottom: 20px;
       border-radius: 4px;
       color: #334155;
-    }
-    .doc-management-box {
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1;
-      border-radius: 6px;
-      padding: 12px;
-      margin-top: 5px;
-    }
-    .doc-status-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
     }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -252,20 +236,6 @@ $adminUser = isAdmin();
                         $('#goal').val(ev.goal);
                         $('#notes').val(ev.notes || '');
                         
-                        // Populate Planning Packet / Document Status
-                        $('#remove_document_flag').val('0');
-                        $('#event_document').val(''); // Clear file picker
-
-                        if (ev.document_name && ev.document_name.trim() !== '') {
-                            $('#doc_status_text').html(`Current Packet: <a href="download_document.php?prg_evnt_id=${ev.prg_evnt_id}" target="_blank" class="link-btn" style="font-weight:bold;">📄 ${escapeHtml(ev.document_name)}</a>`);
-                            $('#btnRemoveDoc').show();
-                            $('#file_input_label').text('Replace Document / Packet (Optional):');
-                        } else {
-                            $('#doc_status_text').html('<span style="color:#64748b; font-style:italic;">No planning packet stored in database.</span>');
-                            $('#btnRemoveDoc').hide();
-                            $('#file_input_label').text('Upload Document / Packet (.pdf, .doc, .docx):');
-                        }
-                        
                         let reqReg = parseInt(ev.requires_registration) === 1;
                         let reqFee = parseInt(ev.requires_fee) === 1;
 
@@ -349,28 +319,14 @@ $adminUser = isAdmin();
             });
         });
 
-        // Trigger Remove Document
-        $('#btnRemoveDoc').on('click', function() {
-            if (confirm('Are you sure you want to remove the stored planning packet from this event?')) {
-                $('#remove_document_flag').val('1');
-                $('#doc_status_text').html('<span style="color:#dc2626; font-weight:bold;">Document marked for removal upon save.</span>');
-                $(this).hide();
-            }
-        });
-
-        // Submit form using FormData to stream binary file packets
         $('#eventForm').on('submit', function(e) {
             e.preventDefault();
             clearStatusMessage();
 
-            let formData = new FormData(this);
-
             $.ajax({
                 url: 'prg_event_api.php?action=save_event',
                 type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
+                data: $(this).serialize(),
                 dataType: 'json',
                 success: function(res) {
                     if(res.success) {
@@ -449,10 +405,6 @@ $adminUser = isAdmin();
                 $('#eventForm')[0].reset();
                 $('#prg_evnt_id').val('');
                 $('#fee_container').hide();
-                $('#remove_document_flag').val('0');
-                $('#doc_status_text').html('<span style="color:#64748b; font-style:italic;">No planning packet stored in database.</span>');
-                $('#btnRemoveDoc').hide();
-                $('#file_input_label').text('Upload Document / Packet (.pdf, .doc, .docx):');
                 if ($('#btnDelete').length) $('#btnDelete').hide();
             }
             $('#event_select').val('');
@@ -520,11 +472,7 @@ $adminUser = isAdmin();
             }
         });
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-
+        // Initialize Lookups
         loadMinistriesDropdown();
         loadEventDropdown();
     });
@@ -547,10 +495,8 @@ $adminUser = isAdmin();
         </div>
 
         <?php if ($adminUser): ?>
-            <!-- Form with enctype for binary document streaming -->
-            <form id="eventForm" enctype="multipart/form-data">
+            <form id="eventForm">
                 <input type="hidden" id="prg_evnt_id" name="prg_evnt_id">
-                <input type="hidden" id="remove_document_flag" name="remove_document" value="0">
 
                 <fieldset class="dashboard-main-grid fieldset-relative">
                     <legend>
@@ -632,26 +578,6 @@ $adminUser = isAdmin();
                         <textarea id="goal" name="goal" rows="2" class="form-control"></textarea>
                     </div>
 
-                    <!-- PLANNING PACKET DATABASE ATTACHMENT / REPLACE -->
-                    <div class="field-group" style="--colspan: 2;">
-                        <label><strong>Event Planning Packet (Database Attachment):</strong></label>
-                        <div class="doc-management-box">
-                            <div class="doc-status-row">
-                                <div id="doc_status_text">
-                                    <span style="color:#64748b; font-style:italic;">No planning packet stored in database.</span>
-                                </div>
-                                <button type="button" id="btnRemoveDoc" class="btn btn-sm btn-danger" style="display:none; padding:4px 10px; font-size:0.8rem;">
-                                    🗑️ Remove Document
-                                </button>
-                            </div>
-                            
-                            <label for="event_document" id="file_input_label" style="font-size:0.85rem; color:#475569;">
-                                Upload Document / Packet (.pdf, .doc, .docx):
-                            </label>
-                            <input type="file" id="event_document" name="event_document" accept=".pdf,.doc,.docx" class="form-control" style="background:#fff;">
-                        </div>
-                    </div>
-
                     <!-- REGISTRATION & FEE CHECKBOXES -->
                     <div class="field-group" style="--colspan: 1;">
                         <label>
@@ -676,7 +602,6 @@ $adminUser = isAdmin();
                         <label>Additional Notes:</label>
                         <textarea id="notes" name="notes" rows="3" class="form-control"></textarea>
                     </div>
-
                     <div class="button-group">
                         <button type="submit" class="btn btn-primary">Save Event</button>
                         <a id="btnGoRegister" href="event_registration.php" class="btn btn-accent" style="display:none; text-decoration:none;">Register Attendees</a>

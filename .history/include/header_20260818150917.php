@@ -11,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Require auth library for role checking functions like isAdmin()
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/include/auth.php';
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 $isLoggedIn  = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
@@ -22,7 +22,7 @@ $userRole    = $_SESSION['user_role'] ?? 'browse';
   <div class="header-content">
     <div class="logo-container">
       <svg viewBox="0 0 100 100" class="scaled-svg" alt="Logo">
-        <use href="assets/img/nbbtm-logo-white.svg#logo" />
+        <use href="/assets/img/nbbtm-logo-white.svg" alt="#logo" />
       </svg>
     </div>
 

@@ -22,7 +22,7 @@ $userRole    = $_SESSION['user_role'] ?? 'browse';
   <div class="header-content">
     <div class="logo-container">
       <svg viewBox="0 0 100 100" class="scaled-svg" alt="Logo">
-        <use href="assets/img/nbbtm-logo-white.svg#logo" />
+        <use href="/assets/img/nbbtm-logo-white.svg" alt="#logo" />
       </svg>
     </div>
 

@@ -1,5 +1,5 @@
 <?php
-// Enable detailed error reporting for development
+// Enable detailed error reporting
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -10,8 +10,8 @@ require_once __DIR__ . '/email_templates.php';
 $message = '';
 $statusClass = '';
 
-// Check if form was submitted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Check if form was submitted safely (handles missing REQUEST_METHOD in CLI/edge environments)
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $name  = trim($_POST['name'] ?? '');
     $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
 
@@ -19,20 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 1. Generate the HTML template
         $emailHtml = getWelcomeEmailTemplate($name);
 
-        // 2. Handle optional file upload
-        $attachments = [];
-        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $attachments[] = [
-                'path' => $_FILES['attachment']['tmp_name'],
-                'name' => $_FILES['attachment']['name']
-            ];
-        }
-
-        // 3. Send the Welcome Email via Brevo
-        $result = sendEmail($email, $name, 'Welcome to Our App!', $emailHtml, $attachments);
+        // 2. Send the Welcome Email via Brevo
+        $result = sendEmail($email, $name, 'Welcome to Our App!', $emailHtml);
 
         if ($result['success']) {
-            $message = "Registration successful! Check your inbox ({$email}) for a welcome message.";
+            $message = "Registration successful! Check your inbox ($email) for a welcome message.";
             $statusClass = "success";
         } else {
             $message = "Account created, but email delivery failed. Error: " . $result['error'];
@@ -51,11 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Create an Account</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f2f5; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 8px; width: 100%; max-width: 420px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f2f5; }
+        .card { background: white; padding: 2rem; border-radius: 8px; width: 100%; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: .5rem; font-weight: bold; }
-        input[type="text"], input[type="email"], input[type="file"] { width: 100%; padding: .75rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input { width: 100%; padding: .75rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button { width: 100%; padding: .75rem; background: #0066cc; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
         button:hover { background: #0052a3; }
         .alert { padding: 1rem; margin-bottom: 1rem; border-radius: 4px; font-size: 0.9rem; }
@@ -72,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="alert <?= $statusClass ?>"><?= $message ?></div>
     <?php endif; ?>
 
-    <form action="register.php" method="POST" enctype="multipart/form-data">
+    <form action="register.php" method="POST">
         <div class="form-group">
             <label for="name">Full Name</label>
             <input type="text" id="name" name="name" required placeholder="Jane Doe">
@@ -81,11 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="form-group">
             <label for="email">Email Address</label>
             <input type="email" id="email" name="email" required placeholder="jane@example.com">
-        </div>
-
-        <div class="form-group">
-            <label for="attachment">Attachment (Optional)</label>
-            <input type="file" id="attachment" name="attachment">
         </div>
 
         <button type="submit">Create Account</button>
