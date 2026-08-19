@@ -1,0 +1,28 @@
+// Example: Storing a specific document type for Event #42
+$entityType = 'event';
+$entityId   = 42;
+$category   = 'Planning Packet';
+
+$stmt = $db->prepare("
+    INSERT INTO app_attachments (entity_type, entity_id, document_category, document_name, document_mime, document_size, document_data) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+");
+$nullBlob = NULL;
+$stmt->bind_param("sisssib", $entityType, $entityId, $category, $docName, $docMime, $docSize, $nullBlob);
+$stmt->send_long_data(6, $docData);
+$stmt->execute();
+
+
+// Downloading
+$entityType = $_GET['entity_type'] ?? '';
+$entityId   = (int)($_GET['entity_id'] ?? 0);
+$category   = $_GET['category'] ?? '';
+
+$stmt = $db->prepare("
+    SELECT document_name, document_mime, document_size, document_data 
+    FROM app_attachments 
+    WHERE entity_type = ? AND entity_id = ? AND document_category = ?
+    ORDER BY uploaded_at DESC LIMIT 1
+");
+$stmt->bind_param("sis", $entityType, $entityId, $category);
+$stmt->execute();
