@@ -1,0 +1,13 @@
+// Example: Storing a specific document type for Event #42
+$entityType = 'event';
+$entityId   = 42;
+$category   = 'Planning Packet';
+
+$stmt = $db->prepare("
+    INSERT INTO app_attachments (entity_type, entity_id, document_category, document_name, document_mime, document_size, document_data) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+");
+$nullBlob = NULL;
+$stmt->bind_param("sisssib", $entityType, $entityId, $category, $docName, $docMime, $docSize, $nullBlob);
+$stmt->send_long_data(6, $docData);
+$stmt->execute();
