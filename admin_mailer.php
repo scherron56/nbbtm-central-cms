@@ -57,6 +57,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rawBody     = trim($_POST['body_template'] ?? '');
     $selectedContactIds = $_POST['selected_contacts'] ?? [];
 
+    // Parse and sanitize comma-separated CC emails
+    $rawCc = trim($_POST['cc_emails'] ?? '');
+    $ccEmails = [];
+    if (!empty($rawCc)) {
+        $splitCc = array_map('trim', explode(',', $rawCc));
+        foreach ($splitCc as $ccItem) {
+            $validCc = filter_var($ccItem, FILTER_VALIDATE_EMAIL);
+            if ($validCc) {
+                $ccEmails[] = $validCc;
+            }
+        }
+    }
+
     $attachments = [];
     if (!empty($_FILES['attachments']['name'][0])) {
         foreach ($_FILES['attachments']['tmp_name'] as $idx => $tmpPath) {
@@ -90,6 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $successCount = 0;
         $failCount = 0;
 
+        // Allow rich email formatting tags including inline styling and spans
+        $allowedTags = '<p><br><strong><b><em><i><u><s><h1><h2><h3><h4><h5><h6><ul><ol><li><a><span><div><hr><table><tbody><tr><td><th>';
+        $sanitizedBody = strip_tags($rawBody, $allowedTags);
+
+        // Ministry Scripture Passage
+        $scriptureVerse = '<em>"Trust in the Lord with all your heart, and do not lean on your own understanding; in all your ways acknowledge him, and he will make straight your paths."</em> — <strong>Proverbs 3:5-6</strong>';
+
         foreach ($recipientsToSend as $recipient) {
             $personalizedBody = str_replace(
                 ['{{name}}', '{{first_name}}', '{{last_name}}', '{{full_name}}', '{{email}}', '{{date}}'],
@@ -101,17 +121,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     htmlspecialchars($recipient['email']),
                     date('F j, Y')
                 ],
-                $rawBody
+                $sanitizedBody
             );
 
             $htmlEmail = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;'>
+                <!-- Subject Header -->
                 <div style='text-align: center; margin-bottom: 20px;'>
                     <h2 style='color: #043b8f; margin: 0;'>" . htmlspecialchars($subject) . "</h2>
                 </div>
-                <div style='font-size: 15px; line-height: 1.6; color: #334155;'>" . nl2br($personalizedBody) . "</div>
-                <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 15px 0;'>
-                <p style='font-size: 12px; color: #64748b; text-align: center;'>New Beginnings Baptist Tabernacle Ministries<br>Sent by " . htmlspecialchars($senderName) . "</p>
+
+                <!-- Formatted Email Body Content -->
+                <div style='font-size: 15px; line-height: 1.6; color: #334155;'>
+                    " . $personalizedBody . "
+                </div>
+
+                <!-- Scripture Blockquote Section -->
+                <div style='margin-top: 25px; padding: 12px 16px; background-color: #f8fafc; border-left: 4px solid #043b8f; font-size: 13px; line-height: 1.5; color: #475569;'>
+                    " . $scriptureVerse . "
+                </div>
+
+                <!-- Sign-off & Sender Identity -->
+                <div style='margin-top: 20px; font-size: 14px; color: #334155;'>
+                    <p style='margin: 0;'>Blessings in Christ,</p>
+                    <p style='margin: 4px 0 0 0; font-weight: bold; color: #043b8f;'>" . htmlspecialchars($senderName) . "</p>
+                </div>
+
+                <!-- Organization Footer -->
+                <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 25px 0 15px 0;'>
+                <p style='font-size: 12px; color: #64748b; text-align: center; margin: 0;'>
+                    New Beginnings Baptist Tabernacle Ministries<br>Sent by " . htmlspecialchars($senderName) . "
+                </p>
             </div>";
 
             if (function_exists('sendEmail')) {
@@ -122,13 +162,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $htmlEmail,
                     $attachments,
                     $senderEmail,
-                    $senderName
+                    $senderName,
+                    $ccEmails
                 );
                 (!empty($result['success'])) ? $successCount++ : $failCount++;
             } else {
                 $headers  = "MIME-Version: 1.0\r\n";
                 $headers .= "Content-type: text/html; charset=UTF-8\r\n";
                 $headers .= "From: {$senderName} <{$senderEmail}>\r\n";
+
+                if (!empty($ccEmails)) {
+                    $headers .= "Cc: " . implode(', ', $ccEmails) . "\r\n";
+                }
+
                 mail($recipient['email'], $subject, $htmlEmail, $headers) ? $successCount++ : $failCount++;
             }
         }
@@ -149,11 +195,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Send Email - Contacts - NBBTM CMS</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  
+  <!-- TinyMCE CDN -->
+
+<script src="https://cdn.tiny.cloud/1/saqcb3hu5pn4po97aj84k9x4lnmu4i8fsimn7zshcjjhv3iz/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
   <style>
     .tag-hint {
       font-size: 0.8rem;
       color: #64748b;
-      margin-top: 4px;
+      margin-top: 6px;
     }
     .tag-hint code {
       background: #f1f5f9;
@@ -205,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="card" style="max-width: 950px; margin: 0 auto 2rem auto;">
     <h3>✉️ Send Email - Contacts</h3>
 
-    <form method="POST" enctype="multipart/form-data" style="max-width: 100%; box-shadow: none; padding: 0;">
+    <form method="POST" enctype="multipart/form-data" id="adminMailerForm" style="max-width: 100%; box-shadow: none; padding: 0;">
       
       <!-- Sender Configuration -->
       <div class="form-grid-section-12">
@@ -263,16 +313,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </div>
 
+      <!-- CC Field -->
+      <div class="field-group" style="margin-top: 1rem;">
+        <label for="cc_emails"><strong>CC (Optional)</strong> <small style="color:#64748b;">(Comma-separated emails)</small></label>
+        <input type="text" name="cc_emails" id="cc_emails" placeholder="pastor@nbbtm.org, office@nbbtm.org" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%;">
+      </div>
+
       <!-- Subject Line -->
       <div class="field-group" style="margin-top: 1rem;">
         <label for="subject"><strong>Subject Line</strong></label>
         <input type="text" name="subject" id="subject" required placeholder="Ministry Announcement" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%;">
       </div>
 
-      <!-- Email Body -->
+      <!-- Email Body with TinyMCE -->
       <div class="field-group" style="margin-top: 1rem;">
         <label for="body_template"><strong>Email Body</strong></label>
-        <textarea name="body_template" id="body_template" rows="8" required placeholder="Hello {{first_name}},&#10;&#10;We are pleased to inform you..." style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%; font-family: inherit;"></textarea>
+        <textarea name="body_template" id="body_template" rows="10" placeholder="Hello {{first_name}},&#10;&#10;We are pleased to inform you..." style="width: 100%;"></textarea>
         <div class="tag-hint">
           Dynamic placeholders: <code>{{name}}</code> (First name), <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code>, <code>{{email}}</code>, <code>{{date}}</code>
         </div>
@@ -294,34 +350,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include_once __DIR__ . '/include/footer.php'; ?>
 
 <script>
+// Initialize TinyMCE Editor
+tinymce.init({
+  selector: '#body_template',
+  height: 320,
+  menubar: false,
+  plugins: 'lists link code',
+  toolbar: 'undo redo | blocks fontsize | bold italic underline | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link clean',
+  fontsize_formats: '10px 12px 14px 16px 18px 20px 24px 28px 32px',
+  content_style: 'body { font-family: Arial, sans-serif; font-size: 15px; color: #334155; line-height: 1.6; }',
+  setup: function(editor) {
+    editor.on('change', function() {
+      editor.save();
+    });
+  }
+});
+
 // Raw contact dataset from PHP
 const allContacts = <?= json_encode($contactsList, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 const selectEl = document.getElementById('selected_contacts');
 const displayBox = document.getElementById('selected-emails-display');
 const countSpan = document.getElementById('recipient-count');
 
+// Sync TinyMCE before submission
+document.getElementById('adminMailerForm').addEventListener('submit', function() {
+  if (typeof tinymce !== 'undefined') {
+    tinymce.triggerSave();
+  }
+});
+
 function filterContacts() {
   const memFilter = document.getElementById('filter_membership').value;
   const ageFilter = document.getElementById('filter_age').value;
 
-  // Preserve currently selected IDs
   const currentlySelected = Array.from(selectEl.selectedOptions).map(opt => opt.value);
-
-  // Clear current options
   selectEl.innerHTML = '';
 
   allContacts.forEach(contact => {
-    // Membership filter logic
     const isMember = parseInt(contact.is_member, 10) === 1;
     if (memFilter === 'member' && !isMember) return;
     if (memFilter === 'non_member' && isMember) return;
 
-    // Age filter logic
     const isChild = parseInt(contact.is_child, 10) === 1;
     if (ageFilter === 'child' && !isChild) return;
     if (ageFilter === 'adult' && isChild) return;
 
-    // Build option element showing only the contact name
     const option = document.createElement('option');
     option.value = contact.contact_id;
     option.textContent = contact.full_name || `${contact.first_name} ${contact.last_name}`.trim() || 'No Name';
@@ -364,7 +437,6 @@ function selectAllVisible(selectState) {
   updateSelectedRecipients();
 }
 
-// Initial render on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   filterContacts();
 });

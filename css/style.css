@@ -687,7 +687,7 @@ form {
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: #1e293b; /* Dark slate background matching navbar theme */
+  background-color: #175bbb; /* Dark slate background matching navbar theme */
   min-width: 210px;
   padding: 8px 0;
   margin: 0;
@@ -715,7 +715,7 @@ form {
 }
 
 .navbar ul.submenu li a:hover {
-  background-color: #334155;
+  background-color: #232b78;
   color: #f59e0b; /* Accent highlight color */
 }
 

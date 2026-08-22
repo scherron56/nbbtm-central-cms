@@ -23,6 +23,7 @@ class ComposerStaticInit57274eaa4aa087b1b60f792066c1f91a
         array (
             'PhpOption\\' => 10,
             'PHPMailer\\PHPMailer\\' => 20,
+            'PHPJasper\\' => 10,
         ),
         'G' => 
         array (
@@ -54,6 +55,10 @@ class ComposerStaticInit57274eaa4aa087b1b60f792066c1f91a
         'PHPMailer\\PHPMailer\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
+        ),
+        'PHPJasper\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/geekcom/phpjasper/src',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (

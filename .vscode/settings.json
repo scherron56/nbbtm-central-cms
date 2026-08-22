@@ -1,6 +1,22 @@
 {
     "livePreview.defaultPreviewPath": "/index.html",
-    "sqltools.connections": [],
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "MYSQL - Debian",
+            "database": "nbbtm_central",
+            "username": "centadmin",
+            "password": "cuhqsUsj80"
+        }
+    ],
     "cSpell.words": [
         "actve"
     ],
