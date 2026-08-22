@@ -1,0 +1,1 @@
+call GetWeeklyBirthdays(9, 29);
