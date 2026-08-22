@@ -1,4 +1,4 @@
-<?php
+<<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
         'lifetime' => 86400,
@@ -69,7 +69,7 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
 
         <!-- Admin-Only Menu Dropdown -->
         <li class="dropdown">
-          <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'reports.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
+          <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
             Admin &#9662;
           </a>
           <ul class="submenu">
@@ -84,11 +84,12 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
             </li>
 
             <li class="dropdown-nested">
-              <a href="reports.php" class="<?= ($currentPage === 'reports.php') ? 'active' : '' ?>">
+              <a href="#" class="<?= in_array($currentPage, ['admin_reports.php', 'manage_reports.php']) ? 'active' : '' ?>">
                 Reports &#9656;
               </a>
               <ul class="submenu-nested">
-                <li><a href="reports.php">General Reports</a></li>
+                <li><a href="admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
+                <li><a href="manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
               </ul>
             </li>
 
@@ -239,11 +240,11 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
 .dropdown-nested { position: relative; }
 .dropdown-nested .submenu-nested {
   display: none; position: absolute; left: 100%; top: 0; min-width: 250px;
-  background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: #175bbb; box-shadow: 0 4px 12px rgba(8, 21, 130, 0.15);
   border-radius: 4px; list-style: none; padding: 0.5rem 0; margin: 0; z-index: 1001;
 }
 .dropdown-nested:hover > .submenu-nested { display: block; }
-.dropdown-nested .submenu-nested li a { padding: 8px 16px; display: block; color: #1e293b; text-decoration: none; white-space: nowrap; font-size: 0.9rem; }
+.dropdown-nested .submenu-nested li a { padding: 8px 16px; display: block; color: #40587d; text-decoration: none; white-space: nowrap; font-size: 0.9rem; }
 .dropdown-nested .submenu-nested li a:hover, .dropdown-nested .submenu-nested li a.active { background-color: #f1f5f9; color: #043b8f; }
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; }
 .modal-content { background: #ffffff; padding: 2rem; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); position: relative; color: #28089a; }

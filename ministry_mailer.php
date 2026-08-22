@@ -33,6 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rawBody     = trim($_POST['body_template'] ?? '');
     $selectedEmails = $_POST['selected_emails'] ?? []; // Array of recipient JSON objects
 
+    // Parse and sanitize comma-separated CC emails
+    $rawCc = trim($_POST['cc_emails'] ?? '');
+    $ccEmails = [];
+    if (!empty($rawCc)) {
+        $splitCc = array_map('trim', explode(',', $rawCc));
+        foreach ($splitCc as $ccItem) {
+            $validCc = filter_var($ccItem, FILTER_VALIDATE_EMAIL);
+            if ($validCc) {
+                $ccEmails[] = $validCc;
+            }
+        }
+    }
+
     $attachments = [];
     if (!empty($_FILES['attachments']['name'][0])) {
         foreach ($_FILES['attachments']['tmp_name'] as $idx => $tmpPath) {
@@ -74,6 +87,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $successCount = 0;
         $failCount = 0;
 
+        // Allow rich email formatting tags including inline styling and spans
+        $allowedTags = '<p><br><strong><b><em><i><u><s><h1><h2><h3><h4><h5><h6><ul><ol><li><a><span><div><hr><table><tbody><tr><td><th>';
+        $sanitizedBody = strip_tags($rawBody, $allowedTags);
+
+        // Ministry Scripture Passage
+        $scriptureVerse = '<em>"Trust in the Lord with all your heart, and do not lean on your own understanding; in all your ways acknowledge him, and he will make straight your paths."</em> — <strong>Proverbs 3:5-6</strong>';
+
         foreach ($recipientsToSend as $recipient) {
             $personalizedBody = str_replace(
                 ['{{name}}', '{{first_name}}', '{{last_name}}', '{{full_name}}', '{{email}}', '{{date}}'],
@@ -85,17 +105,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     htmlspecialchars($recipient['email']),
                     date('F j, Y')
                 ],
-                $rawBody
+                $sanitizedBody
             );
 
             $htmlEmail = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;'>
+                <!-- Subject Header -->
                 <div style='text-align: center; margin-bottom: 20px;'>
                     <h2 style='color: #043b8f; margin: 0;'>" . htmlspecialchars($subject) . "</h2>
                 </div>
-                <div style='font-size: 15px; line-height: 1.6; color: #334155;'>" . nl2br($personalizedBody) . "</div>
-                <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 15px 0;'>
-                <p style='font-size: 12px; color: #64748b; text-align: center;'>New Beginnings Baptist Tabernacle Ministries<br>Sent by " . htmlspecialchars($senderName) . "</p>
+
+                <!-- Formatted Email Body Content -->
+                <div style='font-size: 15px; line-height: 1.6; color: #334155;'>
+                    " . $personalizedBody . "
+                </div>
+
+                <!-- Scripture Blockquote Section -->
+                <div style='margin-top: 25px; padding: 12px 16px; background-color: #f8fafc; border-left: 4px solid #043b8f; font-size: 13px; line-height: 1.5; color: #475569;'>
+                    " . $scriptureVerse . "
+                </div>
+
+                <!-- Sign-off & Sender Identity -->
+                <div style='margin-top: 20px; font-size: 14px; color: #334155;'>
+                    <p style='margin: 0;'>Blessings in Christ,</p>
+                    <p style='margin: 4px 0 0 0; font-weight: bold; color: #043b8f;'>" . htmlspecialchars($senderName) . "</p>
+                </div>
+
+                <!-- Organization Footer -->
+                <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 25px 0 15px 0;'>
+                <p style='font-size: 12px; color: #64748b; text-align: center; margin: 0;'>
+                    New Beginnings Baptist Tabernacle Ministries<br>Sent by " . htmlspecialchars($senderName) . "
+                </p>
             </div>";
 
             if (function_exists('sendEmail')) {
@@ -106,13 +146,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $htmlEmail,
                     $attachments,
                     $senderEmail,
-                    $senderName
+                    $senderName,
+                    $ccEmails
                 );
                 (!empty($result['success'])) ? $successCount++ : $failCount++;
             } else {
                 $headers  = "MIME-Version: 1.0\r\n";
                 $headers .= "Content-type: text/html; charset=UTF-8\r\n";
                 $headers .= "From: {$senderName} <{$senderEmail}>\r\n";
+
+                if (!empty($ccEmails)) {
+                    $headers .= "Cc: " . implode(', ', $ccEmails) . "\r\n";
+                }
+
                 mail($recipient['email'], $subject, $htmlEmail, $headers) ? $successCount++ : $failCount++;
             }
         }
@@ -134,11 +180,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  
+  <!-- TinyMCE CDN -->
+
+<script src="https://cdn.tiny.cloud/1/saqcb3hu5pn4po97aj84k9x4lnmu4i8fsimn7zshcjjhv3iz/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
   <style>
     .tag-hint {
       font-size: 0.8rem;
       color: #64748b;
-      margin-top: 4px;
+      margin-top: 6px;
     }
     .tag-hint code {
       background: #f1f5f9;
@@ -257,16 +307,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <!-- Hidden container for POSTed selected members -->
       <div id="hidden-inputs-container"></div>
 
+      <!-- CC Field -->
+      <div class="field-group" style="margin-top: 1rem;">
+        <label for="cc_emails"><strong>CC (Optional)</strong> <small style="color:#64748b;">(Comma-separated emails)</small></label>
+        <input type="text" name="cc_emails" id="cc_emails" placeholder="pastor@nbbtm.org, office@nbbtm.org" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%;">
+      </div>
+
       <!-- Subject Line -->
       <div class="field-group" style="margin-top: 1rem;">
         <label for="subject"><strong>Subject Line</strong></label>
         <input type="text" name="subject" id="subject" required placeholder="Ministry Meeting Announcement" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%;">
       </div>
 
-      <!-- Email Body -->
+      <!-- Email Body with TinyMCE -->
       <div class="field-group" style="margin-top: 1rem;">
         <label for="body_template"><strong>Email Body</strong></label>
-        <textarea name="body_template" id="body_template" rows="8" required placeholder="Hello {{first_name}},&#10;&#10;Here is the latest update for our ministry..." style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%; font-family: inherit;"></textarea>
+        <textarea name="body_template" id="body_template" rows="10" placeholder="Hello {{first_name}},&#10;&#10;Here is the latest update for our ministry..." style="width: 100%;"></textarea>
         <div class="tag-hint">
           Dynamic placeholders: <code>{{name}}</code> (First name), <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code>, <code>{{email}}</code>, <code>{{date}}</code>
         </div>
@@ -288,6 +344,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include_once __DIR__ . '/include/footer.php'; ?>
 
 <script>
+// Initialize TinyMCE Editor
+tinymce.init({
+  selector: '#body_template',
+  height: 320,
+  menubar: false,
+  plugins: 'lists link code',
+  toolbar: 'undo redo | blocks fontsize | bold italic underline | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link clean',
+  fontsize_formats: '10px 12px 14px 16px 18px 20px 24px 28px 32px',
+  content_style: 'body { font-family: Arial, sans-serif; font-size: 15px; color: #334155; line-height: 1.6; }',
+  setup: function(editor) {
+    editor.on('change', function() {
+      editor.save();
+    });
+  }
+});
+
 $(document).ready(function() {
   const filterGroup = $('#filter_group_type');
   const selectMinistry = $('#min_comm_id');
@@ -295,6 +367,13 @@ $(document).ready(function() {
   const displayBox = $('#selected-emails-display');
   const countSpan = $('#recipient-count');
   const hiddenContainer = $('#hidden-inputs-container');
+
+  // Sync TinyMCE content before form submission
+  $('#mailerForm').on('submit', function() {
+    if (typeof tinymce !== 'undefined') {
+      tinymce.triggerSave();
+    }
+  });
 
   // 1. Load Group Types
   $.ajax({
@@ -360,13 +439,11 @@ $(document).ready(function() {
           let countValid = 0;
 
           $.each(res.data, function(i, m) {
-            // Only add members who have an email address
             if (m.c_email && m.c_email.trim() !== '') {
               const firstName = (m.first_name || '').trim();
               const lastName  = (m.last_name || '').trim();
               const fullName  = `${firstName} ${lastName}`.trim() || 'No Name';
 
-              // Display ONLY the contact name in the dropdown option
               options += `<option value="${escapeHtml(m.contact_id || m.c_email)}" 
                             data-first-name="${escapeHtml(firstName)}" 
                             data-last-name="${escapeHtml(lastName)}" 
@@ -412,11 +489,9 @@ $(document).ready(function() {
       const lastName  = $(this).data('last-name') || '';
       const fullName  = $(this).data('full-name') || `${firstName} ${lastName}`.trim() || 'Member';
 
-      // Create live chip display showing name and resolved email
       const chip = $('<span class="recipient-chip"></span>').text(`${fullName} <${email}>`);
       displayBox.append(chip);
 
-      // Create hidden inputs for PHP POST processing
       const payload = JSON.stringify({
         first_name: firstName,
         last_name: lastName,
@@ -434,7 +509,6 @@ $(document).ready(function() {
 
   memberSelect.on('change', syncSelectedRecipients);
 
-  // Quick selection buttons
   $('#select_all_btn').on('click', function() {
     memberSelect.find('option:not(:disabled)').prop('selected', true);
     syncSelectedRecipients();

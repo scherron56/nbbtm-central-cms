@@ -10,7 +10,7 @@ $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 /**
- * Send an email via Brevo SMTP with dynamic recipients, senders, and attachments.
+ * Send an email via Brevo SMTP with dynamic recipients, senders, attachments, and copies.
  *
  * @param string      $toEmail
  * @param string      $toName
@@ -19,9 +19,10 @@ $dotenv->load();
  * @param array       $attachments        Array of file paths or [['path' => '...', 'name' => '...']]
  * @param string|null $customSenderEmail  Optional sender address (defaults to .env FROM_EMAIL)
  * @param string|null $customSenderName   Optional sender display name (defaults to .env FROM_NAME)
+ * @param array       $ccEmails           Optional array of CC email addresses
  * @return array ['success' => bool, 'error' => string|null]
  */
-function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [], $customSenderEmail = null, $customSenderName = null) {
+function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [], $customSenderEmail = null, $customSenderName = null, $ccEmails = []) {
     $mail = new PHPMailer(true);
 
     try {
@@ -39,8 +40,22 @@ function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [],
         $senderName  = $customSenderName  ?: $_ENV['FROM_NAME'];
         $mail->setFrom($senderEmail, $senderName);
 
-        // Recipient Configuration
+        // Primary Recipient Configuration
         $mail->addAddress($toEmail, $toName);
+
+        // 1. Global Automatic BCC from .env
+        if (!empty($_ENV['GLOBAL_BCC_EMAIL'])) {
+            $mail->addBCC($_ENV['GLOBAL_BCC_EMAIL']);
+        }
+
+        // 2. Dynamic CCs (e.g., from admin_mailer.php)
+        if (!empty($ccEmails) && is_array($ccEmails)) {
+            foreach ($ccEmails as $cc) {
+                if (filter_var($cc, FILTER_VALIDATE_EMAIL)) {
+                    $mail->addCC($cc);
+                }
+            }
+        }
 
         // Process File Attachments
         if (!empty($attachments)) {
