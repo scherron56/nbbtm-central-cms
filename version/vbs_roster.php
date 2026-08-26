@@ -1,14 +1,16 @@
 <?php
+// Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400,
-        'path'     => '/',
+        'lifetime' => 86400, // 24 Hours
+        'path'     => '/',   // Root path ensures session spans all sub-folders
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
     session_start();
 }
 
+// Require auth helper
 require_once __DIR__ . '/include/auth.php';
 $adminUser = isAdmin();
 ?>
@@ -23,11 +25,25 @@ $adminUser = isAdmin();
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <style>
-    .alert-box { padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; font-weight: 500; font-size: 0.95rem; display: none; }
+    .alert-box {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: none;
+    }
     .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
     .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
-    .completed-banner { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #92400e; }
-    
+    .read-only-banner {
+      background-color: #f1f5f9;
+      border-left: 4px solid #0ea5e9;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      color: #334155;
+    }
+
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.25rem; }
     .class-desc { font-size: 0.95rem; font-weight: 600; color: #1e293b; }
@@ -41,17 +57,31 @@ $adminUser = isAdmin();
     .btn-edit { background-color: #64748b; }
     .btn-delete { background-color: #ef4444; }
     .add-contact-link { font-size: 0.75rem; color: #2563eb; text-decoration: none; font-weight: 600; }
+    .add-contact-link:hover { text-decoration: underline; }
 
-    .full-width-container { width: 100% !important; max-width: 100% !important; box-sizing: border-box; margin: 1.5rem 0; }
-    .class-group-row { background-color: #e2e8f0 !important; font-weight: bold; }
-    .class-group-row td { color: #0f172a; font-size: 1.05rem; padding: 0.85rem 0.75rem; }
-    .hidden { display: none !important; }
+    /* Force input container to span full browser width */
+    .full-width-container {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+      margin: 1.5rem 0;
+    }
+
+    /* Class section headers in roster dashboard */
+    .class-group-row {
+      background-color: #e2e8f0 !important;
+      font-weight: bold;
+    }
+    .class-group-row td {
+      color: #0f172a;
+      font-size: 1.05rem;
+      padding: 0.85rem 0.75rem;
+    }
   </style>
 
   <script>
 $(document).ready(function() {
   const IS_ADMIN = <?php echo $adminUser ? 'true' : 'false'; ?>;
-  let currentSessionCompleted = false;
 
   function showStatusMessage(message, type = 'success') {
     let $box = $('#status-message');
@@ -66,11 +96,17 @@ $(document).ready(function() {
     }
   }
 
+  function clearStatusMessage() {
+    $('#status-message').fadeOut(200).empty();
+  }
+
+  // Initial Load (Roster remains empty until session selected)
   loadSessions();
   loadClassesForSession('');
   loadStudentDropdown();
   renderRosterTable([]);
 
+  // Load Sessions into dropdown
   function loadSessions() {
     $.ajax({
       url: 'vbs_api.php',
@@ -83,8 +119,7 @@ $(document).ready(function() {
           res.data.forEach(session => {
             select.append($('<option>', { 
               value: session.vbs_sessions_id, 
-              text: session.vbs_year + ' (Session #' + session.vbs_sessions_id + ')' + (parseInt(session.vbs_sessions_completed) === 1 ? ' [Completed]' : ''),
-              'data-completed': session.vbs_sessions_completed
+              text: session.vbs_year + ' (Session #' + session.vbs_sessions_id + ')' 
             }));
           });
         }
@@ -92,23 +127,12 @@ $(document).ready(function() {
     });
   }
 
+  // Session selection change handler
   $('#sessionSelect').on('change', function() {
-    const selectedOption = $(this).find('option:selected');
-    currentSessionCompleted = parseInt(selectedOption.data('completed')) === 1;
+    clearStatusMessage();
     const sessionId = $(this).val();
-
     $('#form_vbs_sessions_id').val(sessionId);
     loadClassesForSession(sessionId);
-
-    if (currentSessionCompleted) {
-      $('#session-completed-banner').removeClass('hidden');
-      $('#inlineFormContainer').addClass('hidden');
-      $('#col-actions-head').addClass('hidden');
-    } else {
-      $('#session-completed-banner').addClass('hidden');
-      if (IS_ADMIN) $('#inlineFormContainer').removeClass('hidden');
-      $('#col-actions-head').removeClass('hidden');
-    }
 
     if (sessionId) {
       loadRoster();
@@ -130,7 +154,9 @@ $(document).ready(function() {
             select.append($('<option>', { value: cls.vbs_class_id, text: cls.vbs_class_desc }));
           });
         }
-        if (typeof callback === 'function') callback();
+        if (typeof callback === 'function') {
+          callback();
+        }
       }
     });
   }
@@ -143,19 +169,36 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(data) {
         const select = $('#contact_id').empty().append('<option value="">--Select Contact--</option>');
-        let list = Array.isArray(data) ? data : (data.contacts || data.data || []);
-        list.forEach(item => {
-          const id = item.contact_id || item.id;
-          const text = item.fullname || item.name || ((item.first_name || '') + ' ' + (item.last_name || '')).trim();
-          if (id && text) select.append($('<option>', { value: id, text: text }));
-        });
+        
+        let list = [];
+        if (Array.isArray(data)) {
+          list = data;
+        } else if (data && Array.isArray(data.contacts)) {
+          list = data.contacts;
+        } else if (data && Array.isArray(data.data)) {
+          list = data.data;
+        }
+
+        if (list.length > 0) {
+          $.each(list, function(i, item) {
+            const id = item.contact_id || item.id;
+            const text = item.fullname || item.name || ((item.first_name || '') + ' ' + (item.last_name || '')).trim();
+            if (id && text) {
+              select.append($('<option>', { value: id, text: text }));
+            }
+          });
+        }
       }
     });
   }
 
   function loadRoster() {
     const selectedSession = $('#sessionSelect').val();
-    if (!selectedSession) { renderRosterTable([]); return; }
+
+    if (!selectedSession) {
+      renderRosterTable([]);
+      return;
+    }
 
     $.ajax({
       url: 'vbs_api.php',
@@ -163,11 +206,14 @@ $(document).ready(function() {
       data: { action: 'fetch_roster', vbs_sessions_id: selectedSession },
       dataType: 'json',
       success: function(res) {
-        if (res.success) renderRosterTable(res.data);
+        if (res.success) {
+          renderRosterTable(res.data);
+        }
       }
     });
   }
 
+  // Render Roster Dashboard Grouped by Class below data entry
   function renderRosterTable(students) {
     const tbody = $('#studentTable tbody').empty();
     const selectedSession = $('#sessionSelect').val();
@@ -182,33 +228,37 @@ $(document).ready(function() {
       return;
     }
 
+    // Group students by class
     const grouped = {};
     students.forEach(student => {
       const className = student.vbs_class_desc ? student.vbs_class_desc : ('Class #' + student.class_id);
-      if (!grouped[className]) grouped[className] = [];
+      if (!grouped[className]) {
+        grouped[className] = [];
+      }
       grouped[className].push(student);
     });
 
+    // Render group headers and student rows
     Object.keys(grouped).forEach(className => {
-      tbody.append(`<tr class="class-group-row"><td colspan="3">🏫 ${escapeHtml(className)}</td></tr>`);
+      tbody.append(`
+        <tr class="class-group-row">
+          <td colspan="3">🏫 ${escapeHtml(className)}</td>
+        </tr>
+      `);
 
       grouped[className].forEach(student => {
-        const studentDisplayName = student.student_full_name_formatted || student.student_display_name || student.child_name;
+        const studentDisplayName = student.student_full_name_formatted || student.student_display_name || student.child_name || ((student.last_name || '') + ', ' + (student.first_name || '')).trim();
 
-        let actionBtnsCell = '';
-        if (!currentSessionCompleted) {
-          const actionBtns = IS_ADMIN ? `
-            <button class="btn-action btn-edit">Edit</button>
-            <button class="btn-action btn-delete">✕</button>
-          ` : '<em>Read Only</em>';
-          actionBtnsCell = `<td><div style="display:flex; gap:0.4rem;">${actionBtns}</div></td>`;
-        }
+        const actionBtns = IS_ADMIN ? `
+          <button class="btn-action btn-edit">Edit</button>
+          <button class="btn-action btn-delete">✕</button>
+        ` : '<em>Read Only</em>';
 
         const rowHtml = `
           <tr data-id="${student.contact_id}" data-vbs-id="${student.vbs_id}" data-session-id="${student.vbs_sessions_id}" data-class-id="${student.class_id}">
             <td style="padding-left: 1.75rem;"><strong>${escapeHtml(studentDisplayName)}</strong></td>
             <td><span class="class-desc">${escapeHtml(className)}</span></td>
-            ${actionBtnsCell}
+            <td><div style="display:flex; gap:0.4rem;">${actionBtns}</div></td>
           </tr>
         `;
         tbody.append(rowHtml);
@@ -216,8 +266,10 @@ $(document).ready(function() {
     });
   }
 
+  // Edit Action
   $(document).on('click', '.btn-edit', function() {
-    if (!IS_ADMIN || currentSessionCompleted) return;
+    if (!IS_ADMIN) return;
+    clearStatusMessage();
     const vbsId = $(this).closest('tr').data('vbs-id');
 
     $.ajax({
@@ -232,19 +284,30 @@ $(document).ready(function() {
           $('#form_vbs_sessions_id').val(s.vbs_sessions_id);
           $('#sessionSelect').val(s.vbs_sessions_id);
           $('#contact_id').val(s.contact_id);
-          loadClassesForSession(s.vbs_sessions_id, function() { $('#vbs_class_id').val(s.class_id); });
+          
+          loadClassesForSession(s.vbs_sessions_id, function() {
+            $('#vbs_class_id').val(s.class_id);
+          });
+
           $('#allergies').val(s.allergies);
           $('#food_restrictions').val(s.food_restrictions);
           $('#medical_notes').val(s.medical_notes);
+
           $('#formTitle').text('Edit VBS Student Record');
+          $('html, body').animate({ scrollTop: $("#inlineFormContainer").offset().top - 20 }, 'fast');
+        } else {
+          showStatusMessage("Failed to retrieve student record.", "error");
         }
       }
     });
   });
 
+  // Delete Action
   $(document).on('click', '.btn-delete', function() {
-    if (!IS_ADMIN || currentSessionCompleted) return;
+    if (!IS_ADMIN) return;
+    clearStatusMessage();
     const vbsId = $(this).closest('tr').data('vbs-id');
+
     if (!confirm("Are you sure you want to remove this student registration?")) return;
 
     $.ajax({
@@ -256,14 +319,23 @@ $(document).ready(function() {
         if (res.success) {
           showStatusMessage("Record removed successfully.", "success");
           loadRoster();
+        } else {
+          showStatusMessage("Error deleting record.", "error");
         }
       }
     });
   });
 
+  // Save Student Registration Form
   $('#vbsStudentForm').on('submit', function(e) {
     e.preventDefault();
-    if (!IS_ADMIN || currentSessionCompleted) return;
+    if (!IS_ADMIN) return;
+    clearStatusMessage();
+
+    if (!$('#form_vbs_sessions_id').val()) {
+      showStatusMessage("Please select a Session Year from the dropdown above.", "error");
+      return;
+    }
 
     $.ajax({
       url: 'vbs_api.php',
@@ -272,14 +344,35 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(res) {
         if (res.success) {
-          $('#vbsStudentForm')[0].reset();
-          $('#vbs_id').val('');
+          resetForm();
           showStatusMessage("Student record saved successfully.", "success");
           loadRoster();
         } else {
           showStatusMessage("Error: " + res.message, "error");
         }
       }
+    });
+  });
+
+  $('#resetFormBtn').click(function() {
+    resetForm();
+  });
+
+  function resetForm() {
+    clearStatusMessage();
+    if ($('#vbsStudentForm').length) {
+      $('#vbsStudentForm')[0].reset();
+      $('#vbs_id').val('');
+      $('#form_vbs_sessions_id').val($('#sessionSelect').val());
+      $('#formTitle').text('Register VBS Student');
+    }
+  }
+
+  // Search Filter
+  $('#searchInput').on('keyup', function() {
+    const val = $(this).val().toLowerCase();
+    $('#studentTable tbody tr:not(.class-group-row)').filter(function() {
+      $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
     });
   });
 
@@ -297,10 +390,7 @@ $(document).ready(function() {
 
   <div id="status-message" class="alert-box"></div>
 
-  <div id="session-completed-banner" class="completed-banner hidden">
-    <strong>Completed Session (Read-Only):</strong> Registration forms and edit actions are hidden for completed VBS sessions.
-  </div>
-
+  <!-- Session Selector -->
   <fieldset id="session-set" style="width: 100%; box-sizing: border-box; margin-bottom: 1rem;">
     <div class="field-group" style="width: 100%;">
       <label for="sessionSelect">
@@ -312,7 +402,7 @@ $(document).ready(function() {
     </div>
   </fieldset>
 
-  <!-- DATA ENTRY FORM (Hidden if session is completed) -->
+  <!-- DATA ENTRY SECTION (Top) -->
   <?php if ($adminUser): ?>
     <div id="inlineFormContainer" class="full-width-container" style="background:#ffffff; padding:1.5rem; border:2px solid #e2e8f0; border-radius:8px;">
       <h2 id="formTitle" style="margin-top:0;">Register VBS Student</h2>
@@ -362,16 +452,24 @@ $(document).ready(function() {
         </div>
       </form>
     </div>
+  <?php else: ?>
+    <div class="read-only-banner">
+      <strong>Read-Only Mode:</strong> You must be an administrator to register or modify VBS student records.
+    </div>
   <?php endif; ?>
 
-  <!-- ROSTER DASHBOARD -->
+  <!-- ROSTER DASHBOARD (Bottom - Below Data Entry) -->
   <h2 style="margin-top: 2rem;">Registered Student Dashboard</h2>
+  <div style="margin-bottom:1rem; width:100%;">
+    <input type="text" id="searchInput" placeholder="Search student name..." style="padding:0.6rem; width:100%;">
+  </div>
+
   <table id="studentTable" style="width:100%;">
     <thead>
       <tr>
         <th>Student Name</th>
         <th>Class</th>
-        <th id="col-actions-head">Actions</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody></tbody>

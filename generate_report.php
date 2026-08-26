@@ -1,6 +1,5 @@
 <?php
 // Suppress deprecation warnings
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 ini_set('display_errors', 0);
 
 // Enforce session parameters
@@ -20,7 +19,7 @@ if (!isset($_SESSION['user_id']) || strtolower($_SESSION['user_role'] ?? '') !==
     die("Access Denied: You must be an administrator to generate reports.");
 }
 
-// 2. Load Database Configuration[cite: 10]
+// 2. Load Database Configuration
 if (file_exists(__DIR__ . '/config/db.php')) {
     require_once __DIR__ . '/config/db.php';
 } elseif (file_exists(__DIR__ . '/db.php')) {
@@ -107,19 +106,23 @@ if (file_exists('/opt/java8/bin/java')) {
     putenv("PATH=/opt/java8/bin:" . getenv('PATH'));
 }
 
-// 10. Database Connection Parameters[cite: 9]
+// 10. Database Connection Parameters
 $options = [
     'format' => ['pdf'],
-    'params' => $jasperParams,
+    'params' => $jasperParams, //
+    'classpath' => [
+        __DIR__ . '/storage/fonts/custom-fonts.jar'
+    ],
     'db_connection' => [
-        'driver'   => 'mysql',
-        'username' => USER,     // from config/db.php[cite: 9]
-        'password' => PASSWORD, // from config/db.php[cite: 9]
-        'host'     => HOST,     // from config/db.php[cite: 9]
-        'database' => DB_NAME,  // from config/db.php[cite: 9]
-        'port'     => '3306'
+        'driver'   => 'mysql', //
+        'username' => USER,     // from config/db.php
+        'password' => PASSWORD, // from config/db.php
+        'host'     => HOST,     // from config/db.php
+        'database' => DB_NAME,  // from config/db.php
+        'port'     => '3306' //
     ]
 ];
+
 
 // 11. Run JasperReports and Output PDF
 try {

@@ -1,13 +1,13 @@
 <?php
 // Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params([
-        'lifetime' => 86400, // 24 Hours
-        'path'     => '/',   // Root path ensures session spans all sub-folders
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    session_start();
+  session_set_cookie_params([
+    'lifetime' => 86400, // 24 Hours
+    'path'     => '/',   // Root path ensures session spans all sub-folders
+    'httponly' => true,
+    'samesite' => 'Lax'
+  ]);
+  session_start();
 }
 
 // Require auth helper
@@ -34,8 +34,19 @@ $canEdit = canEdit();
       font-size: 0.95rem;
       display: none;
     }
-    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
-    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    .alert-success {
+      background-color: #d1fae5;
+      border: 1px solid #6ee7b7;
+      color: #065f46;
+    }
+
+    .alert-error {
+      background-color: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
     .read-only-banner {
       background-color: #f1f5f9;
       border-left: 4px solid #0ea5e9;
@@ -84,22 +95,95 @@ $canEdit = canEdit();
       display: flex;
       gap: 5px;
     }
+
+    /* Dashboard UI Layout Styling */
+    .session-dashboard {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 12px;
+      margin-bottom: 15px;
+    }
+
+    .dashboard-header h2 {
+      margin: 0;
+      color: #043b8f;
+      font-size: 1.4rem;
+    }
+
+    .dashboard-badge {
+      background-color: #0284c7;
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .dashboard-badge.completed {
+      background-color: #059669;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+    }
+
+    .dashboard-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px 16px;
+    }
+
+    .dashboard-card .card-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .dashboard-card .card-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .dashboard-card.full-width {
+      grid-column: 1 / -1;
+    }
   </style>
 
   <script>
     $(document).ready(function() {
       const CAN_EDIT = <?php echo $canEdit ? 'true' : 'false'; ?>;
+      let isSessionCompleted = false;
 
       function showStatusMessage(message, type = 'success') {
         let $box = $('#status-message');
         $box.removeClass('alert-success alert-error')
-            .addClass(type === 'success' ? 'alert-success' : 'alert-error')
-            .html(message)
-            .stop(true, true)
-            .fadeIn(200);
+          .addClass(type === 'success' ? 'alert-success' : 'alert-error')
+          .html(message)
+          .stop(true, true)
+          .fadeIn(200);
 
         if (type === 'success') {
-          setTimeout(function() { $box.fadeOut(500); }, 5000);
+          setTimeout(function() {
+            $box.fadeOut(500);
+          }, 5000);
         }
       }
 
@@ -139,6 +223,7 @@ $canEdit = canEdit();
           $('#class-table-container').addClass('hidden');
           $('#class-table-body').html('<tr><td colspan="4">Please choose a session year to examine records.</td></tr>');
           resetSessionFormFields();
+          toggleViewMode(false);
         }
       });
 
@@ -153,26 +238,70 @@ $canEdit = canEdit();
           dataType: 'json',
           success: function(res) {
             if (res.success && res.data) {
+              isSessionCompleted = (parseInt(res.data.vbs_sessions_completed, 10) === 1);
+
               $('#vbs_year').val(res.data.vbs_year || '');
               $('#vbs_start_date').val(res.data.vbs_start_date || '');
               $('#vbs_end_date').val(res.data.vbs_end_date || '');
               $('#vbs_theme').val(res.data.vbs_theme || '');
               $('#vbs_theme_scripture').val(res.data.vbs_theme_scripture || '');
+
+              // Update Dashboard Labels
+              $('#dash-title').text((res.data.vbs_year || '') + ' - ' + (res.data.vbs_theme || 'VBS Session'));
+              $('#dash-year').text(res.data.vbs_year || 'N/A');
+              
+              const startDate = res.data.vbs_start_date ? res.data.vbs_start_date : 'N/A';
+              const endDate = res.data.vbs_end_date ? res.data.vbs_end_date : 'N/A';
+              $('#dash-dates').text(`${startDate} to ${endDate}`);
+              
+              $('#dash-theme').text(res.data.vbs_theme || 'N/A');
+              $('#dash-scripture').text(res.data.vbs_theme_scripture || 'N/A');
+
+              if (isSessionCompleted) {
+                $('#dash-status-badge').addClass('completed').text('Completed (Read-Only)');
+              } else {
+                $('#dash-status-badge').removeClass('completed').text('Active Session');
+              }
+
+              // Evaluate display: Show dashboard if non-admin OR session is completed
+              const showDashboard = !CAN_EDIT || isSessionCompleted;
+              toggleViewMode(showDashboard);
             }
           }
         });
       }
 
+      function toggleViewMode(showDashboard) {
+        if (showDashboard) {
+          $('#session-fieldset-edit').addClass('hidden');
+          $('#session-dashboard-view').removeClass('hidden');
+          $('#add-class-fieldset, #add-class-actions').addClass('hidden');
+        } else {
+          $('#session-fieldset-edit').removeClass('hidden');
+          $('#session-dashboard-view').addClass('hidden');
+          if (CAN_EDIT) {
+            $('#add-class-fieldset, #add-class-actions').removeClass('hidden');
+          }
+        }
+      }
+
       function resetSessionFormFields() {
+        isSessionCompleted = false;
         $('#vbs_year').val('');
         $('#vbs_start_date').val('');
         $('#vbs_end_date').val('');
         $('#vbs_theme').val('');
         $('#vbs_theme_scripture').val('');
+        
+        $('#dash-title').text('Session Overview');
+        $('#dash-year').text('N/A');
+        $('#dash-dates').text('N/A');
+        $('#dash-theme').text('N/A');
+        $('#dash-scripture').text('N/A');
       }
 
       function saveSessionDetails() {
-        if (!CAN_EDIT) return;
+        if (!CAN_EDIT || isSessionCompleted) return;
         clearStatusMessage();
         const sessionId = getActiveSessionId();
         const yearVal = $('#vbs_year').val().trim();
@@ -208,11 +337,11 @@ $canEdit = canEdit();
       }
 
       $('#vbs_year, #vbs_start_date, #vbs_end_date, #vbs_theme, #vbs_theme_scripture').on('change', function() {
-        if (CAN_EDIT) saveSessionDetails();
+        if (CAN_EDIT && !isSessionCompleted) saveSessionDetails();
       });
 
       $('#saveSessionBtn').on('click', function() {
-        if (!CAN_EDIT) return;
+        if (!CAN_EDIT || isSessionCompleted) return;
         saveSessionDetails();
         showStatusMessage('Session details updated successfully!', 'success');
       });
@@ -247,6 +376,7 @@ $canEdit = canEdit();
               }
 
               setActiveSessionId(newId);
+              toggleViewMode(false);
               $('#class-table-container').removeClass('hidden');
               $('#vbs_year').focus();
               showStatusMessage('New session initialized.', 'success');
@@ -259,7 +389,7 @@ $canEdit = canEdit();
 
       $('#vbs-form').on('submit', function(e) {
         e.preventDefault();
-        if (!CAN_EDIT) return;
+        if (!CAN_EDIT || isSessionCompleted) return;
         clearStatusMessage();
 
         $('.input-error').removeClass('input-error');
@@ -340,17 +470,27 @@ $canEdit = canEdit();
         $.ajax({
           url: 'class_controller.php',
           type: 'GET',
-          data: { action: 'get_dropdowns' },
+          data: {
+            action: 'get_dropdowns'
+          },
           dataType: 'json',
           success: function(data) {
+            if (!data.success && data.message) {
+              showStatusMessage('Error: ' + data.message, 'error');
+              return;
+            }
+
             const sessionSelect = $('#SessionID');
             sessionSelect.find('option:not(:first)').remove();
 
             if (data.sessions && Array.isArray(data.sessions)) {
               data.sessions.forEach(function(sess) {
                 let label = sess.vbs_year;
-                if (sess.vbs_theme) {
+                if (sess.vbs_theme && sess.vbs_theme.trim() !== '') {
                   label += ' - ' + sess.vbs_theme;
+                }
+                if (parseInt(sess.vbs_sessions_completed, 10) === 1) {
+                  label += ' (Completed)';
                 }
                 sessionSelect.append(new Option(label, sess.vbs_sessions_id));
               });
@@ -365,6 +505,10 @@ $canEdit = canEdit();
                 });
               }
             }
+          },
+          error: function(xhr, status, error) {
+            console.error('Failed to fetch dropdown options:', xhr.responseText || error);
+            showStatusMessage('Failed to load session options from server.', 'error');
           }
         });
       }
@@ -397,7 +541,7 @@ $canEdit = canEdit();
 
               const $actionsTd = $('<td class="row-actions">');
 
-              if (CAN_EDIT) {
+              if (CAN_EDIT && !isSessionCompleted) {
                 const $editBtn = $('<button type="button" class="btn-pulse">Edit</button>')
                   .data('classData', cls)
                   .on('click', function() {
@@ -422,7 +566,7 @@ $canEdit = canEdit();
       }
 
       function populateEditClass(cls) {
-        if (!CAN_EDIT) return;
+        if (!CAN_EDIT || isSessionCompleted) return;
         clearStatusMessage();
 
         $('.input-error').removeClass('input-error');
@@ -433,7 +577,7 @@ $canEdit = canEdit();
         $('#vbs_class_age_start').val(cls.vbs_class_age_start);
         $('#vbs_class_age_end').val(cls.vbs_class_age_end);
         $('#vbs_class_teacher_id').val(cls.vbs_class_teacher_id || '');
-        
+
         const currentSession = cls.vbs_class_session_id || getActiveSessionId();
         setActiveSessionId(currentSession);
 
@@ -441,11 +585,13 @@ $canEdit = canEdit();
         $('#submit-class-btn').text('Update Class');
         $('#cancel-edit-btn').removeClass('hidden');
 
-        $('html, body').animate({ scrollTop: $('#vbs-form').offset().top - 20 }, 'fast');
+        $('html, body').animate({
+          scrollTop: $('#vbs-form').offset().top - 20
+        }, 'fast');
       }
 
       function deleteClass(classId) {
-        if (!CAN_EDIT) return;
+        if (!CAN_EDIT || isSessionCompleted) return;
         clearStatusMessage();
 
         if (!confirm('Are you sure you want to permanently delete this class entry?')) return;
@@ -513,31 +659,58 @@ $canEdit = canEdit();
   </fieldset>
 
   <form id="vbs-form" name="vbs-form">
-    <fieldset class="form-grid-section-9">
-      <input type="hidden" id="vbs_sessions_id" name="vbs_sessions_id">
-      
+    <input type="hidden" id="vbs_sessions_id" name="vbs_sessions_id">
+
+    <!-- Non-Admin or Completed Session Dashboard Display -->
+    <div id="session-dashboard-view" class="session-dashboard hidden">
+      <div class="dashboard-header">
+        <h2 id="dash-title">Session Overview</h2>
+        <span id="dash-status-badge" class="dashboard-badge">Read-Only</span>
+      </div>
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="card-label">Session Year</div>
+          <div class="card-value" id="dash-year">N/A</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="card-label">Dates</div>
+          <div class="card-value" id="dash-dates">N/A</div>
+        </div>
+        <div class="dashboard-card">
+          <div class="card-label">Theme</div>
+          <div class="card-value" id="dash-theme">N/A</div>
+        </div>
+        <div class="dashboard-card full-width">
+          <div class="card-label">Theme Scripture</div>
+          <div class="card-value" id="dash-scripture">N/A</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Form Edit Fieldset -->
+    <fieldset id="session-fieldset-edit" class="form-grid-section-9">
       <!-- Line 1: Year, Dates, and Theme -->
       <div class="field-group" style="--colspan: 2;">
         <label for="vbs_year">Session Year</label>
-        <input type="text" id="vbs_year" name="vbs_year" <?php echo !$canEdit ? 'readonly' : ''; ?>>
+        <input type="text" id="vbs_year" name="vbs_year">
       </div>
       <div class="field-group" style="--colspan: 2;">
         <label for="vbs_start_date">Start Date</label>
-        <input type="date" id="vbs_start_date" name="vbs_start_date" <?php echo !$canEdit ? 'readonly' : ''; ?>>
+        <input type="date" id="vbs_start_date" name="vbs_start_date">
       </div>
       <div class="field-group" style="--colspan: 2;">
         <label for="vbs_end_date">End Date</label>
-        <input type="date" id="vbs_end_date" name="vbs_end_date" <?php echo !$canEdit ? 'readonly' : ''; ?>>
+        <input type="date" id="vbs_end_date" name="vbs_end_date">
       </div>
       <div class="field-group" style="--colspan: 3;">
         <label for="vbs_theme">Session Theme</label>
-        <input type="text" id="vbs_theme" name="vbs_theme" <?php echo !$canEdit ? 'readonly' : ''; ?>>
+        <input type="text" id="vbs_theme" name="vbs_theme">
       </div>
 
       <!-- Line 2: Theme Scripture (6 cols) + Save Button pushed right (3 cols) -->
       <div class="field-group" style="--colspan: 6;">
         <label for="vbs_theme_scripture">Theme Scripture</label>
-        <input type="text" id="vbs_theme_scripture" name="vbs_theme_scripture" <?php echo !$canEdit ? 'readonly' : ''; ?>>
+        <input type="text" id="vbs_theme_scripture" name="vbs_theme_scripture">
       </div>
       <?php if ($canEdit): ?>
         <div class="field-group" style="--colspan: 3; display: flex; align-items: flex-end; justify-content: flex-end;">
@@ -565,49 +738,44 @@ $canEdit = canEdit();
       </table>
     </div>
 
-    <?php if ($canEdit): ?>
-      <fieldset class="form-grid-section-9">
-        <legend>
-          <h2 id="class-form-title">Add VBS Class</h2>
-        </legend>
+    <fieldset id="add-class-fieldset" class="form-grid-section-9 hidden">
+      <legend>
+        <h2 id="class-form-title">Add VBS Class</h2>
+      </legend>
 
-        <input type="hidden" id="vbs_class_session_id" name="vbs_class_session_id">
-        <input type="hidden" id="vbs_class_id" name="vbs_class_id">
+      <input type="hidden" id="vbs_class_session_id" name="vbs_class_session_id">
+      <input type="hidden" id="vbs_class_id" name="vbs_class_id">
 
-        <div class="field-group" style="--colspan: 3">
-          <label for="vbs_class_desc">Class Description</label>
-          <input type="text" id="vbs_class_desc" name="vbs_class_desc">
-        </div>
-
-        <div class="field-group" style="--colspan: 2">
-          <label for="vbs_class_age_start">Class Starting Age</label>
-          <input type="text" id="vbs_class_age_start" name="vbs_class_age_start">
-        </div>
-
-        <div class="field-group" style="--colspan: 2">
-          <label for="vbs_class_age_end">Class Ending Age</label>
-          <input type="text" id="vbs_class_age_end" name="vbs_class_age_end">
-        </div>
-
-        <div class="field-group" style="--colspan: 2">
-          <label for="vbs_class_teacher_id">Class Teacher</label>
-          <select name="vbs_class_teacher_id" id="vbs_class_teacher_id">
-            <option value="">--Select--</option>
-          </select>
-        </div>
-      </fieldset>
-
-      <div class="action-flex">
-        <button type="submit" class="btn-primary nbtn" id="submit-class-btn">Save Class</button>
-        <button type="button" class="btn-secondary nbtn hidden" id="cancel-edit-btn">Cancel Edit</button>
+      <div class="field-group" style="--colspan: 3">
+        <label for="vbs_class_desc">Class Description</label>
+        <input type="text" id="vbs_class_desc" name="vbs_class_desc">
       </div>
-    <?php else: ?>
-      <div class="read-only-banner">
-        <strong>Read-Only Mode:</strong> You must be signed in as staff or an administrator to add or modify VBS sessions and class details.
+
+      <div class="field-group" style="--colspan: 2">
+        <label for="vbs_class_age_start">Class Starting Age</label>
+        <input type="text" id="vbs_class_age_start" name="vbs_class_age_start">
       </div>
-    <?php endif; ?>
+
+      <div class="field-group" style="--colspan: 2">
+        <label for="vbs_class_age_end">Class Ending Age</label>
+        <input type="text" id="vbs_class_age_end" name="vbs_class_age_end">
+      </div>
+
+      <div class="field-group" style="--colspan: 2">
+        <label for="vbs_class_teacher_id">Class Teacher</label>
+        <select name="vbs_class_teacher_id" id="vbs_class_teacher_id">
+          <option value="">--Select--</option>
+        </select>
+      </div>
+    </fieldset>
+
+    <div id="add-class-actions" class="action-flex hidden">
+      <button type="submit" class="btn-primary nbtn" id="submit-class-btn">Save Class</button>
+      <button type="button" class="btn-secondary nbtn hidden" id="cancel-edit-btn">Cancel Edit</button>
+    </div>
   </form>
-<?php include_once 'include/footer.php'; ?>
+
+  <?php include_once 'include/footer.php'; ?>
 </body>
 
 </html>

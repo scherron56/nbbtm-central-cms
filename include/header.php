@@ -59,10 +59,10 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
         </li>
 
         <li class="dropdown">
-          <a href="#" class="<?= in_array($currentPage, ['vbs_sessions.php', 'vbs_manager.php', 'vbs_attendance.php', 'vbs_roster.php']) ? 'active' : '' ?>">VBS</a>
+          <a href="#" class="<?= in_array($currentPage, ['vbs_sessions.php', 'vbs_manager.php', 'vbs_attendance.php', 'vbs_registration.php']) ? 'active' : '' ?>">VBS</a>
           <ul class="submenu">
             <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-            <li><a href="vbs_roster.php" class="<?= ($currentPage === 'vbs_roster.php') ? 'active' : '' ?>">Registration</a></li>
+            <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
             <li><a href="vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
           </ul>
         </li>
@@ -126,10 +126,10 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
         </li>
 
         <li class="dropdown">
-          <a href="#" class="<?= in_array($currentPage, ['vbs_sessions.php', 'vbs_manager.php', 'vbs_attendance.php', 'vbs_roster.php']) ? 'active' : '' ?>">VBS</a>
+          <a href="#" class="<?= in_array($currentPage, ['vbs_sessions.php', 'vbs_manager.php', 'vbs_attendance.php', 'vbs_registration.php']) ? 'active' : '' ?>">VBS</a>
           <ul class="submenu">
             <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-            <li><a href="vbs_roster.php" class="<?= ($currentPage === 'vbs_roster.php') ? 'active' : '' ?>">Registration</a></li>
+            <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
             <li><a href="vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
           </ul>
         </li>
@@ -141,7 +141,7 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
         <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Members</a></li>
         <li><a href="event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Dashboard</a></li>
         <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-        <li><a href="vbs_roster.php" class="<?= ($currentPage === 'vbs_roster.php') ? 'active' : '' ?>">Registration</a></li>
+        <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
       <?php endif; ?>
 
       <!-- Authentication Action Buttons -->

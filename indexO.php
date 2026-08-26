@@ -35,6 +35,9 @@ require_once __DIR__ . '/config/db.php';
 // Require auth helper
 require_once __DIR__ . '/include/auth.php';
 
+// Optional: Restrict page to logged-in users
+// requireRole(['admin', 'staff', 'view']); 
+
 // Initialize default metric counters
 $total_contacts = 0;
 $total_members = 0;
@@ -42,15 +45,14 @@ $member_adults = 0;
 $member_children = 0;
 $total_events = 0;
 $total_ministries = 0;
+$vbs_sessions_count = 0;
+$vbs_classes_count = 0;
 
 $recent_contacts = [];
 $upcoming_events = [];
-$this_week_celebrations = [];
-$next_week_celebrations = [];
-
-// Calculate THIS Sunday and NEXT Sunday start dates (YYYY-MM-DD)
-$this_sunday = (date('w') == 0) ? date('Y-m-d') : date('Y-m-d', strtotime('last Sunday'));
-$next_sunday = date('Y-m-d', strtotime($this_sunday . ' +1 week'));
+$future_vbs_sessions = [];
+$last_vbs_session = null;
+$last_vbs_class_attendance = [];
 
 try {
     // 1. Fetch Contact & Membership Statistics (including Adults and Children)
@@ -98,7 +100,28 @@ try {
         $total_ministries = intval($row['total_ministries']);
     }
 
-    // 4. Fetch Recently Added Contacts
+    // 4. Fetch Active/Current Year VBS Sessions Count
+    $vbsStats = $db->query("
+        SELECT COUNT(*) AS total_sessions 
+        FROM vbs_sessions 
+        WHERE vbs_year >= YEAR(CURDATE())
+    ");
+    if ($row = $vbsStats->fetch_assoc()) {
+        $vbs_sessions_count = intval($row['total_sessions']);
+    }
+
+    // 5. Fetch Active VBS Classes Count linked to Current/Upcoming Sessions
+    $classStats = $db->query("
+        SELECT COUNT(c.vbs_class_id) AS total_classes 
+        FROM vbs_classes c
+        INNER JOIN vbs_sessions s ON c.vbs_class_session_id = s.vbs_sessions_id
+        WHERE s.vbs_year >= YEAR(CURDATE())
+    ");
+    if ($row = $classStats->fetch_assoc()) {
+        $vbs_classes_count = intval($row['total_classes']);
+    }
+
+    // 6. Fetch Recently Added Contacts
     $recentQuery = $db->query("
         SELECT contact_id, first_name, last_name, is_member, is_child, c_email, phone_1 
         FROM contacts 
@@ -109,41 +132,42 @@ try {
         $recent_contacts = $recentQuery->fetch_all(MYSQLI_ASSOC);
     }
 
-    // 5a. Fetch THIS Week's Celebrations
-    $stmt_cel_this = $db->prepare("CALL GetWeeklyCelebrations(?)");
-    if ($stmt_cel_this) {
-        $stmt_cel_this->bind_param("s", $this_sunday);
-        $stmt_cel_this->execute();
-        $result = $stmt_cel_this->get_result();
-        if ($result) {
-            $this_week_celebrations = $result->fetch_all(MYSQLI_ASSOC);
-        }
-        $stmt_cel_this->close();
-
-        // Flush procedure result buffers
-        while ($db->more_results() && $db->next_result()) {
-            if ($extra_result = $db->use_result()) {
-                $extra_result->free();
-            }
-        }
+    // 7. Fetch FUTURE VBS Sessions
+    $futureSessionQuery = $db->query("
+        SELECT vbs_sessions_id, vbs_year, vbs_theme, vbs_start_date, vbs_end_date 
+        FROM vbs_sessions 
+        WHERE (vbs_start_date > CURDATE()) OR (vbs_start_date IS NULL AND vbs_year > YEAR(CURDATE()))
+        ORDER BY vbs_year ASC, vbs_start_date ASC
+    ");
+    if ($futureSessionQuery && $futureSessionQuery->num_rows > 0) {
+        $future_vbs_sessions = $futureSessionQuery->fetch_all(MYSQLI_ASSOC);
     }
 
-    // 5b. Fetch NEXT Week's Celebrations
-    $stmt_cel_next = $db->prepare("CALL GetWeeklyCelebrations(?)");
-    if ($stmt_cel_next) {
-        $stmt_cel_next->bind_param("s", $next_sunday);
-        $stmt_cel_next->execute();
-        $result = $stmt_cel_next->get_result();
-        if ($result) {
-            $next_week_celebrations = $result->fetch_all(MYSQLI_ASSOC);
-        }
-        $stmt_cel_next->close();
+    // 8. Fetch LAST VBS Session Attendance Overview by Class
+    $lastSessionQuery = $db->query("
+        SELECT vbs_sessions_id, vbs_year, vbs_theme, vbs_start_date, vbs_end_date
+        FROM vbs_sessions 
+        WHERE (vbs_end_date < CURDATE() OR vbs_start_date <= CURDATE() OR vbs_year <= YEAR(CURDATE()))
+        ORDER BY vbs_year DESC, vbs_sessions_id DESC 
+        LIMIT 1
+    ");
+    if ($lastSessionQuery && $lastSessionQuery->num_rows > 0) {
+        $last_vbs_session = $lastSessionQuery->fetch_assoc();
+        $last_session_id = $last_vbs_session['vbs_sessions_id'];
 
-        // Flush procedure result buffers
-        while ($db->more_results() && $db->next_result()) {
-            if ($extra_result = $db->use_result()) {
-                $extra_result->free();
-            }
+        // Get class counts for attended students in this session
+        $classAttQuery = $db->query("
+            SELECT vc.vbs_class_id, vc.vbs_class_desc, COUNT(DISTINCT va.student_id) AS attended_count
+            FROM vbs_classes vc
+            LEFT JOIN vbs_students vs ON vc.vbs_class_id = vs.class_id AND vs.vbs_sessions_id = {$last_session_id}
+            LEFT JOIN vbs_attendance va ON vs.contact_id = va.student_id AND va.vbs_session_id = {$last_session_id} AND va.status = 'present'
+            WHERE vc.vbs_class_session_id = {$last_session_id}
+            GROUP BY vc.vbs_class_id, vc.vbs_class_desc
+            ORDER BY vc.vbs_class_desc ASC
+        ");
+
+        if ($classAttQuery && $classAttQuery->num_rows > 0) {
+            $last_vbs_class_attendance = $classAttQuery->fetch_all(MYSQLI_ASSOC);
         }
     }
 
@@ -193,6 +217,18 @@ try {
       <div class="kpi-value"><?= number_format($total_events) ?></div>
       <div class="kpi-subtext">Scheduled Events</div>
     </div>
+
+    <div class="kpi-card">
+      <div class="kpi-title">Active VBS Sessions</div>
+      <div class="kpi-value"><?= number_format($vbs_sessions_count) ?></div>
+      <div class="kpi-subtext">Current & Upcoming Programs</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-title">Active VBS Classes</div>
+      <div class="kpi-value"><?= number_format($vbs_classes_count) ?></div>
+      <div class="kpi-subtext">Active Class Modules</div>
+    </div>
   </section>
 
   <!-- Two-Column Flexible Layout -->
@@ -201,7 +237,7 @@ try {
     <!-- Primary Left Column -->
     <section class="main-content">
       
-      <!-- Quick Operations Panel -->
+      <!-- Quick Operations Panel (Visible to authenticated Editors: Admin & Staff) -->
       <?php if (canEdit()): ?>
         <div class="card">
           <h3>Quick Operations</h3>
@@ -209,6 +245,7 @@ try {
             <a href="contacts.php?action=new" class="btn btn-primary">+ Add New Contact</a>
             <a href="events.php" class="btn btn-accent">Manage Events</a>
             <a href="ministry_manager.php" class="btn btn-secondary">Ministry Directory</a>
+            <a href="vbs_sessions.php" class="btn btn-secondary">VBS Sessions</a>
           </div>
         </div>
       <?php endif; ?>
@@ -292,88 +329,6 @@ try {
     <!-- Secondary Right Column Sidebar -->
     <aside class="sidebar">
 
-      <!-- Celebrations Widget (This Week & Next Week) -->
-      <div class="card">
-        <h3 style="margin-bottom: 0.75rem;">Celebrations Overview</h3>
-
-        <!-- SECTION 1: THIS WEEK -->
-        <h4 style="margin: 0.5rem 0; color: #0d9488; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px;">
-          This Week <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(Week of <?= date('M j', strtotime($this_sunday)) ?>)</span>
-        </h4>
-
-        <?php if (!empty($this_week_celebrations)): ?>
-          <table class="data-table" style="margin-top: 0.25rem; margin-bottom: 1rem;">
-            <thead>
-              <tr>
-                <th>Name / Couple</th>
-                <th>Type</th>
-                <th style="text-align: right;">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($this_week_celebrations as $item): ?>
-                <tr>
-                  <td>
-                    <strong><?= htmlspecialchars($item['title']) ?></strong>
-                  </td>
-                  <td>
-                    <?php if ($item['celebration_type'] === 'Birthday'): ?>
-                      <span style="background-color: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">🎂 Birthday</span>
-                    <?php else: ?>
-                      <span style="background-color: #fef3c7; color: #d97706; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">💍 Anniversary</span>
-                    <?php endif; ?>
-                  </td>
-                  <td style="text-align: right; color: #0d9488; font-weight: 600;">
-                    <?= htmlspecialchars($item['display_date']) ?>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        <?php else: ?>
-          <p style="font-size:0.85rem; color:#64748b; margin-top: 0.25rem; margin-bottom: 1rem;">No celebrations scheduled for this week.</p>
-        <?php endif; ?>
-
-        <!-- SECTION 2: NEXT WEEK -->
-        <h4 style="margin: 0.5rem 0; color: #475569; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px;">
-          Next Week <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(Week of <?= date('M j', strtotime($next_sunday)) ?>)</span>
-        </h4>
-
-        <?php if (!empty($next_week_celebrations)): ?>
-          <table class="data-table" style="margin-top: 0.25rem;">
-            <thead>
-              <tr>
-                <th>Name / Couple</th>
-                <th>Type</th>
-                <th style="text-align: right;">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($next_week_celebrations as $item): ?>
-                <tr>
-                  <td>
-                    <strong><?= htmlspecialchars($item['title']) ?></strong>
-                  </td>
-                  <td>
-                    <?php if ($item['celebration_type'] === 'Birthday'): ?>
-                      <span style="background-color: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">🎂 Birthday</span>
-                    <?php else: ?>
-                      <span style="background-color: #fef3c7; color: #d97706; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">💍 Anniversary</span>
-                    <?php endif; ?>
-                  </td>
-                  <td style="text-align: right; color: #0d9488; font-weight: 600;">
-                    <?= htmlspecialchars($item['display_date']) ?>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        <?php else: ?>
-          <p style="font-size:0.85rem; color:#64748b; margin-top: 0.25rem;">No celebrations scheduled for next week.</p>
-        <?php endif; ?>
-
-      </div>
-
       <!-- Member Demographics Breakdown Widget -->
       <div class="card">
         <h3>Member Categories</h3>
@@ -397,6 +352,68 @@ try {
         </table>
       </div>
 
+      <!-- Last VBS Session Attendance Overview by Class -->
+      <div class="card">
+        <h3>
+          Last VBS Session Attendance 
+          <?php if (!empty($last_vbs_session)): ?>
+            <span style="font-size:0.85rem; font-weight:normal; color:#64748b; display:block;">
+              (<?= htmlspecialchars($last_vbs_session['vbs_year']) ?> - <?= htmlspecialchars($last_vbs_session['vbs_theme'] ?: 'Session #' . $last_vbs_session['vbs_sessions_id']) ?>)
+            </span>
+          <?php endif; ?>
+        </h3>
+
+        <?php if (!empty($last_vbs_class_attendance)): ?>
+          <table class="data-table" style="margin-top: 0.5rem;">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th style="text-align: right;">Attended</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($last_vbs_class_attendance as $cls): ?>
+                <tr>
+                  <td><?= htmlspecialchars($cls['vbs_class_desc']) ?></td>
+                  <td style="text-align: right;"><strong><?= number_format($cls['attended_count']) ?></strong></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        <?php else: ?>
+          <p style="font-size:0.9rem; color:#64748b;">No class attendance records available from the last session.</p>
+        <?php endif; ?>
+      </div>
+
+      <!-- Future VBS Sessions Module (Only rendered if available) -->
+      <?php if (!empty($future_vbs_sessions)): ?>
+        <div class="card">
+          <h3>Upcoming Future VBS Sessions</h3>
+          <ul class="quick-links">
+            <?php foreach ($future_vbs_sessions as $sess): ?>
+              <li style="margin-bottom: 0.75rem;">
+                <strong><?= htmlspecialchars($sess['vbs_year']) ?></strong> - <?= htmlspecialchars($sess['vbs_theme'] ?: 'New Session') ?>
+                <br>
+                <small style="color: #64748b;">
+                  <?php 
+                    if (!empty($sess['vbs_start_date']) && $sess['vbs_start_date'] !== '0000-00-00') {
+                        echo date('M d, Y', strtotime($sess['vbs_start_date']));
+                        if (!empty($sess['vbs_end_date']) && $sess['vbs_end_date'] !== '0000-00-00') {
+                            echo ' - ' . date('M d, Y', strtotime($sess['vbs_end_date']));
+                        }
+                    } else {
+                        echo 'Dates TBD';
+                    }
+                  ?>
+                </small>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+          <br>
+          <a href="vbs_sessions.php" class="link-btn">Manage VBS Sessions &rarr;</a>
+        </div>
+      <?php endif; ?>
+
       <!-- Modular Task / Action Checklist -->
       <div class="card">
         <h3>System Tasks</h3>
@@ -412,6 +429,10 @@ try {
           <li>
             <input type="checkbox" id="task3">
             <label for="task3">Update active ministry assignments</label>
+          </li>
+          <li>
+            <input type="checkbox" id="task4">
+            <label for="task4">Check VBS class roster capacity</label>
           </li>
         </ul>
       </div>

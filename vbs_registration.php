@@ -43,8 +43,19 @@ $adminUser = isAdmin();
     .add-contact-link { font-size: 0.75rem; color: #2563eb; text-decoration: none; font-weight: 600; }
 
     .full-width-container { width: 100% !important; max-width: 100% !important; box-sizing: border-box; margin: 1.5rem 0; }
-    .class-group-row { background-color: #e2e8f0 !important; font-weight: bold; }
-    .class-group-row td { color: #0f172a; font-size: 1.05rem; padding: 0.85rem 0.75rem; }
+    .class-group-row { background-color: #043b8f !important; color: #ffffff !important; font-weight: bold; }
+    .class-group-row td { color: #ffffff !important; font-size: 1.05rem; padding: 0.85rem 0.75rem; }
+    
+    .attendance-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background-color: #e0f2fe;
+      color: #0369a1;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    
     .hidden { display: none !important; }
   </style>
 
@@ -83,8 +94,10 @@ $(document).ready(function() {
           res.data.forEach(session => {
             select.append($('<option>', { 
               value: session.vbs_sessions_id, 
-              text: session.vbs_year + ' (Session #' + session.vbs_sessions_id + ')' + (parseInt(session.vbs_sessions_completed) === 1 ? ' [Completed]' : ''),
-              'data-completed': session.vbs_sessions_completed
+              text: session.vbs_year + ' - ' + (session.vbs_theme || 'Session #' + session.vbs_sessions_id) + (parseInt(session.vbs_sessions_completed) === 1 ? ' [Completed]' : ''),
+              'data-completed': session.vbs_sessions_completed,
+              'data-start': session.vbs_start_date,
+              'data-end': session.vbs_end_date
             }));
           });
         }
@@ -173,12 +186,12 @@ $(document).ready(function() {
     const selectedSession = $('#sessionSelect').val();
 
     if (!selectedSession) {
-      tbody.append('<tr><td colspan="3" style="text-align:center; padding:1.5rem; color:#64748b;">Please select a Session Year above to view registered students.</td></tr>');
+      tbody.append('<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:#64748b;">Please select a Session Year above to view registered students.</td></tr>');
       return;
     }
 
     if (!students || students.length === 0) {
-      tbody.append('<tr><td colspan="3" style="text-align:center; padding:1.5rem; color:#64748b;">No VBS students registered for this session.</td></tr>');
+      tbody.append('<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:#64748b;">No VBS students registered for this session.</td></tr>');
       return;
     }
 
@@ -190,10 +203,16 @@ $(document).ready(function() {
     });
 
     Object.keys(grouped).forEach(className => {
-      tbody.append(`<tr class="class-group-row"><td colspan="3">🏫 ${escapeHtml(className)}</td></tr>`);
+      const classStudentCount = grouped[className].length;
+      tbody.append(`
+        <tr class="class-group-row">
+          <td colspan="4">🏫 ${escapeHtml(className)} (${classStudentCount} ${classStudentCount === 1 ? 'Student' : 'Students'})</td>
+        </tr>
+      `);
 
       grouped[className].forEach(student => {
         const studentDisplayName = student.student_full_name_formatted || student.student_display_name || student.child_name;
+        const daysAttended = parseInt(student.days_attended, 10) || 0;
 
         let actionBtnsCell = '';
         if (!currentSessionCompleted) {
@@ -208,6 +227,11 @@ $(document).ready(function() {
           <tr data-id="${student.contact_id}" data-vbs-id="${student.vbs_id}" data-session-id="${student.vbs_sessions_id}" data-class-id="${student.class_id}">
             <td style="padding-left: 1.75rem;"><strong>${escapeHtml(studentDisplayName)}</strong></td>
             <td><span class="class-desc">${escapeHtml(className)}</span></td>
+            <td>
+              <span class="attendance-badge">
+                ${daysAttended} ${daysAttended === 1 ? 'day' : 'days'}
+              </span>
+            </td>
             ${actionBtnsCell}
           </tr>
         `;
@@ -281,6 +305,13 @@ $(document).ready(function() {
         }
       }
     });
+  });
+
+  $('#resetFormBtn').click(function() {
+    $('#vbsStudentForm')[0].reset();
+    $('#vbs_id').val('');
+    $('#form_vbs_sessions_id').val($('#sessionSelect').val());
+    $('#formTitle').text('Register VBS Student');
   });
 
   function escapeHtml(str) {
@@ -371,6 +402,7 @@ $(document).ready(function() {
       <tr>
         <th>Student Name</th>
         <th>Class</th>
+        <th>Days Attended</th>
         <th id="col-actions-head">Actions</th>
       </tr>
     </thead>
