@@ -1,227 +1,166 @@
 <?php
 // class_controller.php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+// 1. Prevent HTML error messages from corrupting JSON output
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
 
 header('Content-Type: application/json; charset=utf-8');
 
-require_once 'config/db.php';
-require_once 'include/auth.php';
+// 2. Resolve the config directory properly
+require_once __DIR__ . '/config/db.php';
 
-$action = $_REQUEST['action'] ?? '';
+$action = $_GET['action'] ?? $_POST['action'] ?? '';
 
-// Restrict write actions to Admin users
-if (in_array($action, ['add_session', 'save_session', 'create', 'update', 'delete'])) {
-    requireAdmin();
-}
+try {
+    switch ($action) {
 
-switch ($action) {
-    case 'add_session':
-        $theme = !empty($_POST['vbs_theme_title']) ? trim($_POST['vbs_theme_title']) : 'New Session';
-        $current_year = date('Y');
+        case 'get_dropdowns':
+            $response = [
+                'success'  => false,
+                'sessions' => [],
+                'teachers' => []
+            ];
 
-        $stmt = $db->prepare("INSERT INTO vbs_sessions (vbs_year, vbs_theme) VALUES (?, ?)");
-        $stmt->bind_param("ss", $current_year, $theme);
-
-        if ($stmt->execute()) {
-            $new_id = $stmt->insert_id;
-            echo json_encode([
-                "success" => true,
-                "new_id" => $new_id,
-                "combined_name" => $current_year . " - " . $theme
-            ]);
-        } else {
-            echo json_encode(["success" => false, "message" => $stmt->error]);
-        }
-        $stmt->close();
-        break;
-
-    case 'get_session':
-        $session_id = !empty($_REQUEST['vbs_sessions_id']) ? intval($_REQUEST['vbs_sessions_id']) : 0;
-
-        if ($session_id > 0) {
-            $stmt = $db->prepare("SELECT vbs_sessions_id, vbs_year, DATE_FORMAT(vbs_start_date, '%Y-%m-%d') as vbs_start_date, DATE_FORMAT(vbs_end_date, '%Y-%m-%d') as vbs_end_date, vbs_theme, vbs_theme_scripture FROM vbs_sessions WHERE vbs_sessions_id = ?");
-            $stmt->bind_param("i", $session_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($row = $result->fetch_assoc()) {
-                echo json_encode(["success" => true, "data" => $row]);
+            // Fetch VBS Sessions
+            $session_query = "SELECT vbs_sessions_id, vbs_year, vbs_theme, COALESCE(vbs_sessions_completed, 0) AS vbs_sessions_completed 
+                              FROM vbs_sessions 
+                              ORDER BY vbs_year DESC";
+            
+            if ($session_result = $db->query($session_query)) {
+                while ($row = $session_result->fetch_assoc()) {
+                    $response['sessions'][] = $row;
+                }
+                $session_result->free();
             } else {
-                echo json_encode(["success" => false, "message" => "Session record not found."]);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to fetch sessions: ' . $db->error
+                ]);
+                exit;
             }
-            $stmt->close();
-        } else {
-            echo json_encode(["success" => false, "message" => "Invalid Session ID requested."]);
-        }
-        break;
 
-    case 'save_session':
-        $session_id = 0;
-        if (!empty($_POST['vbs_sessions_id'])) {
-            $session_id = intval($_POST['vbs_sessions_id']);
-        } elseif (!empty($_POST['vbs_class_session_id'])) {
-            $session_id = intval($_POST['vbs_class_session_id']);
-        }
+            // Fetch Teachers
+            $teacher_query = "SELECT contact_id AS vbs_class_teacher_id, CONCAT(first_name, ' ', last_name) AS teacher_name 
+                              FROM contacts 
+                              ORDER BY last_name ASC, first_name ASC";
 
-        $vbs_year = trim($_POST['vbs_year'] ?? '');
-        $start_date = !empty($_POST['vbs_session_start']) ? $_POST['vbs_session_start'] : (!empty($_POST['vbs_start_date']) ? $_POST['vbs_start_date'] : null);
-        $end_date = !empty($_POST['vbs_session_end']) ? $_POST['vbs_session_end'] : (!empty($_POST['vbs_end_date']) ? $_POST['vbs_end_date'] : null);
-        $theme = trim($_POST['vbs_theme'] ?? '');
-        $scripture = trim($_POST['vbs_theme_scripture'] ?? '');
+            if ($teacher_result = $db->query($teacher_query)) {
+                while ($row = $teacher_result->fetch_assoc()) {
+                    $response['teachers'][] = $row;
+                }
+                $teacher_result->free();
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to fetch teachers: ' . $db->error
+                ]);
+                exit;
+            }
 
-        if ($session_id > 0) {
+            $response['success'] = true;
+            echo json_encode($response);
+            exit;
+
+        case 'get_session':
+            $vbs_sessions_id = intval($_GET['vbs_sessions_id'] ?? 0);
+            $stmt = $db->prepare("SELECT * FROM vbs_sessions WHERE vbs_sessions_id = ?");
+            $stmt->bind_param("i", $vbs_sessions_id);
+            $stmt->execute();
+            $data = $stmt->get_result()->fetch_assoc();
+            echo json_encode(['success' => true, 'data' => $data]);
+            exit;
+
+        case 'add_session':
+            $vbs_theme_title = $_POST['vbs_theme_title'] ?? 'New Session';
+            $current_year = date('Y');
+            
+            $stmt = $db->prepare("INSERT INTO vbs_sessions (vbs_year, vbs_theme, vbs_sessions_completed) VALUES (?, ?, 0)");
+            $stmt->bind_param("ss", $current_year, $vbs_theme_title);
+            $stmt->execute();
+            $new_id = $db->insert_id;
+            
+            echo json_encode([
+                'success' => true, 
+                'new_id' => $new_id, 
+                'combined_name' => $current_year . ' - ' . $vbs_theme_title
+            ]);
+            exit;
+
+        case 'save_session':
+            $vbs_sessions_id = intval($_POST['vbs_sessions_id'] ?? 0);
+            $vbs_year = $_POST['vbs_year'] ?? '';
+            $start = $_POST['vbs_session_start'] ?? null;
+            $end = $_POST['vbs_session_end'] ?? null;
+            $theme = $_POST['vbs_theme'] ?? '';
+            $scripture = $_POST['vbs_theme_scripture'] ?? '';
+
             $stmt = $db->prepare("UPDATE vbs_sessions SET vbs_year = ?, vbs_start_date = ?, vbs_end_date = ?, vbs_theme = ?, vbs_theme_scripture = ? WHERE vbs_sessions_id = ?");
-            $stmt->bind_param("sssssi", $vbs_year, $start_date, $end_date, $theme, $scripture, $session_id);
-        } else {
-            $stmt = $db->prepare("INSERT INTO vbs_sessions (vbs_year, vbs_start_date, vbs_end_date, vbs_theme, vbs_theme_scripture) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssss", $vbs_year, $start_date, $end_date, $theme, $scripture);
-        }
+            $stmt->bind_param("sssssi", $vbs_year, $start, $end, $theme, $scripture, $vbs_sessions_id);
+            $stmt->execute();
 
-        if ($stmt->execute()) {
-            $new_id = $session_id > 0 ? $session_id : $stmt->insert_id;
-            echo json_encode(["success" => true, "vbs_sessions_id" => $new_id]);
-        } else {
-            echo json_encode(["success" => false, "message" => $stmt->error]);
-        }
-        $stmt->close();
-        break;
+            echo json_encode(['success' => true, 'vbs_sessions_id' => $vbs_sessions_id]);
+            exit;
 
-    case 'get_dropdowns':
-        $dropdowns = ['sessions' => [], 'teachers' => []];
-
-        $session_query = "SELECT vbs_sessions_id, vbs_year, vbs_theme FROM vbs_sessions ORDER BY vbs_year ASC";
-        if ($session_result = $db->query($session_query)) {
-            while ($row = $session_result->fetch_assoc()) {
-                $dropdowns['sessions'][] = $row;
+        case 'read':
+            $vbs_sessions_id = intval($_GET['vbs_sessions_id'] ?? 0);
+            $sql = "SELECT vc.*, CONCAT_WS(' ', c_teacher.first_name, c_teacher.last_name) AS teacher_name 
+                    FROM vbs_classes vc 
+                    LEFT JOIN contacts c_teacher ON vc.vbs_class_teacher_id = c_teacher.contact_id";
+            if ($vbs_sessions_id > 0) {
+                $sql .= " WHERE vc.vbs_class_session_id = ?";
             }
-        }
+            $sql .= " ORDER BY vc.vbs_class_desc ASC";
 
-        $teacher_query = "SELECT contact_id AS vbs_class_teacher_id, CONCAT(first_name, ' ', last_name) AS teacher_name 
-                          FROM contacts 
-                          ORDER BY last_name ASC, first_name ASC";
-
-        if ($teacher_result = $db->query($teacher_query)) {
-            while ($row = $teacher_result->fetch_assoc()) {
-                $dropdowns['teachers'][] = $row;
+            $stmt = $db->prepare($sql);
+            if ($vbs_sessions_id > 0) {
+                $stmt->bind_param("i", $vbs_sessions_id);
             }
-        }
-
-        echo json_encode($dropdowns);
-        break;
-
-    case 'read':
-        $session_id = !empty($_REQUEST['vbs_sessions_id']) ? intval($_REQUEST['vbs_sessions_id']) : 0;
-
-        $query = "SELECT c.*, CONCAT(con.first_name, ' ', con.last_name) AS teacher_name 
-            FROM vbs_classes c
-            LEFT JOIN contacts con ON c.vbs_class_teacher_id = con.contact_id";
-
-        if ($session_id > 0) {
-            $query .= " WHERE c.vbs_class_session_id = ? ORDER BY c.vbs_class_id DESC";
-            $stmt = $db->prepare($query);
-            $stmt->bind_param("i", $session_id);
             $stmt->execute();
             $result = $stmt->get_result();
-        } else {
-            $query .= " ORDER BY c.vbs_class_id DESC";
-            $result = $db->query($query);
-        }
-
-        $classes = [];
-        if ($result && $result->num_rows > 0) {
+            $classes = [];
             while ($row = $result->fetch_assoc()) {
                 $classes[] = $row;
             }
-        }
-
-        if (isset($stmt)) {
-            $stmt->close();
-        }
-
-        echo json_encode($classes);
-        break;
-
-    case 'create':
-        $session_id = 0;
-        if (!empty($_POST['vbs_class_session_id'])) {
-            $session_id = intval($_POST['vbs_class_session_id']);
-        } elseif (!empty($_POST['vbs_sessions_id'])) {
-            $session_id = intval($_POST['vbs_sessions_id']);
-        }
-
-        if ($session_id <= 0) {
-            echo json_encode(["success" => false, "message" => "Please select a valid Session Year."]);
+            echo json_encode($classes);
             exit;
-        }
 
-        $description = trim($_POST['vbs_class_desc'] ?? '');
-        $age_start = intval($_POST['vbs_class_age_start'] ?? 0);
-        $age_end = intval($_POST['vbs_class_age_end'] ?? 0);
-        $teacher_id = !empty($_POST['vbs_class_teacher_id']) ? intval($_POST['vbs_class_teacher_id']) : null;
+        case 'create':
+        case 'update':
+            $class_id = intval($_POST['vbs_class_id'] ?? 0);
+            $session_id = intval($_POST['vbs_class_session_id'] ?? 0);
+            $desc = $_POST['vbs_class_desc'] ?? '';
+            $start_age = intval($_POST['vbs_class_age_start'] ?? 0);
+            $end_age = intval($_POST['vbs_class_age_end'] ?? 0);
+            $teacher_id = !empty($_POST['vbs_class_teacher_id']) ? intval($_POST['vbs_class_teacher_id']) : null;
 
-        if (empty($description)) {
-            echo json_encode(["success" => false, "message" => "Missing description value"]);
+            if ($action === 'update' && $class_id > 0) {
+                $stmt = $db->prepare("UPDATE vbs_classes SET vbs_class_session_id = ?, vbs_class_desc = ?, vbs_class_age_start = ?, vbs_class_age_end = ?, vbs_class_teacher_id = ? WHERE vbs_class_id = ?");
+                $stmt->bind_param("isiiii", $session_id, $desc, $start_age, $end_age, $teacher_id, $class_id);
+            } else {
+                $stmt = $db->prepare("INSERT INTO vbs_classes (vbs_class_session_id, vbs_class_desc, vbs_class_age_start, vbs_class_age_end, vbs_class_teacher_id) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("isiii", $session_id, $desc, $start_age, $end_age, $teacher_id);
+            }
+            $stmt->execute();
+            echo json_encode(['success' => true]);
             exit;
-        }
 
-        $stmt = $db->prepare("INSERT INTO vbs_classes (vbs_class_session_id, vbs_class_desc, vbs_class_age_start, vbs_class_age_end, vbs_class_teacher_id) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("isiii", $session_id, $description, $age_start, $age_end, $teacher_id);
+        case 'delete':
+            $class_id = intval($_POST['vbs_class_id'] ?? 0);
+            $stmt = $db->prepare("DELETE FROM vbs_classes WHERE vbs_class_id = ?");
+            $stmt->bind_param("i", $class_id);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+            exit;
 
-        if ($stmt->execute()) {
-            echo json_encode(["success" => true, "vbs_class_id" => $stmt->insert_id]);
-        } else {
-            echo json_encode(["success" => false, "message" => $stmt->error]);
-        }
-        $stmt->close();
-        break;
-
-    case 'update':
-        $class_id = intval($_POST['vbs_class_id'] ?? 0);
-
-        $session_id = 0;
-        if (!empty($_POST['vbs_class_session_id'])) {
-            $session_id = intval($_POST['vbs_class_session_id']);
-        } elseif (!empty($_POST['vbs_sessions_id'])) {
-            $session_id = intval($_POST['vbs_sessions_id']);
-        }
-
-        $description = trim($_POST['vbs_class_desc'] ?? '');
-        $age_start = intval($_POST['vbs_class_age_start'] ?? 0);
-        $age_end = intval($_POST['vbs_class_age_end'] ?? 0);
-        $teacher_id = !empty($_POST['vbs_class_teacher_id']) ? intval($_POST['vbs_class_teacher_id']) : null;
-
-        $stmt = $db->prepare("UPDATE vbs_classes SET vbs_class_session_id = ?, vbs_class_desc = ?, vbs_class_age_start = ?, vbs_class_age_end = ?, vbs_class_teacher_id = ? WHERE vbs_class_id = ?");
-        $stmt->bind_param("isiiii", $session_id, $description, $age_start, $age_end, $teacher_id, $class_id);
-
-        if ($stmt->execute()) {
-            echo json_encode(["success" => true]);
-        } else {
-            echo json_encode(["success" => false, "message" => $stmt->error]);
-        }
-        $stmt->close();
-        break;
-
-    case 'delete':
-        $class_id = intval($_POST['vbs_class_id'] ?? 0);
-        $stmt = $db->prepare("DELETE FROM vbs_classes WHERE vbs_class_id = ?");
-        $stmt->bind_param("i", $class_id);
-
-        if ($stmt->execute()) {
-            echo json_encode(["success" => true]);
-        } else {
-            echo json_encode(["success" => false, "message" => $stmt->error]);
-        }
-        $stmt->close();
-        break;
-
-    default:
-        echo json_encode(["success" => false, "message" => "Invalid action requested"]);
-        break;
+        default:
+            echo json_encode([
+                'success' => false,
+                'message' => 'Invalid or missing action.'
+            ]);
+            exit;
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-
-$db->close();
-?>

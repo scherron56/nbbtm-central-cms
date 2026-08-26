@@ -9,7 +9,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/include/auth.php';
+
 $canEdit = canEdit();
 ?>
 <!DOCTYPE html>
@@ -107,15 +109,25 @@ $(document).ready(function() {
       },
       dataType: 'json',
       success: function(res) {
-        if (res.success) renderRosterTable(res.data);
+        if (res.success) {
+          renderRosterTable(res.data);
+        } else {
+          renderRosterTable([]);
+        }
+      },
+      error: function() {
+        renderRosterTable([]);
       }
     });
   }
 
   function renderRosterTable(students) {
     const tbody = $('#studentTable tbody').empty();
+    
+    // Dynamic colspan calculation based on currently visible <th> columns
     if (!students || students.length === 0) {
-      tbody.append('<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:#64748b;">No VBS students registered for this session.</td></tr>');
+      const visibleCols = $('#studentTable thead th:visible').length || 4;
+      tbody.append(`<tr><td colspan="${visibleCols}" style="text-align:center; padding:1.5rem; color:#64748b;">No VBS students registered for this session.</td></tr>`);
       return;
     }
 
@@ -174,13 +186,12 @@ $(document).ready(function() {
   });
 
   function escapeHtml(str) {
-    return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
+    return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 });
   </script>
 </head>
 <body>
-  <?php require_once("config/db.php"); ?>
   <?php include 'include/header.php'; ?>
 
   <h1>VBS Attendance Management</h1>
@@ -210,6 +221,7 @@ $(document).ready(function() {
     </thead>
     <tbody></tbody>
   </table>
+
 <?php include_once 'include/footer.php'; ?>
 </body>
 </html>

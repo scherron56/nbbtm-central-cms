@@ -1,8 +1,4 @@
-DELIMITER //
-
-DROP PROCEDURE IF EXISTS `GetWeeklyBirthdays`//
-
-CREATE PROCEDURE `GetWeeklyBirthdays`(
+PROCEDURE `GetWeeklyBirthdays`(
     IN in_week_start DATE
 )
 BEGIN
@@ -37,6 +33,4 @@ BEGIN
         )
     ORDER BY 
         current_bday_date ASC;
-END//
-
-DELIMITER ;
+END

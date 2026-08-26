@@ -48,7 +48,7 @@ $currentYear = date('Y');
           <h4>VBS</h4>
           <ul>
             <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-            <li><a href="vbs_roster.php" class="<?= ($currentPage === 'vbs_roster.php') ? 'active' : '' ?>">Registration</a></li>
+            <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
             <li><a href="vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
           </ul>
         </div>
@@ -100,7 +100,7 @@ $currentYear = date('Y');
           <h4>VBS</h4>
           <ul>
             <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-            <li><a href="vbs_roster.php" class="<?= ($currentPage === 'vbs_roster.php') ? 'active' : '' ?>">Registration</a></li>
+            <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
             <li><a href="vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
           </ul>
         </div>
@@ -128,7 +128,7 @@ $currentYear = date('Y');
           <h4>VBS</h4>
           <ul>
             <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-            <li><a href="vbs_roster.php" class="<?= ($currentPage === 'vbs_roster.php') ? 'active' : '' ?>">Registration</a></li>
+            <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
           </ul>
         </div>
       <?php endif; ?>

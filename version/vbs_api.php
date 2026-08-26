@@ -5,6 +5,7 @@ require_once "config/db.php";
 require_once "include/auth.php";
 
 $action = $_REQUEST['action'] ?? '';
+$today  = date('Y-m-d');
 
 // Enforce admin privileges on write API actions
 if (in_array($action, ['save_student', 'delete_student', 'toggle_attendance'])) {
@@ -14,7 +15,7 @@ if (in_array($action, ['save_student', 'delete_student', 'toggle_attendance'])) 
 try {
     switch ($action) {
 
-        // READ: Sessions list
+        // READ: Sessions list with completion status
         case 'fetch_sessions':
             $stmt = $db->prepare("SELECT vbs_sessions_id, vbs_year, vbs_theme, vbs_start_date, vbs_end_date, IFNULL(vbs_sessions_completed, 0) AS vbs_sessions_completed FROM vbs_sessions ORDER BY vbs_year DESC");
             $stmt->execute();
@@ -26,7 +27,7 @@ try {
             echo json_encode(['success' => true, 'data' => $sessions]);
             break;
 
-        // READ: Classes list
+        // READ: Classes list for a given vbs_sessions_id with Teacher Name
         case 'fetch_classes':
             $vbs_sessions_id = intval($_GET['vbs_sessions_id'] ?? 0);
  
@@ -61,118 +62,55 @@ try {
             echo json_encode(['success' => true, 'data' => $classes]);
             break;
 
-        // READ: Roster with Unique Students & Days Attended Count
+        // READ: Roster + Daily Attendance Status + Teacher Information
         case 'fetch_roster':
             $session_filter = !empty($_GET['vbs_sessions_id']) ? intval($_GET['vbs_sessions_id']) : 0;
-            $target_date    = !empty($_GET['checkin_date']) ? trim($_GET['checkin_date']) : null;
+            $target_date    = !empty($_GET['checkin_date']) ? trim($_GET['checkin_date']) : $today;
 
-            if (!empty($target_date)) {
-                $sql = "
-                    SELECT 
-                        vs.vbs_id,
-                        vs.vbs_sessions_id,
-                        vs.contact_id,
-                        vs.class_id,
-                        vs.allergies,
-                        vs.food_restrictions,
-                        vs.medical_notes,
-                        vses.vbs_year,
-                        vses.vbs_start_date,
-                        vses.vbs_end_date,
-                        IFNULL(vses.vbs_sessions_completed, 0) AS vbs_sessions_completed,
-                        vc.vbs_class_id,
-                        vc.vbs_class_desc,
-                        vc.vbs_class_teacher_id,
-                        CONCAT_WS(' ', c_teacher.first_name, c_teacher.last_name) AS teacher_name,
-                        c_child.last_name,
-                        c_child.first_name,
-                        CONCAT_WS(', ', c_child.last_name, c_child.first_name) AS student_full_name_formatted,
-                        CONCAT_WS(' ', c_child.first_name, c_child.last_name) AS student_display_name,
-                        MAX(IF(va.attendance_id IS NOT NULL AND va.status = 'present' AND va.checkout_time IS NULL, 1, 0)) AS is_checked_in,
-                        (
-                            SELECT COUNT(DISTINCT att.checkin_date)
-                            FROM vbs_attendance att
-                            WHERE att.student_id = vs.contact_id 
-                              AND att.vbs_session_id = vs.vbs_sessions_id
-                              AND att.status = 'present'
-                        ) AS days_attended
-                    FROM vbs_students vs
-                    JOIN contacts c_child ON vs.contact_id = c_child.contact_id
-                    LEFT JOIN vbs_classes vc ON vs.class_id = vc.vbs_class_id
-                    LEFT JOIN contacts c_teacher ON vc.vbs_class_teacher_id = c_teacher.contact_id
-                    LEFT JOIN vbs_sessions vses ON vs.vbs_sessions_id = vses.vbs_sessions_id
-                    LEFT JOIN vbs_attendance va 
-                        ON vs.contact_id = va.student_id 
-                        AND vs.vbs_sessions_id = va.vbs_session_id
-                        AND (va.checkin_date = ? OR DATE(va.checkin_time) = ?)
-                ";
+            $sql = "
+                SELECT 
+                    vs.vbs_id,
+                    vs.vbs_sessions_id,
+                    vs.contact_id,
+                    vs.class_id,
+                    vs.allergies,
+                    vs.food_restrictions,
+                    vs.medical_notes,
+                    vses.vbs_year,
+                    IFNULL(vses.vbs_sessions_completed, 0) AS vbs_sessions_completed,
+                    vc.vbs_class_id,
+                    vc.vbs_class_desc,
+                    vc.vbs_class_teacher_id,
+                    CONCAT_WS(' ', c_teacher.first_name, c_teacher.last_name) AS teacher_name,
+                    c_child.last_name,
+                    c_child.first_name,
+                    CONCAT_WS(', ', c_child.last_name, c_child.first_name) AS student_full_name_formatted,
+                    CONCAT_WS(' ', c_child.first_name, c_child.last_name) AS student_display_name,
+                    IF(va.attendance_id IS NOT NULL AND va.status = 'present' AND va.checkout_time IS NULL, 1, 0) AS is_checked_in,
+                    va.checkin_time,
+                    va.checkout_time
+                FROM vbs_students vs
+                JOIN contacts c_child ON vs.contact_id = c_child.contact_id
+                LEFT JOIN vbs_classes vc ON vs.class_id = vc.vbs_class_id
+                LEFT JOIN contacts c_teacher ON vc.vbs_class_teacher_id = c_teacher.contact_id
+                LEFT JOIN vbs_sessions vses ON vs.vbs_sessions_id = vses.vbs_sessions_id
+                LEFT JOIN vbs_attendance va 
+                    ON vs.contact_id = va.student_id 
+                    AND vs.vbs_sessions_id = va.vbs_session_id
+                    AND (va.checkin_date = ? OR DATE(va.checkin_time) = ?)
+            ";
 
-                if ($session_filter > 0) {
-                    $sql .= " WHERE vs.vbs_sessions_id = ? ";
-                }
+            if ($session_filter > 0) {
+                $sql .= " WHERE vs.vbs_sessions_id = ? ";
+            }
 
-                $sql .= " GROUP BY vs.vbs_id ORDER BY vc.vbs_class_desc ASC, c_child.last_name ASC, c_child.first_name ASC";
+            $sql .= " ORDER BY c_child.last_name ASC, c_child.first_name ASC";
 
-                $stmt = $db->prepare($sql);
-                if ($session_filter > 0) {
-                    $stmt->bind_param("ssi", $target_date, $target_date, $session_filter);
-                } else {
-                    $stmt->bind_param("ss", $target_date, $target_date);
-                }
+            $stmt = $db->prepare($sql);
+            if ($session_filter > 0) {
+                $stmt->bind_param("ssi", $target_date, $target_date, $session_filter);
             } else {
-                $sql = "
-                    SELECT 
-                        vs.vbs_id,
-                        vs.vbs_sessions_id,
-                        vs.contact_id,
-                        vs.class_id,
-                        vs.allergies,
-                        vs.food_restrictions,
-                        vs.medical_notes,
-                        vses.vbs_year,
-                        vses.vbs_start_date,
-                        vses.vbs_end_date,
-                        IFNULL(vses.vbs_sessions_completed, 0) AS vbs_sessions_completed,
-                        vc.vbs_class_id,
-                        vc.vbs_class_desc,
-                        vc.vbs_class_teacher_id,
-                        CONCAT_WS(' ', c_teacher.first_name, c_teacher.last_name) AS teacher_name,
-                        c_child.last_name,
-                        c_child.first_name,
-                        CONCAT_WS(', ', c_child.last_name, c_child.first_name) AS student_full_name_formatted,
-                        CONCAT_WS(' ', c_child.first_name, c_child.last_name) AS student_display_name,
-                        MAX(IF(va.attendance_id IS NOT NULL AND va.status = 'present' AND va.checkout_time IS NULL, 1, 0)) AS is_checked_in,
-                        (
-                            SELECT COUNT(DISTINCT att.checkin_date)
-                            FROM vbs_attendance att
-                            WHERE att.student_id = vs.contact_id 
-                              AND att.vbs_session_id = vs.vbs_sessions_id
-                              AND att.status = 'present'
-                        ) AS days_attended
-                    FROM vbs_students vs
-                    JOIN contacts c_child ON vs.contact_id = c_child.contact_id
-                    LEFT JOIN vbs_classes vc ON vs.class_id = vc.vbs_class_id
-                    LEFT JOIN contacts c_teacher ON vc.vbs_class_teacher_id = c_teacher.contact_id
-                    LEFT JOIN vbs_sessions vses ON vs.vbs_sessions_id = vses.vbs_sessions_id
-                    LEFT JOIN vbs_attendance va 
-                        ON vs.contact_id = va.student_id 
-                        AND vs.vbs_sessions_id = va.vbs_session_id
-                        AND (
-                            (vses.vbs_start_date IS NOT NULL AND vses.vbs_end_date IS NOT NULL AND va.checkin_date BETWEEN vses.vbs_start_date AND vses.vbs_end_date)
-                            OR (vses.vbs_start_date IS NULL AND va.checkin_date = CURDATE())
-                        )
-                ";
-
-                if ($session_filter > 0) {
-                    $sql .= " WHERE vs.vbs_sessions_id = ? ";
-                }
-
-                $sql .= " GROUP BY vs.vbs_id ORDER BY vc.vbs_class_desc ASC, c_child.last_name ASC, c_child.first_name ASC";
-
-                $stmt = $db->prepare($sql);
-                if ($session_filter > 0) {
-                    $stmt->bind_param("i", $session_filter);
-                }
+                $stmt->bind_param("ss", $target_date, $target_date);
             }
             
             $stmt->execute();
@@ -195,7 +133,7 @@ try {
             echo json_encode(['success' => true, 'data' => $data]);
             break;
 
-        // SAVE STUDENT
+        // CREATE & UPDATE STUDENT REGISTRATION (Admin Only)
         case 'save_student':
             $vbs_id          = !empty($_POST['vbs_id']) ? intval($_POST['vbs_id']) : null;
             $vbs_sessions_id = intval($_POST['vbs_sessions_id'] ?? 0);
@@ -210,6 +148,7 @@ try {
                 exit;
             }
 
+            // Verify session is active
             $chkSes = $db->prepare("SELECT vbs_sessions_completed FROM vbs_sessions WHERE vbs_sessions_id = ?");
             $chkSes->bind_param("i", $vbs_sessions_id);
             $chkSes->execute();
@@ -248,10 +187,11 @@ try {
             echo json_encode(['success' => true]);
             break;
 
-        // DELETE STUDENT
+        // DELETE STUDENT REGISTRATION (Admin Only)
         case 'delete_student':
             $vbs_id = intval($_POST['vbs_id'] ?? 0);
             
+            // Check session completed status before delete
             $stmtChk = $db->prepare("SELECT vs.vbs_sessions_id, s.vbs_sessions_completed FROM vbs_students vs JOIN vbs_sessions s ON vs.vbs_sessions_id = s.vbs_sessions_id WHERE vs.vbs_id = ?");
             $stmtChk->bind_param("i", $vbs_id);
             $stmtChk->execute();
@@ -267,38 +207,26 @@ try {
             echo json_encode(['success' => true]);
             break;
 
-        // TOGGLE ATTENDANCE
+        // CHECK-IN / CHECK-OUT TOGGLE (Admin Only)
         case 'toggle_attendance':
             $student_id     = intval($_POST['student_id'] ?? 0);
             $vbs_session_id = intval($_POST['vbs_session_id'] ?? 0);
             $att_action     = $_POST['attendance_action'] ?? '';
-            $checkin_date   = !empty($_POST['checkin_date']) ? $_POST['checkin_date'] : null;
+            $checkin_date   = !empty($_POST['checkin_date']) ? $_POST['checkin_date'] : $today;
 
             if (!$student_id || !$vbs_session_id) {
                 echo json_encode(['success' => false, 'message' => 'Invalid Parameters']);
                 exit;
             }
 
-            $chkSes = $db->prepare("SELECT vbs_start_date, vbs_end_date, vbs_sessions_completed FROM vbs_sessions WHERE vbs_sessions_id = ?");
+            // Check session completed status
+            $chkSes = $db->prepare("SELECT vbs_sessions_completed FROM vbs_sessions WHERE vbs_sessions_id = ?");
             $chkSes->bind_param("i", $vbs_session_id);
             $chkSes->execute();
             $sesRes = $chkSes->get_result()->fetch_assoc();
-
             if ($sesRes && intval($sesRes['vbs_sessions_completed']) === 1) {
                 echo json_encode(['success' => false, 'message' => 'Cannot update attendance: session is completed and read-only.']);
                 exit;
-            }
-
-            if (empty($checkin_date)) {
-                $todayStr = date('Y-m-d');
-                $startDate = $sesRes['vbs_start_date'] ?? null;
-                $endDate   = $sesRes['vbs_end_date'] ?? null;
-
-                if ($startDate && $endDate && ($todayStr >= $startDate && $todayStr <= $endDate)) {
-                    $checkin_date = $todayStr;
-                } else {
-                    $checkin_date = $startDate ? $startDate : $todayStr;
-                }
             }
 
             if ($att_action === 'checkin') {
