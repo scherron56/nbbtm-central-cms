@@ -42,6 +42,43 @@ $canEdit = canEdit();
       font-weight: 700;
     }
 
+    /* Compact Select styling for narrow columns */
+    .select-compact {
+      padding-left: 4px;
+      padding-right: 4px;
+      text-overflow: ellipsis;
+    }
+
+    /* Smaller Checkbox Styling */
+    input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: #28089a;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    /* Inline row for household flags */
+    .checkbox-inline-row {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      flex-wrap: wrap;
+      padding: 6px 0;
+    }
+
+    .checkbox-inline-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .checkbox-inline-item label {
+      font-weight: 600;
+      cursor: pointer;
+      margin: 0;
+    }
+
     .alert-box {
       padding: 12px 16px;
       margin-bottom: 20px;
@@ -136,7 +173,7 @@ $(document).ready(function() {
     $('#status-message').fadeOut(200).empty();
   }
 
-  $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+  $('#is_member, #is_baptized, #is_active, #is_head, #is_spouse, #is_child').prop('checked', false);
 
   function formatPhoneNumber(value) {
     if (!value) return '';
@@ -499,17 +536,20 @@ $(document).ready(function() {
           });
         }
 
-        $('#title_id').empty().append($('<option>', { value: '', text: '--Select--' }));
+        // SALUTATION / TITLE POPULATION (Using titleabr for display text)
+        $('#title_id').empty().append($('<option>', { value: '', text: 'Select' }));
         if (data.titles && Array.isArray(data.titles)) {
           $.each(data.titles, function(index, item) {
-            $('#title_id').append($('<option>', { value: item.title_id, text: item.titleabr }));
+            let tVal = item.title_id || item.id || item.titleabr;
+            let tText = item.titleabr || item.title_abbr || item.title || item.title_desc;
+            $('#title_id').append($('<option>', { value: tVal, text: tText }));
           });
         }
 
         $('#marital_status').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.marital && Array.isArray(data.marital)) {
           $.each(data.marital, function(index, item) {
-            let mId = item.marital_id || item.maritial_id || item.marital_status_id;
+            let mId = item.marital_id || item.maritial_id || item.marital_id;
             $('#marital_status').append($('<option>', { value: mId, text: item.marital_status }));
           });
         }
@@ -556,8 +596,10 @@ $(document).ready(function() {
       $('#contact-form')[0].reset();
       $('#contact_id').val('');
       $('#contactID').val('');
+      $('#title_id').val('');
+      $('#n_sufix').val('');
       $('#date_of_death').val('');
-      $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+      $('#is_member, #is_baptized, #is_active, #is_head, #is_spouse, #is_child').prop('checked', false);
       
       $('#state').val(DEFAULT_STATE);
       $('#city').val('');
@@ -580,8 +622,10 @@ $(document).ready(function() {
       if ($('#contact-form').length) {
         $('#contact-form')[0].reset();
         $('#contact_id').val('');
+        $('#title_id').val('');
+        $('#n_sufix').val('');
         $('#date_of_death').val('');
-        $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+        $('#is_member, #is_baptized, #is_active, #is_head, #is_spouse, #is_child').prop('checked', false);
         $('#state').val(DEFAULT_STATE);
         $('#city').val('');
         $('#zipcode').val('');
@@ -608,10 +652,15 @@ $(document).ready(function() {
         let contact = data.contact || {};
 
         $('#contact_id').val(contactid || '');
-        $('#title_id').val(contact.title_id || '');
+        
+        // Robust matching for Title/Salutation across various possible field names
+        let selectedTitle = contact.title_id || contact.title || contact.titleabr || '';
+        $('#title_id').val(selectedTitle);
+
         $('#first_name').val(contact.first_name || '');
         $('#middle_name').val(contact.middle_name || '');
         $('#last_name').val(contact.last_name || '');
+        $('#n_sufix').val(contact.n_sufix || '');
         $('#address_1').val(contact.address_1 || '');
 
         let contactState = contact.state || DEFAULT_STATE;
@@ -637,6 +686,9 @@ $(document).ready(function() {
 
         let isHead = String(contact.is_head) === "1" || contact.is_head === true;
         $('#is_head').prop('checked', isHead);
+
+        let isSpouse = String(contact.is_spouse) === "1" || contact.is_spouse === true;
+        $('#is_spouse').prop('checked', isSpouse);
 
         let isChild = String(contact.is_child) === "1" || contact.is_child === true;
         $('#is_child').prop('checked', isChild);
@@ -817,10 +869,11 @@ $(document).ready(function() {
 
         <input type="hidden" id="contact_id" name="contact_id">
 
-        <div class="field-group" style="--colspan: 2;">
+        <!-- All Name Fields in One 8-Column Row -->
+        <div class="field-group" style="--colspan: 1;">
           <label for="title_id">Salutation</label>
-          <select name="title_id" id="title_id">
-            <option value="">--Select--</option>
+          <select name="title_id" id="title_id" class="select-compact">
+            <option value="">Select</option>
           </select>
         </div>
         <div class="field-group" style="--colspan: 2;">
@@ -835,6 +888,20 @@ $(document).ready(function() {
           <label for="last_name">Last Name</label>
           <input type="text" id="last_name" name="last_name"/>
         </div>
+        <div class="field-group" style="--colspan: 1;">
+          <label for="n_sufix">Suffix</label>
+          <select id="n_sufix" name="n_sufix" class="select-compact">
+            <option value="">None</option>
+            <option value="Jr.">Jr.</option>
+            <option value="Sr.">Sr.</option>
+            <option value="II">II</option>
+            <option value="III">III</option>
+            <option value="IV">IV</option>
+            <option value="PhD">PhD</option>
+            <option value="MD">MD</option>
+          </select>
+        </div>
+
         <div class="field-group" style="--colspan: 2; --rowspan: 1;">
           <label for="date_of_birth">Date of Birth</label>
           <input type="date" id="date_of_birth" name="date_of_birth">
@@ -861,15 +928,26 @@ $(document).ready(function() {
           <label for="anniv_date">Anniversary Date</label>
           <input type="date" id="anniv_date" name="anniv_date" />
         </div>
-        <div class="field-group" style="--colspan: 2; --rowspan: 3;">
-          <label for="is_head">Head of Household</label>
-          <input type="hidden" name="is_head" value="0">
-          <input type="checkbox" id="is_head" name="is_head" value="1">
-        </div>  
-        <div class="field-group" style="--colspan: 2; --rowspan: 3;">
-          <label for="is_child">Child</label>
-          <input type="hidden" name="is_child" value="0">
-          <input type="checkbox" id="is_child" name="is_child" value="1">
+
+        <!-- Household Relationship Checkboxes on Same Row -->
+        <div class="field-group" style="--colspan: 8;">
+          <div class="checkbox-inline-row">
+            <div class="checkbox-inline-item">
+              <input type="hidden" name="is_head" value="0">
+              <input type="checkbox" id="is_head" name="is_head" value="1">
+              <label for="is_head">Head of Household</label>
+            </div>
+            <div class="checkbox-inline-item">
+              <input type="hidden" name="is_spouse" value="0">
+              <input type="checkbox" id="is_spouse" name="is_spouse" value="1">
+              <label for="is_spouse">Spouse</label>
+            </div>
+            <div class="checkbox-inline-item">
+              <input type="hidden" name="is_child" value="0">
+              <input type="checkbox" id="is_child" name="is_child" value="1">
+              <label for="is_child">Child</label>
+            </div>
+          </div>
         </div>
 
         <div class="field-group" style="--colspan: 2;" >
@@ -1027,7 +1105,7 @@ $(document).ready(function() {
               <tbody></tbody>
             </table>
 
-            <label style="font-size: 0.85rem; color: #475569; font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 0.85rem; color: #475569; font-weight: bold; margin-bottom: 5px; display: flex; justify-space-between; align-items: center;">
               Upload New Documents:
               <button type="button" id="btnAddFileRow" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Document</button>
             </label>

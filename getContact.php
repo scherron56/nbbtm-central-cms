@@ -12,8 +12,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/config/db.php';
-require_once __DIR__ . '/include/auth.php';
+require_once 'config/db.php';
+require_once 'include/auth.php';
 
 if (!isset($db) || !($db instanceof mysqli)) {
     http_response_code(500);
@@ -57,7 +57,7 @@ try {
     function getPhoneDesc($db, $typeId) {
         if (empty($typeId)) return '';
         try {
-            $q = $db->prepare("SELECT phone_type_desc FROM phonetype WHERE phone_type_id = ?");
+            $q = $db->prepare("SELECT phone_type_desc FROM phone_type WHERE phone_type_id = ?");
             $q->bind_param("i", $typeId);
             $q->execute();
             $row = $q->get_result()->fetch_assoc();

@@ -1,4 +1,4 @@
-<<?php
+<?php
 // event_dashboard.php
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -124,8 +124,7 @@ require_once __DIR__ . '/include/auth.php';
                         let $supList = $('#dash_support_list').empty();
                         if (data.support_ministries && data.support_ministries.length > 0) {
                             $.each(data.support_ministries, function(i, sm) {
-                                let optBadge = sm.option ? ` &nbsp;<span class="badge badge-secondary">${escapeHtml(sm.option)}</span>` : '';
-                                $supList.append(`<li style="margin-bottom: 4px;"><strong>${escapeHtml(sm.min_comm_name)}</strong>${optBadge}</li>`);
+                                $supList.append(`<li style="margin-bottom: 4px;"><strong>${escapeHtml(sm.min_comm_name)}</strong></li>`);
                             });
                         } else {
                             $supList.append('<li style="color:#64748b;">No collaborative ministries assigned.</li>');

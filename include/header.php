@@ -1,4 +1,4 @@
-<<?php
+<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
         'lifetime' => 86400,
@@ -26,6 +26,7 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
     <h2 class="break-row">Central Management System</h2>
   </div>
 
+  <?php if (empty($hide_menu)): ?>
   <nav class="navbar"> 
     <ul class="nav-links"> 
       <li><a href="index.php" class="<?= in_array($currentPage, ['index.php', 'index1.php']) ? 'active' : '' ?>">Home</a></li> 
@@ -163,6 +164,7 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
       <?php endif; ?>
     </ul>
   </nav>
+  <?php endif; ?>
 </header>
 
 <!-- Sign In Modal -->

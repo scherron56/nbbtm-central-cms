@@ -516,8 +516,7 @@ $canEdit = canEdit();
                   <option value="None">None / Free</option>
                   <option value="Cash">Cash</option>
                   <option value="Check">Check</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Online">Online Transfer</option>
+                  <option value="Givelify">Givelify</option>
                 </select>
               </div>
 

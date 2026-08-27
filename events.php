@@ -63,7 +63,6 @@ $canEdit = canEdit();
       border-radius: 6px;
     }
     .support-min-item { display: flex; flex-direction: column; gap: 6px; }
-    .support-radio-options { margin-left: 24px; display: flex; gap: 15px; font-size: 0.85rem; }
     .auth-box {
       background: #f8fafc;
       border: 1px solid #cbd5e1;
@@ -96,7 +95,6 @@ $canEdit = canEdit();
         const CAN_EDIT = <?php echo $canEdit ? 'true' : 'false'; ?>;
         const TARGET_MIN_IDS = [5000, 5002, 5007, 5008, 5020, 5018];
         const ADMIN_SUPPORT_ID = 5000;
-        const SPECIAL_OPTION_ID = 5020;
 
         let contactsCache = [];
         let eventCategoriesCache = [];
@@ -323,27 +321,17 @@ $canEdit = canEdit();
 
                             if(TARGET_MIN_IDS.includes(mId)) {
                                 let isAdmin = (mId === ADMIN_SUPPORT_ID);
-                                let hasRadioOptions = (mId === SPECIAL_OPTION_ID);
 
                                 let itemHtml = `
                                     <div class="support-min-item">
                                         <label style="font-weight: 600; cursor:pointer;">
                                             <input type="checkbox" name="support_min_ids[]" value="${mId}" data-name="${escapeHtml(m.min_comm_name)}" class="chk-support-min" 
-                                                ${isAdmin ? 'checked onclick="return false;"' : ''} 
-                                                ${hasRadioOptions ? 'data-target="#optionsContainer5020"' : ''}>
+                                                ${isAdmin ? 'checked onclick="return false;"' : ''}>
                                             ${escapeHtml(m.min_comm_name)}
                                         </label>
+                                    </div>
                                 `;
                                 if(isAdmin) itemHtml += `<input type="hidden" name="support_min_ids[]" value="${mId}">`;
-                                if(hasRadioOptions) {
-                                    itemHtml += `
-                                        <div id="optionsContainer5020" class="support-radio-options" style="display:none;">
-                                            <label><input type="radio" name="support_option_${mId}" value="Option A" checked> Option A</label>
-                                            <label><input type="radio" name="support_option_${mId}" value="Option B"> Option B</label>
-                                        </div>
-                                    `;
-                                }
-                                itemHtml += `</div>`;
                                 $supportGrid.append(itemHtml);
                             }
                         });
@@ -427,17 +415,10 @@ $canEdit = canEdit();
                         
                         // Support selections
                         $('.chk-support-min').not('[onclick]').prop('checked', false);
-                        $('#optionsContainer5020').hide();
                         if(data.support_ministries) {
                             $.each(data.support_ministries, function(i, sm) {
                                 let $chk = $(`.chk-support-min[value="${sm.min_comm_id}"]`);
                                 $chk.prop('checked', true);
-                                if(sm.option) {
-                                    $(`input[name="support_option_${sm.min_comm_id}"][value="${sm.option}"]`).prop('checked', true);
-                                    if(parseInt(sm.min_comm_id) === SPECIAL_OPTION_ID) {
-                                        $('#optionsContainer5020').show();
-                                    }
-                                }
                             });
                         }
                         refreshSignoffCheckboxes();
@@ -686,7 +667,6 @@ $canEdit = canEdit();
                 $('#prg_evnt_id').val('');
                 $('#fee_container').hide();
                 $('.chk-support-min').not('[onclick]').prop('checked', false);
-                $('#optionsContainer5020').hide();
                 $('.chk-signoff').prop('checked', false);
                 $('#signoff_contact_label').html('<strong>Signed by Primary Contact</strong>');
                 refreshSignoffCheckboxes();

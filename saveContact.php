@@ -9,12 +9,10 @@ header('Content-Type: application/json; charset=utf-8');
 require_once 'config/db.php';
 require_once 'include/auth.php';
 
-// Fallback if db.php defines $conn instead of $db
 if (!isset($db) && isset($conn)) {
     $db = $conn;
 }
 
-// Enforce admin privileges
 requireAdmin();
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
@@ -23,7 +21,6 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
-// Check for single attachment deletion action
 if (isset($_POST['action']) && $_POST['action'] === 'delete_attachment') {
     $attachmentId = (int)($_POST['attachment_id'] ?? 0);
     $stmt = $db->prepare("DELETE FROM app_attachments WHERE attachment_id = ? AND entity_type = 'contact'");
@@ -78,6 +75,7 @@ $contact_id     = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : 
 $title_id       = !empty($_POST['title_id']) ? intval($_POST['title_id']) : null;
 $first_name     = trim($_POST['first_name'] ?? '');
 $middle_name    = trim($_POST['middle_name'] ?? '');
+$n_sufix        = trim($_POST['n_sufix'] ?? '');
 $last_name      = trim($_POST['last_name'] ?? '');
 
 $date_of_birth  = sanitizeDate($_POST['date_of_birth'] ?? null);
@@ -133,7 +131,7 @@ try {
         $assigned_family = ($is_head === 1) ? $contact_id : $family_id;
 
         $stmt = $db->prepare("UPDATE contacts SET 
-            family_id = ?, title_id = ?, first_name = ?, middle_name = ?, last_name = ?, date_of_birth = ?, 
+            family_id = ?, title_id = ?, first_name = ?, middle_name = ?, n_sufix = ?, last_name = ?, date_of_birth = ?, 
             date_of_death = ?, is_deceased = ?, gender = ?, address_1 = ?, city = ?, state = ?, zipcode = ?, 
             phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
             emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
@@ -141,8 +139,8 @@ try {
             join_date = ?, baptized_date = ?, is_child = ?, is_head = ?, is_active = ?
             WHERE contact_id = ?");
 
-        $stmt->bind_param("iisssssissssssisissisiisissiiii", 
-            $assigned_family, $title_id, $first_name, $middle_name, $last_name, $date_of_birth,
+        $stmt->bind_param("iissssssissssssisissisiisissiiii", 
+            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth,
             $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $emergency_contact, $phone_3, $phone_3_type, $c_email,
@@ -156,16 +154,16 @@ try {
         $assigned_family = ($is_head === 1) ? null : $family_id;
 
         $stmt = $db->prepare("INSERT INTO contacts (
-            family_id, title_id, first_name, middle_name, last_name, date_of_birth, date_of_death, is_deceased,
+            family_id, title_id, first_name, middle_name, n_sufix, last_name, date_of_birth, date_of_death, is_deceased,
             gender, address_1, city, state, zipcode, 
             phone_1, phone_1_type, phone_2, phone_2_type, 
             emergency_contact, phone_3, phone_3_type, c_email, 
             is_member, is_baptized, anniv_date, marital_status, 
             join_date, baptized_date, is_child, is_head, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("iisssssissssssisissisiisissiii", 
-            $assigned_family, $title_id, $first_name, $middle_name, $last_name, $date_of_birth, $date_of_death, $is_deceased,
+        $stmt->bind_param("iissssssissssssisissisiisissiii", 
+            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, $date_of_death, $is_deceased,
             $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $emergency_contact, $phone_3, $phone_3_type, $c_email,
@@ -252,7 +250,7 @@ try {
     echo json_encode([
         "status" => "success", 
         "message" => "Contact saved successfully.",
-        "id" => $contact_id
+        "contact_id" => $contact_id
     ]);
 
 } catch (Exception $e) {
@@ -264,4 +262,3 @@ try {
 if (isset($db) && $db instanceof mysqli) {
     mysqli_close($db);
 }
-?>
