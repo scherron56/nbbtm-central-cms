@@ -113,27 +113,39 @@ try {
         } catch (Throwable $ignored) {}
     }
 
-    // 7. Ministry & Committee List
+    // 7. Ministry & Committee List (Unified with safe group type joins)
     $ministryList = [];
     try {
         $minRes = $db->query("
-            SELECT mc.min_comm_id, mc.min_comm_type_id, mc.min_comm_name, 
-                   COALESCE(mgt.min_grp_type_desc, 'Operations') AS min_grp_type_desc 
+            SELECT 
+                mc.min_comm_id, 
+                mc.min_comm_name, 
+                mc.min_comm_type_id,
+                COALESCE(NULLIF(gt.min_grp_type_desc, ''), 'General Associations') AS min_grp_type_desc
             FROM ministry_committee mc
-            LEFT JOIN ministry_group_types mgt ON mc.min_comm_type_id = mgt.min_grp_type_id
-            ORDER BY min_grp_type_desc,mc.min_comm_name ASC
+            LEFT JOIN min_group_type gt ON mc.min_comm_type_id = gt.min_grp_type_id
+            ORDER BY min_grp_type_desc ASC, mc.min_comm_name ASC
         ");
-        if ($minRes) { $ministryList = $minRes->fetch_all(MYSQLI_ASSOC); $minRes->free(); }
+        if ($minRes) { 
+            $ministryList = $minRes->fetch_all(MYSQLI_ASSOC); 
+            $minRes->free(); 
+        }
     } catch (Throwable $e) {
         try {
             $minRes = $db->query("
-                SELECT mc.min_comm_id, mc.min_comm_type_id, mc.min_comm_name, 
-                       COALESCE(mgt.min_grp_type_desc, 'General') AS min_grp_type_desc 
+                SELECT 
+                    mc.min_comm_id, 
+                    mc.min_comm_name, 
+                    mc.min_comm_type_id,
+                    COALESCE(NULLIF(mgt.min_grp_type_desc, ''), 'General Associations') AS min_grp_type_desc
                 FROM ministry_committee mc
-                LEFT JOIN min_group_type mgt ON mc.min_comm_type_id = mgt.min_grp_type_id
-                ORDER BY min_grp_type_desc,mc.min_comm_name ASC
+                LEFT JOIN ministry_group_types mgt ON mc.min_comm_type_id = mgt.min_grp_type_id
+                ORDER BY min_grp_type_desc ASC, mc.min_comm_name ASC
             ");
-            if ($minRes) { $ministryList = $minRes->fetch_all(MYSQLI_ASSOC); $minRes->free(); }
+            if ($minRes) { 
+                $ministryList = $minRes->fetch_all(MYSQLI_ASSOC); 
+                $minRes->free(); 
+            }
         } catch (Throwable $ignored) {}
     }
 

@@ -1,16 +1,14 @@
 <?php
-// Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400, // 24 Hours
-        'path'     => '/',   // Root path ensures session spans all sub-folders
+        'lifetime' => 86400,
+        'path'     => '/',
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
     session_start();
 }
 
-// Require auth helper
 require_once __DIR__ . '/include/auth.php';
 $canEdit = canEdit();
 ?>
@@ -23,117 +21,91 @@ $canEdit = canEdit();
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .fieldset-relative {
-      position: relative;
-      padding-top: 35px !important;
-    }
-    
-    .top-right-member {
-      position: absolute;
-      top: 10px;
-      right: 20px;
+    .fieldset-relative { position: relative; padding-top: 35px !important; }
+    .top-right-member { position: absolute; top: 10px; right: 20px; display: flex; align-items: center; gap: 6px; z-index: 10; }
+    .top-right-member label { font-weight: 700; }
+    .select-compact { padding-left: 4px; padding-right: 4px; text-overflow: ellipsis; }
+    input[type="checkbox"] { width: 14px; height: 14px; accent-color: #28089a; cursor: pointer; vertical-align: middle; }
+    .checkbox-inline-row { display: flex; align-items: center; gap: 25px; flex-wrap: wrap; padding: 6px 0; }
+    .checkbox-inline-item { display: flex; align-items: center; gap: 6px; }
+    .checkbox-inline-item label { font-weight: 600; cursor: pointer; margin: 0; }
+    .alert-box { padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; font-weight: 500; font-size: 0.95rem; transition: all 0.3s ease; display: none; }
+    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+    .read-only-banner { background-color: #f1f5f9; border-left: 4px solid #0ea5e9; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #334155; }
+    .doc-management-box { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 14px; margin-top: 10px; }
+    .file-upload-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .attachment-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .attachment-table th, .attachment-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
+    .attachment-table th { background: #f1f5f9; }
+
+    /* Single Row Layout for Census Information */
+    .census-row-container {
       display: flex;
       align-items: center;
-      gap: 6px;
-      z-index: 10;
-    }
-
-    .top-right-member label {
-      font-weight: 700;
-    }
-
-    /* Compact Select styling for narrow columns */
-    .select-compact {
-      padding-left: 4px;
-      padding-right: 4px;
-      text-overflow: ellipsis;
-    }
-
-    /* Smaller Checkbox Styling */
-    input[type="checkbox"] {
-      width: 14px;
-      height: 14px;
-      accent-color: #28089a;
-      cursor: pointer;
-      vertical-align: middle;
-    }
-
-    /* Inline row for household flags */
-    .checkbox-inline-row {
-      display: flex;
-      align-items: center;
-      gap: 25px;
+      gap: 16px;
       flex-wrap: wrap;
-      padding: 6px 0;
+      margin-bottom: 15px;
     }
-
-    .checkbox-inline-item {
+    .census-item {
       display: flex;
       align-items: center;
       gap: 6px;
     }
-
-    .checkbox-inline-item label {
+    .census-item label {
       font-weight: 600;
-      cursor: pointer;
       margin: 0;
     }
 
-    .alert-box {
-      padding: 12px 16px;
-      margin-bottom: 20px;
+    /* Two-Column Layout for Associations */
+    #checkbox-container {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 20px;
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #cbd5e1;
       border-radius: 6px;
-      font-weight: 500;
-      font-size: 0.95rem;
-      transition: all 0.3s ease;
-      display: none;
     }
-    .alert-success {
-      background-color: #d1fae5;
-      border: 1px solid #6ee7b7;
-      color: #065f46;
-    }
-    .alert-error {
-      background-color: #fee2e2;
-      border: 1px solid #fca5a5;
-      color: #991b1b;
-    }
-    .read-only-banner {
-      background-color: #f1f5f9;
-      border-left: 4px solid #0ea5e9;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-      color: #334155;
-    }
-    .doc-management-box {
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1;
-      border-radius: 6px;
-      padding: 14px;
+    #checkbox-container h3 {
+      grid-column: 1 / -1;
+      color: #28089a;
       margin-top: 10px;
+      margin-bottom: 6px;
+      border-bottom: 2px solid #cbd5e1;
+      padding-bottom: 4px;
+      font-size: 1.1rem;
     }
-    .file-upload-row {
+    .ministry-card {
       display: flex;
-      gap: 10px;
       align-items: center;
-      margin-bottom: 8px;
-    }
-    .attachment-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-    }
-    .attachment-table th, .attachment-table td {
+      justify-content: space-between;
+      background: #f8fafc;
       border: 1px solid #e2e8f0;
-      padding: 6px 10px;
-      text-align: left;
+      padding: 8px 12px;
+      border-radius: 6px;
+      gap: 10px;
+    }
+    .ministry-card label {
+      font-weight: 500;
+      cursor: pointer;
+      margin: 0;
+      flex: 1;
       font-size: 0.9rem;
     }
-    .attachment-table th { background: #f1f5f9; }
+    .ministry-card select {
+      max-width: 140px;
+      padding: 4px;
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      #checkbox-container {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <script>
 $(document).ready(function() {
@@ -173,23 +145,45 @@ $(document).ready(function() {
     $('#status-message').fadeOut(200).empty();
   }
 
-  $('#is_member, #is_baptized, #is_active, #is_head, #is_spouse, #is_child').prop('checked', false);
+  // Toggle Visibility for Deceased Date
+  function toggleDeceasedField() {
+    if ($('#is_deceased').is(':checked')) {
+      $('#date_of_death_wrap').show();
+    } else {
+      $('#date_of_death_wrap').hide();
+      $('#date_of_death').val('');
+    }
+  }
+
+  // Toggle Visibility for Dedicated Date & Baptized Date
+  function toggleCensusConditionalFields() {
+    if ($('#is_dedicated').is(':checked')) {
+      $('#dedication_date_wrap').show();
+    } else {
+      $('#dedication_date_wrap').hide();
+      $('#dedication_date').val('');
+    }
+
+    if ($('#is_baptized').is(':checked')) {
+      $('#baptized_date_wrap').show();
+    } else {
+      $('#baptized_date_wrap').hide();
+      $('#baptized_date').val('');
+    }
+  }
+
+  $('#is_deceased').change(toggleDeceasedField);
+  $('#is_dedicated, #is_baptized').change(toggleCensusConditionalFields);
+
+  $('#is_member, #is_baptized, #is_dedicated, #is_active, #is_head, #is_spouse, #is_child, #is_deceased').prop('checked', false);
 
   function formatPhoneNumber(value) {
     if (!value) return '';
     let digits = String(value).replace(/\D/g, '');
-    if (digits.length === 10) {
-      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-    }
-    if (digits.length > 6) {
-      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
-    }
-    if (digits.length > 3) {
-      return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
-    }
-    if (digits.length > 0) {
-      return `(${digits}`;
-    }
+    if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    if (digits.length > 6) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
+    if (digits.length > 3) return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+    if (digits.length > 0) return `(${digits}`;
     return '';
   }
 
@@ -202,7 +196,6 @@ $(document).ready(function() {
     this.setSelectionRange(cursorPosition, cursorPosition);
   });
 
-  // --- DOCUMENT CATEGORIES & MULTI-ROW UPLOAD LOGIC ---
   function loadContactCategories() {
     $.ajax({
       url: 'category_api.php',
@@ -315,7 +308,6 @@ $(document).ready(function() {
     populateCategoryDropdowns();
   }
 
-  // --- MULTI-STATE & CITY/ZIP POPULATION LOGIC ---
   function populateCities(stateCode, selectedCity = '', callback = null) {
     let $cityDropdown = $('#city');
     $cityDropdown.empty().append($('<option>', { value: '', text: '--Loading Cities...--' }));
@@ -352,7 +344,6 @@ $(document).ready(function() {
   $('#city').on('change', function() {
     let city = $(this).val();
     let state = $('#state').val();
-
     if (city && state) {
       $.getJSON('lookupZip.php', { action: 'getZip', city: city, state: state }, function(res) {
         if (res.status === 'success' && res.found) {
@@ -369,7 +360,6 @@ $(document).ready(function() {
         if (res.status === 'success' && res.found) {
           let stateCode = res.data.state_code;
           let cityName = res.data.city;
-
           $('#state').val(stateCode);
           populateCities(stateCode, cityName);
         }
@@ -394,6 +384,10 @@ $(document).ready(function() {
     if (ministryList && ministryList.length > 0) {
       let groupedMinistries = {};
 
+      // Sort full list alphabetically by committee name first
+      ministryList.sort((a, b) => a.min_comm_name.localeCompare(b.min_comm_name));
+
+      // Group elements by their committee type description
       $.each(ministryList, function(index, item) {
         let typeId = item.min_comm_type_id || 0;
         if (!groupedMinistries[typeId]) {
@@ -405,16 +399,9 @@ $(document).ready(function() {
         groupedMinistries[typeId].items.push(item);
       });
 
+      // Render grouped sections inside the two-column grid layout
       $.each(groupedMinistries, function(typeId, groupData) {
-        let groupHeader = $('<h3>').css({
-          'grid-column': '1 / -1',
-          'color': '#28089a',
-          'margin-top': '18px',
-          'margin-bottom': '6px',
-          'border-bottom': '2px solid #cbd5e1',
-          'padding-bottom': '4px'
-        }).text(groupData.typeDesc);
-
+        let groupHeader = $('<h3>').text(groupData.typeDesc);
         $('#checkbox-container').append(groupHeader);
 
         $.each(groupData.items, function(index, item) {
@@ -433,14 +420,17 @@ $(document).ready(function() {
             value: item.min_comm_id
           }).prop('checked', isChecked);
           
-          const label = $('<label>').attr('for', checkboxId).text(' ' + item.min_comm_name);
-          const rowDiv = $('<div>').addClass('ministry-card').css('margin-bottom', '10px');
-          rowDiv.append(checkbox).append(label).append(' ');
+          const label = $('<label>').attr('for', checkboxId).text(item.min_comm_name);
+          const rowDiv = $('<div>').addClass('ministry-card');
+          
+          let leftWrapper = $('<div>').css({ 'display': 'flex', 'align-items': 'center', 'gap': '8px', 'flex': '1' });
+          leftWrapper.append(checkbox).append(label);
+          rowDiv.append(leftWrapper);
 
           const roleSelect = $('<select>').attr({
             id: 'role_id_' + item.min_comm_id, 
             name: 'roles[' + item.min_comm_id + ']'
-          });
+          }).addClass('form-control');
           
           roleSelect.append($('<option>').val('').text('--Select Role--'));
 
@@ -536,7 +526,6 @@ $(document).ready(function() {
           });
         }
 
-        // SALUTATION / TITLE POPULATION (Using titleabr for display text)
         $('#title_id').empty().append($('<option>', { value: '', text: 'Select' }));
         if (data.titles && Array.isArray(data.titles)) {
           $.each(data.titles, function(index, item) {
@@ -576,9 +565,7 @@ $(document).ready(function() {
           buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
         }
 
-        if (typeof callback === 'function') {
-          callback();
-        }
+        if (typeof callback === 'function') callback();
       },
       error: function(xhr, status, error) {
         showStatusMessage("Error loading dropdown data.", 'error');
@@ -599,8 +586,12 @@ $(document).ready(function() {
       $('#title_id').val('');
       $('#n_sufix').val('');
       $('#date_of_death').val('');
-      $('#is_member, #is_baptized, #is_active, #is_head, #is_spouse, #is_child').prop('checked', false);
+      $('#dedication_date').val('');
+      $('#is_member, #is_baptized, #is_dedicated, #is_active, #is_head, #is_spouse, #is_child, #is_deceased').prop('checked', false);
       
+      toggleDeceasedField();
+      toggleCensusConditionalFields();
+
       $('#state').val(DEFAULT_STATE);
       $('#city').val('');
       $('#zipcode').val('');
@@ -625,7 +616,10 @@ $(document).ready(function() {
         $('#title_id').val('');
         $('#n_sufix').val('');
         $('#date_of_death').val('');
-        $('#is_member, #is_baptized, #is_active, #is_head, #is_spouse, #is_child').prop('checked', false);
+        $('#dedication_date').val('');
+        $('#is_member, #is_baptized, #is_dedicated, #is_active, #is_head, #is_spouse, #is_child, #is_deceased').prop('checked', false);
+        toggleDeceasedField();
+        toggleCensusConditionalFields();
         $('#state').val(DEFAULT_STATE);
         $('#city').val('');
         $('#zipcode').val('');
@@ -652,8 +646,6 @@ $(document).ready(function() {
         let contact = data.contact || {};
 
         $('#contact_id').val(contactid || '');
-        
-        // Robust matching for Title/Salutation across various possible field names
         let selectedTitle = contact.title_id || contact.title || contact.titleabr || '';
         $('#title_id').val(selectedTitle);
 
@@ -670,6 +662,9 @@ $(document).ready(function() {
         $('#zipcode').val(contact.zipcode || '');
         $('#date_of_birth').val(contact.date_of_birth || '');
         $('#date_of_death').val(contact.date_of_death || '');
+        $('#is_deceased').prop('checked', String(contact.is_deceased) === "1" || contact.is_deceased === true);
+        toggleDeceasedField();
+
         $('#gender').val(contact.gender || '');
         $('#marital_status').val(contact.marital_status || '');
         $('#anniv_date').val(contact.anniv_date || '');
@@ -681,8 +676,16 @@ $(document).ready(function() {
         $('#phone_2_type').val(contact.phone_2_type || '');
         $('#phone_3_type').val(contact.phone_3_type || '');
         $('#c_email').val(contact.c_email || '');
+        
+        // Census information values
         $('#join_date').val(contact.join_date || '');
         $('#baptized_date').val(contact.baptized_date || '');
+        $('#dedication_date').val(contact.dedication_date || '');
+        
+        $('#is_dedicated').prop('checked', String(contact.is_dedicated) === "1" || contact.is_dedicated === true);
+        $('#is_baptized').prop('checked', String(contact.is_baptized) === "1" || contact.is_baptized === true);
+        $('#is_active').prop('checked', String(contact.is_active) === "1" || contact.is_active === true);
+        toggleCensusConditionalFields();
 
         let isHead = String(contact.is_head) === "1" || contact.is_head === true;
         $('#is_head').prop('checked', isHead);
@@ -698,9 +701,6 @@ $(document).ready(function() {
         } else {
           $('#family_id').val(data.family_id || '');
         }
-
-        $('#is_baptized').prop('checked', String(contact.is_baptized) === "1" || contact.is_baptized === true);
-        $('#is_active').prop('checked', String(contact.is_active) === "1" || contact.is_active === true);
 
         let isMember = String(contact.is_member) === "1" || contact.is_member === true;
         $('#is_member').prop('checked', isMember);
@@ -722,7 +722,6 @@ $(document).ready(function() {
     });
   });
 
-  // Save handler with FormData for file uploads
   $('#contact-form').on('submit', function(e) {
     e.preventDefault();
     if (!CAN_EDIT) return;
@@ -742,7 +741,7 @@ $(document).ready(function() {
       success: function(response) {
         if (response.status === 'success') {
           showStatusMessage(response.message, 'success');
-          let savedId = response.id;
+          let savedId = response.contact_id || response.id;
           
           updateFormLists(function() {
             if (savedId) {
@@ -869,7 +868,6 @@ $(document).ready(function() {
 
         <input type="hidden" id="contact_id" name="contact_id">
 
-        <!-- All Name Fields in One 8-Column Row -->
         <div class="field-group" style="--colspan: 1;">
           <label for="title_id">Salutation</label>
           <select name="title_id" id="title_id" class="select-compact">
@@ -906,10 +904,20 @@ $(document).ready(function() {
           <label for="date_of_birth">Date of Birth</label>
           <input type="date" id="date_of_birth" name="date_of_birth">
         </div>
-        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
-          <label for="date_of_death">Deceased Date</label>
+
+        <!-- Deceased Checkbox -->
+        <div class="field-group" style="--colspan: 2; display: flex; align-items: center; gap: 6px; margin-top: 20px;">
+          <input type="hidden" name="is_deceased" value="0">
+          <input type="checkbox" id="is_deceased" name="is_deceased" value="1">
+          <label for="is_deceased" style="font-weight: 600; cursor: pointer;">Deceased</label>
+        </div>
+
+        <!-- Date of Death (Conditionally displayed) -->
+        <div class="field-group" id="date_of_death_wrap" style="--colspan: 2; --rowspan: 1; display: none;">
+          <label for="date_of_death">Date of Death</label>
           <input type="date" id="date_of_death" name="date_of_death">
         </div>
+
         <div class="field-group" style="--colspan: 2;">
           <label for="gender">Gender</label>
           <select id="gender" name="gender" size="1">
@@ -929,7 +937,6 @@ $(document).ready(function() {
           <input type="date" id="anniv_date" name="anniv_date" />
         </div>
 
-        <!-- Household Relationship Checkboxes on Same Row -->
         <div class="field-group" style="--colspan: 8;">
           <div class="checkbox-inline-row">
             <div class="checkbox-inline-item">
@@ -1059,35 +1066,49 @@ $(document).ready(function() {
         </div>
       </fieldset>
 
-      <!-- MEMBERSHIP INFORMATION FIELDSET (Includes Document Uploads) -->
-      <fieldset id="membership-section" class="form-grid-section-70">
+      <!-- RENAMED: NEW BEGINNINGS CENSUS INFORMATION FIELDSET -->
+      <fieldset id="membership-section">
         <legend>
-          <h2>Membership Information</h2>
+          <h2>New Beginnings Census Information</h2>
         </legend>
-        <div class="field-group" style="--colspan: 1;">
-          <label for="is_baptized">Baptized</label>
-          <input type="hidden" name="is_baptized" value="0">
-          <input type="checkbox" id="is_baptized" name="is_baptized" value="1">
-        </div> 
         
-        <div class="field-group" style="--colspan: 2;">
-          <label for="baptized_date">Date Baptized</label>
-          <input type="date" id="baptized_date" name="baptized_date">
-        </div>
-        
-        <div class="field-group" style="--colspan: 2;">
-          <label for="join_date">Date Joined</label>
-          <input type="date" id="join_date" name="join_date">
-        </div>
-        
-        <div class="field-group" style="--colspan: 1; --rowspan: 1;">
-          <label for="is_active">Active</label>
-          <input type="hidden" name="is_active" value="0">
-          <input type="checkbox" id="is_active" name="is_active" value="1">
+        <div class="census-row-container">
+          <div class="census-item">
+            <input type="hidden" name="is_active" value="0">
+            <input type="checkbox" id="is_active" name="is_active" value="1">
+            <label for="is_active">Active</label>
+          </div>
+
+          <div class="census-item">
+            <input type="hidden" name="is_dedicated" value="0">
+            <input type="checkbox" id="is_dedicated" name="is_dedicated" value="1">
+            <label for="is_dedicated">Dedicated</label>
+          </div>
+
+          <div class="census-item" id="dedication_date_wrap" style="display: none;">
+            <label for="dedication_date">Dedication Date</label>
+            <input type="date" id="dedication_date" name="dedication_date">
+          </div>
+
+          <div class="census-item">
+            <input type="hidden" name="is_baptized" value="0">
+            <input type="checkbox" id="is_baptized" name="is_baptized" value="1">
+            <label for="is_baptized">Baptized</label>
+          </div> 
+          
+          <div class="census-item" id="baptized_date_wrap" style="display: none;">
+            <label for="baptized_date">Baptism Date</label>
+            <input type="date" id="baptized_date" name="baptized_date">
+          </div>
+          
+          <div class="census-item">
+            <label for="join_date">Date Joined</label>
+            <input type="date" id="join_date" name="join_date">
+          </div>
         </div>
 
         <!-- CONTACT DOCUMENTS SUB-SECTION -->
-        <div class="field-group" style="grid-column: 1 / -1;">
+        <div class="field-group" style="grid-column: 1 / -1; margin-top: 15px;">
           <label><strong>Important Contact Documents:</strong></label>
           <div class="doc-management-box">
             <label style="font-size: 0.85rem; color: #475569; font-weight: bold; margin-bottom: 5px; display: block;">Uploaded Documents:</label>
@@ -1122,10 +1143,10 @@ $(document).ready(function() {
         </div>
       </fieldset>
 
-      <!-- DYNAMIC MINISTRY ALLIANCES AREA -->
+      <!-- ASSOCIATIONS FIELDSET -->
       <fieldset id="ministry-section">
         <legend>
-          <h2>Ministry/Committee Associations</h2>
+          <h2>Associations</h2>
         </legend>
         <div id="checkbox-container"></div>
       </fieldset>

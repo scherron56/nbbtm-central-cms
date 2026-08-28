@@ -338,7 +338,6 @@ require_once __DIR__ . '/include/auth.php';
               <tr>
                 <th>Name</th>
                 <th>Household Role</th>
-                <th>Membership</th>
                 <th style="text-align: right;">Action</th>
               </tr>
             </thead>
@@ -351,16 +350,18 @@ require_once __DIR__ . '/include/auth.php';
           let mName = `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'N/A';
           
           let roleTag = 'Family Member';
-          if (String(m.is_head) === "1") roleTag = 'Head of Household';
-          else if (String(m.is_child) === "1") roleTag = 'Child';
-
-          let isMem = String(m.is_member) === "1";
+          if (String(m.is_head) === "1") {
+            roleTag = 'Head of Household';
+          } else if (String(m.is_spouse) === "1") {
+            roleTag = 'Spouse';
+          } else if (String(m.is_child) === "1") {
+            roleTag = 'Child';
+          }
 
           tbody.append(`
             <tr>
               <td><strong>${mName}</strong></td>
               <td><span class="status-badge badge-secondary">${roleTag}</span></td>
-              <td><span class="status-badge ${isMem ? 'badge-success' : 'badge-secondary'}">${isMem ? 'Member' : 'Non-Member'}</span></td>
               <td style="text-align: right;">
                 <button type="button" class="btn-switch-family" data-id="${m.contact_id}">
                   View Dashboard
@@ -413,7 +414,7 @@ require_once __DIR__ . '/include/auth.php';
         });
 
         $.each(grouped, function(groupName, items) {
-          container.append(`<div class="ministry-group-header">${groupName}</div>`);
+          container.append(`<div class="ministry-group-header"><strong>${groupName}</strong></div>`);
 
           let table = $(`
             <table class="data-table">
@@ -432,7 +433,7 @@ require_once __DIR__ . '/include/auth.php';
           $.each(items, function(i, item) {
             tbody.append(`
               <tr>
-                <td><strong>${item.name}</strong></td>
+                <td>${item.name}</td>
                 <td>${item.role}</td>
                 <td><span class="status-badge ${item.status === 'Active' ? 'badge-success' : 'badge-secondary'}">${item.status}</span></td>
               </tr>

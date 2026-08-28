@@ -40,6 +40,19 @@ try {
         exit;
     }
 
+    // Fetch is_spouse from Families table
+    $contact['is_spouse'] = 0;
+    try {
+        $famStmt = $db->prepare("SELECT is_spouse FROM Families WHERE contact_id = ? LIMIT 1");
+        $famStmt->bind_param("i", $contactId);
+        $famStmt->execute();
+        $famRes = $famStmt->get_result()->fetch_assoc();
+        if ($famRes && isset($famRes['is_spouse'])) {
+            $contact['is_spouse'] = $famRes['is_spouse'];
+        }
+        $famStmt->close();
+    } catch (Throwable $e) {}
+
     // 2. Fetch Marital Description Safely
     $contact['marital_status_desc'] = '';
     if (!empty($contact['marital_status'])) {
@@ -53,7 +66,7 @@ try {
         } catch (Throwable $e) {}
     }
 
-    // 3. Safe Helper for Phone Types
+    // 3. Phone Types Helper
     function getPhoneDesc($db, $typeId) {
         if (empty($typeId)) return '';
         try {
@@ -64,16 +77,7 @@ try {
             $q->close();
             return $row['phone_type_desc'] ?? '';
         } catch (Throwable $e) {
-            try {
-                $q = $db->prepare("SELECT phone_type_desc FROM phone_type WHERE phone_type_id = ?");
-                $q->bind_param("i", $typeId);
-                $q->execute();
-                $row = $q->get_result()->fetch_assoc();
-                $q->close();
-                return $row['phone_type_desc'] ?? '';
-            } catch (Throwable $e2) {
-                return '';
-            }
+            return '';
         }
     }
 
@@ -81,18 +85,40 @@ try {
     $contact['phone_2_type_desc'] = getPhoneDesc($db, $contact['phone_2_type'] ?? null);
     $contact['phone_3_type_desc'] = getPhoneDesc($db, $contact['phone_3_type'] ?? null);
 
-    // 4. Fetch Family Members
-    $familyId = $contact['family_id'] ?? null;
+    // 4. Fetch Family Members (Using the Families table for household grouping)
+    $familyId = null;
     $familyMembers = [];
-    if (!empty($familyId)) {
-        try {
-            $fStmt = $db->prepare("SELECT contact_id, first_name, last_name, is_head, is_child, is_member FROM contacts WHERE family_id = ? ORDER BY is_head DESC, first_name ASC");
+    try {
+        // Get the family_id for the current contact from the Families table
+        $famCheck = $db->prepare("SELECT family_id FROM Families WHERE contact_id = ? LIMIT 1");
+        $famCheck->bind_param("i", $contactId);
+        $famCheck->execute();
+        $famResData = $famCheck->get_result()->fetch_assoc();
+        $famCheck->close();
+
+        $familyId = $famResData['family_id'] ?? null;
+
+        if (!empty($familyId)) {
+            $fStmt = $db->prepare("
+                SELECT 
+                    c.contact_id, 
+                    c.first_name, 
+                    c.last_name, 
+                    c.is_member,
+                    c.is_head, 
+                    famRes.is_spouse, 
+                    c.is_child 
+                FROM Families famRes
+                JOIN contacts c ON famRes.contact_id = c.contact_id
+                WHERE famRes.family_id = ? 
+                ORDER BY c.is_head DESC, famRes.is_spouse DESC, c.first_name ASC
+            ");
             $fStmt->bind_param("i", $familyId);
             $fStmt->execute();
             $familyMembers = $fStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $fStmt->close();
-        } catch (Throwable $e) {}
-    }
+        }
+    } catch (Throwable $e) {}
 
     // 5. Fetch Ministry Involvements
     $ministries = [];
@@ -104,20 +130,35 @@ try {
         $mStmt->close();
     } catch (Throwable $e) {}
 
-    // 6. Lookups
+    // 6. Lookups (Joined with min_group_type table and sorted)
     $minList = [];
     try {
-        $minRes = $db->query("SELECT min_comm_id, min_comm_name, min_comm_type_id FROM ministry_committee ORDER BY min_comm_name ASC");
-        if ($minRes) { $minList = $minRes->fetch_all(MYSQLI_ASSOC); $minRes->free(); }
+        $minRes = $db->query("
+            SELECT 
+                mc.min_comm_id, 
+                mc.min_comm_name, 
+                mc.min_comm_type_id,
+                COALESCE(NULLIF(gt.min_grp_type_desc, ''), 'General Associations') AS min_grp_type_desc
+            FROM ministry_committee mc
+            LEFT JOIN min_group_type gt ON mc.min_comm_type_id = gt.min_grp_type_id
+            ORDER BY min_grp_type_desc ASC, mc.min_comm_name ASC
+        ");
+        if ($minRes) { 
+            $minList = $minRes->fetch_all(MYSQLI_ASSOC); 
+            $minRes->free(); 
+        }
     } catch (Throwable $e) {}
 
     $roleList = [];
     try {
         $roleRes = $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc ASC");
-        if ($roleRes) { $roleList = $roleRes->fetch_all(MYSQLI_ASSOC); $roleRes->free(); }
+        if ($roleRes) { 
+            $roleList = $roleRes->fetch_all(MYSQLI_ASSOC); 
+            $roleRes->free(); 
+        }
     } catch (Throwable $e) {}
 
-    // 7. Fetch Attachments from app_attachments
+    // 7. Fetch Attachments
     $attachments = [];
     try {
         $attStmt = $db->prepare("

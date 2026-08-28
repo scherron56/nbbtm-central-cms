@@ -70,28 +70,32 @@ function sanitizeDate($val) {
     return null;
 }
 
-// 1. Collect & Sanitize Form Input Data
-$contact_id     = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : null;
+// 1. Collect & Sanitize Form Inputs
+$contact_id     = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : 3015;
 $title_id       = !empty($_POST['title_id']) ? intval($_POST['title_id']) : null;
 $first_name     = trim($_POST['first_name'] ?? '');
 $middle_name    = trim($_POST['middle_name'] ?? '');
 $n_sufix        = trim($_POST['n_sufix'] ?? '');
 $last_name      = trim($_POST['last_name'] ?? '');
 
-$date_of_birth  = sanitizeDate($_POST['date_of_birth'] ?? null);
-$date_of_death  = sanitizeDate($_POST['date_of_death'] ?? null);
-$is_deceased    = ($date_of_death !== null) ? 1 : 0;
-$anniv_date     = sanitizeDate($_POST['anniv_date'] ?? null);
-$join_date      = sanitizeDate($_POST['join_date'] ?? null);
-$baptized_date  = sanitizeDate($_POST['baptized_date'] ?? null);
+$date_of_birth   = sanitizeDate($_POST['date_of_birth'] ?? null);
+$is_deceased     = isset($_POST['is_deceased']) ? intval($_POST['is_deceased']) : 0;
+$date_of_death   = ($is_deceased === 1) ? sanitizeDate($_POST['date_of_death'] ?? null) : null;
+
+$anniv_date      = sanitizeDate($_POST['anniv_date'] ?? null);
+$join_date       = sanitizeDate($_POST['join_date'] ?? null);
+$is_dedicated    = isset($_POST['is_dedicated']) ? intval($_POST['is_dedicated']) : 0;
+$dedication_date = ($is_dedicated === 1) ? sanitizeDate($_POST['dedication_date'] ?? null) : null;
+$is_baptized     = isset($_POST['is_baptized']) ? intval($_POST['is_baptized']) : 0;
+$baptized_date   = ($is_baptized === 1) ? sanitizeDate($_POST['baptized_date'] ?? null) : null;
 
 $gender         = !empty($_POST['gender']) ? $_POST['gender'] : null;
 $marital_status = !empty($_POST['marital_status']) ? intval($_POST['marital_status']) : null;
 
 $is_member   = isset($_POST['is_member']) ? intval($_POST['is_member']) : 0;
 $is_head     = isset($_POST['is_head']) ? intval($_POST['is_head']) : 0;
+$is_spouse   = isset($_POST['is_spouse']) ? intval($_POST['is_spouse']) : 0;
 $is_child    = isset($_POST['is_child']) ? intval($_POST['is_child']) : 0;
-$is_baptized = isset($_POST['is_baptized']) ? intval($_POST['is_baptized']) : 0;
 $is_active   = isset($_POST['is_active']) ? intval($_POST['is_active']) : 0;
 
 $family_id  = !empty($_POST['family_id']) ? intval($_POST['family_id']) : null;
@@ -135,16 +139,17 @@ try {
             date_of_death = ?, is_deceased = ?, gender = ?, address_1 = ?, city = ?, state = ?, zipcode = ?, 
             phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
             emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
-            is_member = ?, is_baptized = ?, anniv_date = ?, marital_status = ?, 
+            is_member = ?, is_baptized = ?, is_dedicated = ?, dedication_date = ?, anniv_date = ?, marital_status = ?, 
             join_date = ?, baptized_date = ?, is_child = ?, is_head = ?, is_active = ?
             WHERE contact_id = ?");
 
-        $stmt->bind_param("iissssssissssssisissisiisissiiii", 
+        // Corrected bind_param string: replaced trailing 'hi' with 'ii' (34 parameters total)[cite: 3]
+        $stmt->bind_param("iissssssissssssisissisiisissiiiiii", 
             $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth,
             $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $emergency_contact, $phone_3, $phone_3_type, $c_email,
-            $is_member, $is_baptized, $anniv_date, $marital_status,
+            $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status,
             $join_date, $baptized_date, $is_child, $is_head, $is_active,
             $contact_id
         );
@@ -158,22 +163,21 @@ try {
             gender, address_1, city, state, zipcode, 
             phone_1, phone_1_type, phone_2, phone_2_type, 
             emergency_contact, phone_3, phone_3_type, c_email, 
-            is_member, is_baptized, anniv_date, marital_status, 
+            is_member, is_baptized, is_dedicated, dedication_date, anniv_date, marital_status, 
             join_date, baptized_date, is_child, is_head, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param("iissssssissssssisissisiisissiii", 
             $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, $date_of_death, $is_deceased,
             $gender, $address_1, $city, $state, $zipcode,
             $phone_1, $phone_1_type, $phone_2, $phone_2_type,
             $emergency_contact, $phone_3, $phone_3_type, $c_email,
-            $is_member, $is_baptized, $anniv_date, $marital_status,
+            $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status,
             $join_date, $baptized_date, $is_child, $is_head, $is_active
         );
         $stmt->execute();
         $contact_id = $stmt->insert_id;
         $stmt->close();
-
         if ($is_head === 1 && $contact_id > 0) {
             $assigned_family = $contact_id;
             $updFamCol = $db->prepare("UPDATE contacts SET family_id = ? WHERE contact_id = ?");
@@ -183,15 +187,15 @@ try {
         }
     }
 
-    // 3. Update Families Mapping Table
+    // 3. Update Families Mapping Table (Including is_spouse field)
     $delFam = $db->prepare("DELETE FROM Families WHERE contact_id = ?");
     $delFam->bind_param("i", $contact_id);
     $delFam->execute();
     $delFam->close();
 
     if (!empty($assigned_family)) {
-        $insFam = $db->prepare("INSERT INTO Families (contact_id, family_id) VALUES (?, ?)");
-        $insFam->bind_param("ii", $contact_id, $assigned_family);
+        $insFam = $db->prepare("INSERT INTO Families (contact_id, family_id, is_spouse) VALUES (?, ?, ?)");
+        $insFam->bind_param("iii", $contact_id, $assigned_family, $is_spouse);
         $insFam->execute();
         $insFam->close();
     }
@@ -215,7 +219,7 @@ try {
         $insMin->close();
     }
 
-    // 5. Save Uploaded Multi-Row Documents to app_attachments
+    // 5. Save Attachments
     if (!empty($_FILES['attach_files']['name'])) {
         $files  = $_FILES['attach_files'];
         $catIds = $_POST['attach_cat_ids'] ?? [];
@@ -256,9 +260,13 @@ try {
 } catch (Exception $e) {
     $db->rollback();
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Save error: " . $e->getMessage()]);
+    echo json_encode([
+        "status" => "error", 
+        "message" => "Save error: " . $e->getMessage(),
+        "file" => $e->getFile(),
+        "line" => $e->getLine()
+    ]);
 }
-
 if (isset($db) && $db instanceof mysqli) {
     mysqli_close($db);
 }
