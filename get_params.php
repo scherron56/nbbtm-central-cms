@@ -15,7 +15,7 @@ if (!$reportKey) {
 
 try {
     $stmt = $db->prepare("
-        SELECT p.param_name, p.param_type, p.is_required, p.default_value 
+        SELECT p.param_name, p.lbl_param_name, p.param_type, p.is_required, p.default_value 
         FROM app_report_parameters p
         INNER JOIN app_reports r ON r.id = p.report_id
         WHERE r.report_key = ? AND r.is_active = 1

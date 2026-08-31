@@ -1,0 +1,62 @@
+// developer_only.php
+
+<?php
+require_once 'include/auth.php';
+requireDeveloperOnly(); // Blocks admins, staff, and viewers. Only allows 'developer' role.
+?>
+
+
+//shared admin and developer<?ph
+
+<?php
+require_once 'include/auth.php';
+requireRole(['admin', 'developer']); // Allows both admins and developers
+?>
+
+<?php
+// restricted_page.php
+require_once 'include/auth.php';
+
+// Allows Admin, Developer, AND specifically User ID 15. Blocks everyone else.
+requireSpecificUser([15]); 
+?>
+
+
+
+//Restricting a Page to a Specific User ID (Other than Admin/Developer)
+<?php
+require_once 'include/auth.php';
+
+// Check if logged in and matches target user ID
+$allowedUserIds = [12]; // Add specific user IDs here
+$currentUserId = $_SESSION['user_id'] ?? 0;
+/**
+ * Security middleware: Restrict page to specific User IDs (Admins and Developers always bypass)
+ */
+function requireSpecificUser(array $allowedUserIds) {
+    // If they are an admin or developer, let them through automatically
+    if (isAdmin() || isDeveloper()) {
+        return;
+    }
+
+    $currentUserId = $_SESSION['user_id'] ?? 0;
+
+    if (!in_array($currentUserId, $allowedUserIds, true)) {
+        ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(403);
+        echo json_encode([
+            'status'  => 'error', 
+            'success' => false, 
+            'message' => 'Access Denied: This page is restricted to specific users.'
+        ]);
+        exit;
+    }
+}
+if (!isAdmin() && !isDeveloper() && !in_array($currentUserId, $allowedUserIds, true)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Access Denied: Unauthorized user account.']);
+    exit;
+}
+?>
+

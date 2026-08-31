@@ -144,14 +144,14 @@ function loadReportParams(reportKey) {
         const reqAttr = p.is_required == 1 ? 'required' : '';
         const reqStar = p.is_required == 1 ? '<span class="text-danger">*</span>' : '';
         const defVal  = p.default_value ? p.default_value : '';
+        const displayLabel = p.lbl_param_name ? p.lbl_param_name : p.param_name;
 
         div.innerHTML = `
-          <label for="${p.param_name}">${p.param_name} ${reqStar}</label>
+          <label for="${p.param_name}">${displayLabel} ${reqStar}</label>
           <input type="${inputType}" id="${p.param_name}" name="${p.param_name}" class="form-control" value="${defVal}" ${reqAttr}>
         `;
         container.appendChild(div);
-      });
-
+      }); 
       submitBtn.disabled = false;
     })
     .catch(err => {

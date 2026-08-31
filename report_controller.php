@@ -25,7 +25,7 @@ $action = $_REQUEST['action'] ?? '';
 
 switch ($action) {
 
-    case 'export_pdf':
+case 'export_pdf':
         $reportName = $_REQUEST['report_name'] ?? 'session_summary';
         $sessionId  = intval($_REQUEST['vbs_sessions_id'] ?? 0);
 
@@ -40,11 +40,15 @@ switch ($action) {
             mkdir($outputFolder, 0777, true);
         }
 
-        // Database Credentials (pulled from your DB configuration)
+        // Define the absolute path to your images folder (adjust relative path if needed)
+        $image_path = realpath(__DIR__ . '/images') . '/';
+
+        // Database Credentials and Parameters
         $options = [
             'format' => ['pdf'],
             'params' => [
-                'p_session_id' => $sessionId
+                'p_session_id' => $sessionId,
+                'IMAGE_DIR'    => $image_path // Pass the image path into PHPJasper parameters
             ],
             'db_connection' => [
                 'driver'   => 'mysql',
