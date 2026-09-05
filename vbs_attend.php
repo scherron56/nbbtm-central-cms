@@ -190,7 +190,7 @@ $(document).ready(function() {
   });
 
   function escapeHtml(str) {
-    return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace/>/g, '&gt;').replace(/"/g, '&quot;') : '';
+    return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
   }
 });
   </script>

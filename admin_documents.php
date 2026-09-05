@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/include/document_binary.php';
 
 if (!canManageMemberDocuments()) {
