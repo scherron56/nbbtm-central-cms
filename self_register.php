@@ -11,7 +11,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 // Session handling
 if (session_status() === PHP_SESSION_NONE) {
   session_set_cookie_params([
-    'lifetime' => 86400,
+    'lifetime' => 0,
     'path'     => '/',
     'httponly' => true,
     'samesite' => 'Lax'
