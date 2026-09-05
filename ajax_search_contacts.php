@@ -17,23 +17,18 @@ if (strlen($query) < 2) {
 }
 
 $search_term = "%{$query}%";
-$digits_only = preg_replace('/\D/', '', $query);
-$phone_term  = "%{$digits_only}%";
-
 try {
     $stmt = $db->prepare("
-        SELECT contact_id, first_name, last_name, phone_1, c_email 
+        SELECT contact_id, first_name, last_name
         FROM contacts 
         WHERE first_name LIKE ? 
            OR last_name LIKE ? 
            OR CONCAT(first_name, ' ', last_name) LIKE ?
-           OR (c_email IS NOT NULL AND c_email LIKE ?)
-           OR (? != '' AND phone_1 LIKE ?)
         ORDER BY last_name ASC, first_name ASC
         LIMIT 10
     ");
     
-    $stmt->bind_param("ssssss", $search_term, $search_term, $search_term, $search_term, $digits_only, $phone_term);
+    $stmt->bind_param("sss", $search_term, $search_term, $search_term);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -42,9 +37,7 @@ try {
         $contacts[] = [
             'id'         => $row['contact_id'],
             'first_name' => $row['first_name'],
-            'last_name'  => $row['last_name'],
-            'phone_1'    => $row['phone_1'],
-            'c_email'    => $row['c_email'] ?? ''
+            'last_name'  => $row['last_name']
         ];
     }
     

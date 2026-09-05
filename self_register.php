@@ -32,6 +32,7 @@ $prg_evnt_name = 'Group'; // Fallback default text
 $stmtEvt = $db->prepare("SELECT prg_evnt_name FROM programs_events WHERE prg_evnt_id = ?");
 if ($stmtEvt) {
   $stmtEvt->bind_param("i", $target_event_id);
+  $db_event_name = null;
   $stmtEvt->execute();
   $stmtEvt->bind_result($db_event_name);
   if ($stmtEvt->fetch() && !empty($db_event_name)) {
@@ -84,7 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($contact_id) {
           $stmtUpdate = $db->prepare("
             UPDATE contacts 
-            SET first_name = ?, last_name = ?, phone_1 = ?, c_email = ? 
+            SET first_name = ?, last_name = ?,
+                phone_1 = COALESCE(NULLIF(?, ''), phone_1),
+                c_email = COALESCE(NULLIF(?, ''), c_email)
             WHERE contact_id = ?
           ");
           if ($stmtUpdate) {
@@ -477,8 +480,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Live Database Lookup Field -->
         <div class="search-box-container">
           <div class="form-group">
-            <label>🔍 Lookup Existing Contact (Optional)</label>
-            <input type="text" class="form-control contact-search-input" placeholder="Type name or phone number to search database..." autocomplete="off">
+            <label>🔍 Lookup Existing Contact by Name (Optional)</label>
+            <input type="text" class="form-control contact-search-input" placeholder="Type a first or last name to search..." autocomplete="off">
             <div class="search-results-dropdown"></div>
           </div>
         </div>
@@ -566,15 +569,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $dropdown.empty();
           if (data && data.length > 0) {
             data.forEach(function(item) {
-              const phoneFormatted = item.phone_1 ? formatPhoneString(item.phone_1) : '';
-              // Display only full name in the dropdown list
               $dropdown.append(`
                 <div class="search-result-item" 
                      data-id="${item.id}" 
                      data-fname="${escapeHtml(item.first_name)}" 
-                     data-lname="${escapeHtml(item.last_name)}" 
-                     data-phone="${escapeHtml(phoneFormatted)}" 
-                     data-email="${escapeHtml(item.c_email)}">
+                     data-lname="${escapeHtml(item.last_name)}">
                   <strong>${escapeHtml(item.first_name + ' ' + item.last_name)}</strong>
                 </div>
               `);
@@ -594,8 +593,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $card.find('.contact-id-input').val($item.data('id'));
         $card.find('.fname-input').val($item.data('fname'));
         $card.find('.lname-input').val($item.data('lname'));
-        $card.find('.phone-input').val($item.data('phone'));
-        $card.find('.email-input').val($item.data('email'));
 
         $card.find('.contact-search-input').val($item.data('fname') + ' ' + $item.data('lname'));
         $card.find('.search-results-dropdown').hide().empty();
