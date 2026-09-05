@@ -53,17 +53,19 @@ function logAccess($db, $userId, $identifier, $action) {
  * Rate Limiter: Checks if current IP exceeds maximum allowed failed attempts.
  * Standard Rule: Max 5 failed attempts in 15 minutes.
  */
-function isRateLimited($db, $maxAttempts = 5, $timeWindowMinutes = 15) {
+function isRateLimited($db, $identity = '', $maxAttempts = 5, $timeWindowMinutes = 15) {
     $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 
+    $timeWindowMinutes = max(1, (int)$timeWindowMinutes);
     $query = "SELECT COUNT(*) AS failed_count 
               FROM access_logs 
               WHERE ip_address = ? 
+                AND identifier_used = ?
                 AND action LIKE 'LOGIN_FAILED%' 
-                AND created_at >= NOW() - INTERVAL ? MINUTE";
+                AND created_at >= NOW() - INTERVAL {$timeWindowMinutes} MINUTE";
 
     $stmt = $db->prepare($query);
-    $stmt->bind_param("si", $ipAddress, $timeWindowMinutes);
+    $stmt->bind_param("ss", $ipAddress, $identity);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
@@ -76,7 +78,12 @@ function isRateLimited($db, $maxAttempts = 5, $timeWindowMinutes = 15) {
  * Check if user is Admin
  */
 function isAdmin() {
-    return isset($_SESSION['user_id'], $_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+    if (!isset($_SESSION['user_id'], $_SESSION['user_role'])) {
+        return false;
+    }
+
+    $role = strtolower($_SESSION['user_role']);
+    return $role === 'admin' || $role === 'developer';
 }
 
 /**
@@ -173,7 +180,7 @@ function requireEditor() {
 function requireMemberDocuments() {
     if (!isMember() && !canManageMemberDocuments()) {
         ob_clean();
-        header('Location: ./index.php');
+        header('Location: ../index.php');
         exit;
     }
 }
@@ -195,6 +202,10 @@ function requireDocumentAccess() {
 function requireRole(array $allowedRoles = ['admin', 'developer', 'staff', 'member', 'browser']) {
     $currentRole = strtolower($_SESSION['user_role'] ?? 'browser');
     $normalizedAllowed = array_map('strtolower', $allowedRoles);
+
+    if ($currentRole === 'developer' && in_array('admin', $normalizedAllowed, true)) {
+        return;
+    }
 
     if (!in_array($currentRole, $normalizedAllowed, true)) {
         ob_clean();
@@ -236,8 +247,11 @@ $action = $_REQUEST['action'] ?? '';
 
 // --- ACTION: LOGIN ---
 if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    ob_clean();
-    header('Content-Type: application/json; charset=utf-8');
+    try {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json; charset=utf-8');
     
     $identity = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -248,7 +262,7 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Rate limiting check: Max 5 failed attempts within 15 minutes
-    if (isRateLimited($db, 5, 15)) {
+    if (isRateLimited($db, $identity, 5, 15)) {
         logAccess($db, null, $identity, 'LOGIN_BLOCKED_RATE_LIMIT');
         http_response_code(429);
         echo json_encode([
@@ -307,14 +321,27 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         logAccess($db, null, $identity, 'LOGIN_FAILED_NO_USER');
     }
 
-    echo json_encode(['success' => false, 'message' => 'Invalid username/email or password.']);
-    exit;
+        echo json_encode(['success' => false, 'message' => 'Invalid username/email or password.']);
+        exit;
+    } catch (Throwable $exception) {
+        error_log('Login request failed: ' . $exception->getMessage());
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => 'Unable to complete sign in. Please try again.']);
+        exit;
+    }
 }
 
 // --- ACTION: CHANGE PASSWORD ---
 if ($action === 'change_password' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    ob_clean();
-    header('Content-Type: application/json; charset=utf-8');
+    try {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json; charset=utf-8');
 
     if (!isset($_SESSION['user_id'])) {
         http_response_code(401);
@@ -366,8 +393,18 @@ if ($action === 'change_password' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    echo json_encode(['success' => false, 'message' => 'Failed to update password. Please try again.']);
-    exit;
+        echo json_encode(['success' => false, 'message' => 'Failed to update password. Please try again.']);
+        exit;
+    } catch (Throwable $exception) {
+        error_log('Password change request failed: ' . $exception->getMessage());
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => 'Unable to update your password. Please try again.']);
+        exit;
+    }
 }
 
 // --- ACTION: LOGOUT ---
@@ -394,7 +431,7 @@ if ($action === 'logout') {
         exit;
     }
     
-    header('Location: ./index.php');
+    header('Location: ../index.php');
     exit;
 }
 

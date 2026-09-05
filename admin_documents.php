@@ -59,11 +59,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt = $db->prepare("INSERT INTO document_lib (entity_type, entity_id, document_short_name, document_name, document_mime, document_size, document_data, uploaded_at) VALUES ('member', 0, ?, ?, ?, ?, ?, NOW())");
                         $nullDocumentData = null;
                         $stmt->bind_param('sssib', $shortName, $documentName, $documentMime, $documentSize, $nullDocumentData);
-                        $stmt->send_long_data(4, $documentData);
+                        if (!$stmt->send_long_data(4, $documentData)) {
+                            throw new RuntimeException('The document data could not be transferred to storage.');
+                        }
                         $stmt->execute();
+                        $documentId = $db->insert_id;
                         $stmt->close();
+
+                        $verifyStmt = $db->prepare('SELECT OCTET_LENGTH(document_data) AS stored_size FROM document_lib WHERE document_id = ?');
+                        $verifyStmt->bind_param('i', $documentId);
+                        $verifyStmt->execute();
+                        $storedDocument = $verifyStmt->get_result()->fetch_assoc();
+                        $verifyStmt->close();
+                        if (!$storedDocument || (int)$storedDocument['stored_size'] !== $documentSize) {
+                            throw new RuntimeException('The uploaded document was truncated while being saved. Please try again.');
+                        }
                         $message = 'Document uploaded successfully.';
-                    } catch (RuntimeException $exception) {
+                    } catch (Throwable $exception) {
+                        error_log('Member document upload failed: ' . $exception->getMessage());
                         $error = 'The document could not be processed: ' . $exception->getMessage();
                     }
                 }
@@ -137,12 +150,11 @@ if ($result) {
       <p>No documents have been uploaded.</p>
     <?php else: ?>
       <table>
-        <thead><tr><th>Name</th><th>File</th><th>Size</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Size</th><th>Actions</th></tr></thead>
         <tbody>
         <?php foreach ($documents as $document): ?>
           <tr>
             <td><?= htmlspecialchars($document['document_short_name']) ?></td>
-            <td><?= htmlspecialchars($document['document_name']) ?></td>
             <td><?= number_format(((int)$document['document_size']) / 1024, 1) ?> KB</td>
             <td class="document-actions">
               <a class="btn btn-sm btn-secondary" href="include/document_reader.php?document_id=<?= (int)$document['document_id'] ?>" target="_blank">Read</a>

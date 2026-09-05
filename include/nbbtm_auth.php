@@ -53,17 +53,19 @@ function logAccess($db, $userId, $identifier, $action) {
  * Rate Limiter: Checks if current IP exceeds maximum allowed failed attempts.
  * Standard Rule: Max 5 failed attempts in 15 minutes.
  */
-function isRateLimited($db, $maxAttempts = 5, $timeWindowMinutes = 15) {
+function isRateLimited($db, $identity = '', $maxAttempts = 5, $timeWindowMinutes = 15) {
     $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 
+    $timeWindowMinutes = max(1, (int)$timeWindowMinutes);
     $query = "SELECT COUNT(*) AS failed_count 
               FROM access_logs 
               WHERE ip_address = ? 
+                AND identifier_used = ?
                 AND action LIKE 'LOGIN_FAILED%' 
-                AND created_at >= NOW() - INTERVAL ? MINUTE";
+                AND created_at >= NOW() - INTERVAL {$timeWindowMinutes} MINUTE";
 
     $stmt = $db->prepare($query);
-    $stmt->bind_param("si", $ipAddress, $timeWindowMinutes);
+    $stmt->bind_param("ss", $ipAddress, $identity);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
@@ -76,7 +78,12 @@ function isRateLimited($db, $maxAttempts = 5, $timeWindowMinutes = 15) {
  * Check if user is Admin
  */
 function isAdmin() {
-    return isset($_SESSION['user_id'], $_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+    if (!isset($_SESSION['user_id'], $_SESSION['user_role'])) {
+        return false;
+    }
+
+    $role = strtolower($_SESSION['user_role']);
+    return $role === 'admin' || $role === 'developer';
 }
 
 /**
@@ -160,6 +167,10 @@ function requireRole(array $allowedRoles = ['admin', 'developer', 'staff', 'brow
     $currentRole = strtolower($_SESSION['user_role'] ?? 'browser');
     $normalizedAllowed = array_map('strtolower', $allowedRoles);
 
+    if ($currentRole === 'developer' && in_array('admin', $normalizedAllowed, true)) {
+        return;
+    }
+
     if (!in_array($currentRole, $normalizedAllowed, true)) {
         ob_clean();
         header('Content-Type: application/json; charset=utf-8');
@@ -212,7 +223,7 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Rate limiting check: Max 5 failed attempts within 15 minutes
-    if (isRateLimited($db, 5, 15)) {
+    if (isRateLimited($db, $identity, 5, 15)) {
         logAccess($db, null, $identity, 'LOGIN_BLOCKED_RATE_LIMIT');
         http_response_code(429);
         echo json_encode([

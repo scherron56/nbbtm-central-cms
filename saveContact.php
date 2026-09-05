@@ -188,6 +188,22 @@ try {
         }
     }
 
+    // Keep the family relationship table in sync with the contact form.
+    $delFamily = $db->prepare("DELETE FROM Families WHERE contact_id = ?");
+    $delFamily->bind_param("i", $contact_id);
+    $delFamily->execute();
+    $delFamily->close();
+
+    if ($assigned_family !== null && $assigned_family > 0) {
+        $insFamily = $db->prepare("
+            INSERT INTO Families (contact_id, family_id, is_spouse)
+            VALUES (?, ?, ?)
+        ");
+        $insFamily->bind_param("iii", $contact_id, $assigned_family, $is_spouse);
+        $insFamily->execute();
+        $insFamily->close();
+    }
+
     // 3. Save Attachments into document_lib
     $fileKey = !empty($_FILES['attach_files']['name']) ? 'attach_files' : (!empty($_FILES['document_name']['name']) ? 'document_name' : null);
 

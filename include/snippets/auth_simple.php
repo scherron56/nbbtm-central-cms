@@ -40,7 +40,12 @@ if (file_exists($dbPathConfig)) {
  * Check if user is Admin
  */
 function isAdmin() {
-    return isset($_SESSION['user_id'], $_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+    if (!isset($_SESSION['user_id'], $_SESSION['user_role'])) {
+        return false;
+    }
+
+    $role = strtolower($_SESSION['user_role']);
+    return $role === 'admin' || $role === 'developer';
 }
 
 /**
@@ -99,6 +104,10 @@ function requireEditor() {
 function requireRole(array $allowedRoles = ['admin', 'staff', 'view']) {
     $currentRole = strtolower($_SESSION['user_role'] ?? 'view');
     $normalizedAllowed = array_map('strtolower', $allowedRoles);
+
+    if ($currentRole === 'developer' && in_array('admin', $normalizedAllowed, true)) {
+        return;
+    }
 
     if (!in_array($currentRole, $normalizedAllowed, true)) {
         ob_clean();

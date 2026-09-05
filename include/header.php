@@ -20,7 +20,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
 <header class="site-header">
   <div class="header-content">
     <div class="logo-container">
-      <img src="assets/img/nbbtm-logo-white.svg" alt="NBBTM Logo" class="scaled-svg">
+      <img src="assets/img/nbbtm-logo-white-web826.png" alt="NBBTM Logo" class="scaled-svg">
     </div>
 
     <h1>New Beginnings Baptist Tabernacle Ministries</h1>
@@ -49,7 +49,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
           <a href="#" class="<?= in_array($currentPage, ['ministry_manager.php', 'ministry_members.php']) ? 'active' : '' ?>">Ministries</a>
           <ul class="submenu">
             <li><a href="ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
-            <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Members</a></li>
+            <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
           </ul>
         </li>
 
@@ -117,7 +117,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
           <a href="#" class="<?= in_array($currentPage, ['ministry_manager.php', 'ministry_members.php']) ? 'active' : '' ?>">Ministries</a>
           <ul class="submenu">
             <li><a href="ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
-            <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Members</a></li>
+            <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
           </ul>
         </li>
 
@@ -144,7 +144,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
         <!-- Browser / View Role Navigation -->
         <li><a href="contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contacts Dashboard</a></li>
         <li><a href="ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
-        <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Members</a></li>
+        <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
         <li><a href="event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Dashboard</a></li>
         <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
         <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
@@ -306,7 +306,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const res = await fetch('./include/auth.php?action=login', { method: 'POST', body: formData });
-        const result = await res.json();
+        const responseText = await res.text();
+        if (res.status === 429) {
+          let rateLimitMessage = 'Too many sign-in attempts. Please try again later.';
+          try {
+            const rateLimitResult = JSON.parse(responseText);
+            rateLimitMessage = rateLimitResult.message || rateLimitMessage;
+          } catch (parseError) {
+            // Keep a safe message if the server response contains unexpected output.
+          }
+          throw new Error(rateLimitMessage);
+        }
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          throw new Error(`Sign-in service returned an invalid response (HTTP ${res.status}).`);
+        }
+        if (!res.ok && result.message) {
+          throw new Error(result.message);
+        }
         if (result.success) {
           if (result.must_change_password) {
             loginModal.classList.add('hidden');
@@ -322,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
           loginErrorMsg.classList.remove('hidden');
         }
       } catch (err) {
-        loginErrorMsg.textContent = 'Server connection error.';
+        loginErrorMsg.textContent = err.message || 'Server connection error.';
         loginErrorMsg.classList.remove('hidden');
       }
     });
@@ -337,7 +356,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const res = await fetch('./include/auth.php?action=change_password', { method: 'POST', body: formData });
-        const result = await res.json();
+        const responseText = await res.text();
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          throw new Error(`Password service returned an invalid response (HTTP ${res.status}).`);
+        }
+        if (!res.ok && result.message) {
+          throw new Error(result.message);
+        }
 
         if (result.success) {
           window.location.reload();
@@ -347,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
       } catch (err) {
-        changePwdMsg.textContent = 'Server connection error.';
+        changePwdMsg.textContent = err.message || 'Server connection error.';
         changePwdMsg.className = 'text-danger';
       }
     });
@@ -361,15 +389,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', async (e) => {
+    logoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      try {
-        const res = await fetch('./include/auth.php?action=logout&ajax=1', { method: 'GET' });
-        const result = await res.json();
-        if (result.success) window.location.reload();
-      } catch (err) {
-        window.location.href = './include/auth.php?action=logout';
-      }
+      // Use a normal navigation so the server's logout redirect is followed.
+      window.location.href = './include/auth.php?action=logout';
     });
   }
 });

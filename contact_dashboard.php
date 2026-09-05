@@ -166,8 +166,21 @@ require_once __DIR__ . '/include/auth.php';
           data: {
             contactid: contactid
           },
-          dataType: 'json',
-          success: function(data) {
+          dataType: 'text',
+          success: function(responseText) {
+            let data;
+            try {
+              const jsonStart = responseText.indexOf('{');
+              const jsonEnd = responseText.lastIndexOf('}');
+              if (jsonStart < 0 || jsonEnd < jsonStart) {
+                throw new Error('No JSON object found in response.');
+              }
+              data = JSON.parse(responseText.slice(jsonStart, jsonEnd + 1));
+            } catch (parseError) {
+              console.error("getContact invalid JSON response:", responseText);
+              showOnScreenError("Error loading dashboard data. The server returned invalid data.");
+              return;
+            }
             if (data.error) {
               showOnScreenError("Error: " + data.error);
               return;
@@ -194,8 +207,22 @@ require_once __DIR__ . '/include/auth.php';
             members_only: membersOnly,
             age_filter: ageFilter
           },
-          dataType: 'json',
-          success: function(data) {
+          dataType: 'text',
+          success: function(responseText) {
+            let data;
+            try {
+              const jsonStart = responseText.indexOf('{');
+              const jsonEnd = responseText.lastIndexOf('}');
+              if (jsonStart < 0 || jsonEnd < jsonStart) {
+                throw new Error('No JSON object found in response.');
+              }
+              data = JSON.parse(responseText.slice(jsonStart, jsonEnd + 1));
+            } catch (parseError) {
+              console.error("getLists invalid JSON response:", responseText);
+              showOnScreenError("Error loading contact list. The server returned invalid data.");
+              return;
+            }
+
             if (data.status === 'error' || data.error) {
               showOnScreenError(data.message || data.error || "Failed to load contacts list.");
               return;
@@ -226,7 +253,7 @@ require_once __DIR__ . '/include/auth.php';
           },
           error: function(xhr, status, error) {
             console.error("getLists error response:", xhr.responseText);
-            showOnScreenError("Error loading contact list. Response: " + (xhr.responseText || error));
+            showOnScreenError("Error loading contact list. Please try again.");
           }
         });
       }

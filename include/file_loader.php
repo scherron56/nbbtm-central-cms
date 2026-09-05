@@ -30,9 +30,13 @@ $docMime = $document['document_mime'];
 $docData = $document['document_data'];
 if (isDocxDocument($docName, $docMime)) {
     $docData = normalizeDocxData($docData);
+    $docMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 }
 
 // Render inline for browser previewing
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
 header('Content-Type: ' . ($docMime ?: 'application/octet-stream'));
 header('Content-Disposition: inline; filename="' . addcslashes(basename($docName), "\"\\") . '"');
 header('Cache-Control: no-store, no-cache, must-revalidate');

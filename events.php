@@ -122,7 +122,15 @@ $canEdit = canEdit();
                     if (res.success) {
                         eventCategoriesCache = res.categories || [];
                         populateCategoryDropdowns();
+                        if (eventCategoriesCache.length === 0) {
+                            showStatusMessage('No active event document categories are configured.', 'error');
+                        }
+                    } else {
+                        showStatusMessage('Unable to load document categories: ' + (res.error || res.message || 'Invalid response'), 'error');
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load document categories: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -283,6 +291,9 @@ $canEdit = canEdit();
                         });
                         if (preselectedId) $cSelect.val(preselectedId).trigger('change');
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load contacts: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -337,6 +348,9 @@ $canEdit = canEdit();
                         });
                         refreshSignoffCheckboxes();
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load ministries: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -382,6 +396,9 @@ $canEdit = canEdit();
                         });
                         if (selectedId) $select.val(selectedId).trigger('change');
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load events: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -508,9 +525,22 @@ $canEdit = canEdit();
                         if ($('#btnDelete').length) $('#btnDelete').show();
                         loadRoster(id);
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load the selected event: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         });
+
+        function getAjaxError(xhr, status) {
+            if (xhr.responseJSON) {
+                return xhr.responseJSON.error || xhr.responseJSON.message || ('HTTP ' + xhr.status);
+            }
+            if (status === 'parsererror' && xhr.responseText) {
+                return 'The server returned invalid JSON.';
+            }
+            return 'HTTP ' + (xhr.status || 'request failed');
+        }
 
         function renderAttachmentsList(attachments) {
             let $tbody = $('#existingAttachmentsTable tbody').empty();
@@ -522,7 +552,7 @@ $canEdit = canEdit();
                 $('#existingAttachmentsTable').show();
                 $.each(attachments, function(i, att) {
                     let sizeKb = att.document_size ? Math.round(att.document_size / 1024) + ' KB' : '-';
-                    let downloadUrl = `download_document.php?attachment_id=${att.attachment_id}`;
+                    let downloadUrl = `include/download_document.php?document_id=${att.attachment_id}`;
                     
                     $tbody.append(`
                         <tr>

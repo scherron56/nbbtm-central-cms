@@ -176,7 +176,7 @@ try {
         }
     } catch (Throwable $e) {}
 
-    echo json_encode([
+    $response = json_encode([
         'contact'        => $contact,
         'family_id'      => $familyId,
         'familyMembers'  => $familyMembers,
@@ -184,9 +184,20 @@ try {
         'ministryList'   => $minList,
         'roleList'       => $roleList,
         'attachments'    => $attachments
-    ]);
+    ], JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($response === false) {
+        throw new RuntimeException('Unable to encode contact data.');
+    }
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    echo $response;
+    exit;
 
 } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Query Error: ' . $e->getMessage()]);
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    echo json_encode(['error' => 'Query Error: ' . $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
 }

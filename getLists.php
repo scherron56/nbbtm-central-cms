@@ -19,7 +19,9 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'config/db.php';
 
 if (!isset($db) || !($db instanceof mysqli)) {
-    ob_clean();
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     http_response_code(500);
     echo json_encode([
         'status'   => 'error',
@@ -126,8 +128,10 @@ try {
         $rRes->free(); 
     }
 
-    ob_clean();
-    echo json_encode([
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    $response = json_encode([
         'status'       => 'success',
         'contacts'     => $contacts,
         'heads'        => $heads,
@@ -136,7 +140,12 @@ try {
         'phonetype'    => $phonetype,
         'ministryList' => $ministryList,
         'roleList'     => $roleList
-    ]);
+    ], JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($response === false) {
+        throw new RuntimeException('Unable to encode contact data.');
+    }
+    echo $response;
+    exit;
 
 } catch (Throwable $e) {
     ob_clean();
@@ -145,7 +154,7 @@ try {
         'status'   => 'error',
         'message'  => 'Database Error: ' . $e->getMessage(),
         'contacts' => []
-    ]);
+    ], JSON_INVALID_UTF8_SUBSTITUTE);
 }
 
 if (isset($db) && $db instanceof mysqli) {

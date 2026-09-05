@@ -88,6 +88,10 @@ $(document).ready(function() {
             }));
           });
         }
+      },
+      error: function(xhr, status, error) {
+        console.error('Failed to load VBS sessions:', xhr.responseText || error);
+        showStatusMessage(status === 'parsererror' ? 'The server returned invalid session data.' : 'Failed to load VBS sessions.', 'error');
       }
     });
   }
@@ -131,6 +135,10 @@ $(document).ready(function() {
           });
         }
         if (typeof callback === 'function') callback();
+      },
+      error: function(xhr, status, error) {
+        console.error('Failed to load VBS classes:', xhr.responseText || error);
+        showStatusMessage(status === 'parsererror' ? 'The server returned invalid class data.' : 'Failed to load VBS classes.', 'error');
       }
     });
   }
@@ -149,6 +157,10 @@ $(document).ready(function() {
           const text = item.fullname || item.name || ((item.first_name || '') + ' ' + (item.last_name || '')).trim();
           if (id && text) select.append($('<option>', { value: id, text: text }));
         });
+      },
+      error: function(xhr, status, error) {
+        console.error('Failed to load contacts:', xhr.responseText || error);
+        showStatusMessage(status === 'parsererror' ? 'The server returned invalid contact data.' : 'Failed to load contacts.', 'error');
       }
     });
   }

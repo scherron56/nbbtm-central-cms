@@ -72,6 +72,10 @@ $(document).ready(function() {
             }));
           });
         }
+      },
+      error: function(xhr, status, error) {
+        console.error('Failed to load VBS sessions:', xhr.responseText || error);
+        alert(status === 'parsererror' ? 'The server returned invalid session data.' : 'Failed to load VBS sessions.');
       }
     });
   }

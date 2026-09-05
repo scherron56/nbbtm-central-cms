@@ -2,8 +2,17 @@
 
 function isDocxDocument(string $name, string $mime): bool
 {
-    return strtolower($mime) === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        || strtolower(pathinfo($name, PATHINFO_EXTENSION)) === 'docx';
+    $normalizedMime = strtolower(trim($mime));
+    $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+    // Legacy .doc files are sometimes uploaded with a .docx filename.
+    // Do not send those binary files through the ZIP-based DOCX validator.
+    if ($normalizedMime === 'application/msword') {
+        return false;
+    }
+
+    return $normalizedMime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        || $extension === 'docx';
 }
 
 function isPdfDocument(string $name, string $mime): bool
@@ -14,6 +23,26 @@ function isPdfDocument(string $name, string $mime): bool
 
 function normalizeDocxData(string $data): string
 {
+    $zipStart = strpos($data, "PK\x03\x04");
+    if ($zipStart === false) {
+        throw new RuntimeException('The uploaded file does not contain a DOCX ZIP package.');
+    }
+    if ($zipStart > 0) {
+        $data = substr($data, $zipStart);
+    }
+
+    $endOfCentralDirectory = strrpos($data, "PK\x05\x06");
+    if ($endOfCentralDirectory === false) {
+        throw new RuntimeException('The uploaded file does not contain a DOCX ZIP package.');
+    }
+
+    // A few DOCX producers omit the final byte of the 22-byte ZIP footer.
+    // Add only that missing padding byte; do not rebuild the package.
+    $footerLength = strlen($data) - $endOfCentralDirectory;
+    if ($footerLength === 21) {
+        $data .= "\0";
+    }
+
     $sourcePath = tempnam(sys_get_temp_dir(), 'docx_source_');
     $normalizedPath = tempnam(sys_get_temp_dir(), 'docx_normalized_');
     if ($sourcePath === false || $normalizedPath === false) {
@@ -27,13 +56,13 @@ function normalizeDocxData(string $data): string
 
         $source = new ZipArchive();
         if ($source->open($sourcePath) !== true) {
-            throw new RuntimeException('The DOCX archive could not be opened.');
+            throw new RuntimeException('The uploaded DOCX archive could not be opened.');
         }
 
         $normalized = new ZipArchive();
         if ($normalized->open($normalizedPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             $source->close();
-            throw new RuntimeException('The DOCX archive could not be rebuilt.');
+            throw new RuntimeException('Unable to prepare the DOCX document for reading.');
         }
 
         for ($index = 0; $index < $source->numFiles; $index++) {
@@ -48,21 +77,16 @@ function normalizeDocxData(string $data): string
 
         $source->close();
         if (!$normalized->close()) {
-            throw new RuntimeException('The DOCX archive could not be finalized.');
+            throw new RuntimeException('Unable to finalize the DOCX document.');
         }
 
-        $result = file_get_contents($normalizedPath);
-        if ($result === false) {
-            throw new RuntimeException('The normalized document could not be read.');
+        $normalizedData = file_get_contents($normalizedPath);
+        if ($normalizedData === false) {
+            throw new RuntimeException('Unable to read the prepared DOCX document.');
         }
-        // Some browser ZIP readers probe one byte past the EOCD record.
-        return $result . "\0";
+        return $normalizedData;
     } finally {
-        if ($sourcePath !== false) {
-            unlink($sourcePath);
-        }
-        if ($normalizedPath !== false) {
-            unlink($normalizedPath);
-        }
+        unlink($sourcePath);
+        unlink($normalizedPath);
     }
 }

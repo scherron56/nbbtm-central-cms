@@ -17,6 +17,12 @@ if (php_sapi_name() == "cli-server") {
     if (property_exists($pathinfo, "extension")) {
         if (array_search(strtolower($pathinfo->extension), ["php", "html", "htm"]) !== false) {
             if (strtolower($_SERVER['REQUEST_URI']) === "/.vscode/router.php") die;
+            $isHtmlNavigation = $_SERVER['REQUEST_METHOD'] === 'GET'
+                && strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') !== false;
+            if (!$isHtmlNavigation) {
+                include(str_replace("/", DIRECTORY_SEPARATOR, __DIR__ . "/.." . $req->path));
+                exit;
+            }
             ob_start();
  ?>
             <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>

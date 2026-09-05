@@ -4,6 +4,16 @@ header('Content-Type: application/json; charset=utf-8');
 require_once 'config/db.php';
 require_once 'include/auth.php';
 
+function sendEventJson(array $payload, int $status = 200): void
+{
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    http_response_code($status);
+    echo json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
 $action = $_REQUEST['action'] ?? '';
 try {
     switch ($action) {
@@ -18,15 +28,13 @@ try {
                     ORDER BY last_name ASC, first_name ASC";
             $result = $db->query($sql);
             if (!$result) throw new Exception($db->error);
-            echo json_encode(['success' => true, 'contacts' => $result->fetch_all(MYSQLI_ASSOC)]);
-            break;
+            sendEventJson(['success' => true, 'contacts' => $result->fetch_all(MYSQLI_ASSOC)]);
 
         // --- FETCH MINISTRIES LOOKUP ---
         case 'get_ministries_list':
             $result = $db->query("SELECT min_comm_id, min_comm_name FROM ministry_committee ORDER BY min_comm_name ASC");
             if (!$result) throw new Exception($db->error);
-            echo json_encode(['success' => true, 'ministries' => $result->fetch_all(MYSQLI_ASSOC)]);
-            break;
+            sendEventJson(['success' => true, 'ministries' => $result->fetch_all(MYSQLI_ASSOC)]);
 
         // --- FETCH SINGLE OR ALL EVENTS ---
         case 'get_events':
@@ -69,20 +77,20 @@ try {
                 $support_ministries = $supStmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 $supStmt->close();
 
-                // Multi-Document Attachments from app_attachments
+                // Event documents are stored in document_lib in the current schema.
                 $attStmt = $db->prepare("
-                    SELECT a.attachment_id, a.doc_category_id, a.document_name, a.document_size, a.uploaded_at, c.category_name
-                    FROM app_attachments a
-                    LEFT JOIN doc_categories c ON a.doc_category_id = c.doc_category_id
+                    SELECT a.document_id AS attachment_id, a.document_name, a.document_size, a.uploaded_at,
+                           NULL AS doc_category_id, NULL AS category_name
+                    FROM document_lib a
                     WHERE a.entity_type = 'event' AND a.entity_id = ?
-                    ORDER BY c.category_name ASC, a.uploaded_at DESC
+                    ORDER BY a.uploaded_at DESC, a.document_id DESC
                 ");
                 $attStmt->bind_param("i", $prgevntId);
                 $attStmt->execute();
                 $attachments = $attStmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 $attStmt->close();
 
-                echo json_encode([
+                sendEventJson([
                     'success' => true, 
                     'prgevnt' => $prgevnt, 
                     'schedules' => $schedules, 
@@ -104,7 +112,7 @@ try {
                         ORDER BY s.primary_start DESC";
                 $result = $db->query($sql);
                 if (!$result) throw new Exception($db->error);
-                echo json_encode(['success' => true, 'programs_events' => $result->fetch_all(MYSQLI_ASSOC)]);
+                sendEventJson(['success' => true, 'programs_events' => $result->fetch_all(MYSQLI_ASSOC)]);
             }
             break;
 
@@ -220,31 +228,27 @@ try {
                 $insSup->close();
             }
 
-            // Process Multi-Row File Uploads to app_attachments
+            // Process multi-row event documents.
             if (!empty($_FILES['attach_files']['name'])) {
                 $files = $_FILES['attach_files'];
-                $catIds = $_POST['attach_cat_ids'] ?? [];
-
                 $insAtt = $db->prepare("
-                    INSERT INTO app_attachments (entity_type, entity_id, doc_category_id, document_name, document_mime, document_size, document_data) 
-                    VALUES ('event', ?, ?, ?, ?, ?, ?)
+                    INSERT INTO document_lib
+                        (entity_type, entity_id, document_name, document_mime, document_size, document_data)
+                    VALUES ('event', ?, ?, ?, ?, ?)
                 ");
 
                 foreach ($files['name'] as $fIdx => $fileName) {
                     if (!empty($fileName) && $files['error'][$fIdx] === UPLOAD_ERR_OK) {
-                        $catId = !empty($catIds[$fIdx]) ? (int)$catIds[$fIdx] : 0;
-                        if ($catId > 0) {
-                            $tmpPath = $files['tmp_name'][$fIdx];
-                            $docName = basename($fileName);
-                            $docSize = (int)$files['size'][$fIdx];
-                            $docMime = mime_content_type($tmpPath) ?: $files['type'][$fIdx];
-                            $docData = file_get_contents($tmpPath);
+                        $tmpPath = $files['tmp_name'][$fIdx];
+                        $docName = basename($fileName);
+                        $docSize = (int)$files['size'][$fIdx];
+                        $docMime = mime_content_type($tmpPath) ?: $files['type'][$fIdx];
+                        $docData = file_get_contents($tmpPath);
 
-                            $nullBlob = NULL;
-                            $insAtt->bind_param("iissib", $id, $catId, $docName, $docMime, $docSize, $nullBlob);
-                            $insAtt->send_long_data(5, $docData);
-                            $insAtt->execute();
-                        }
+                        $nullBlob = NULL;
+                        $insAtt->bind_param("issib", $id, $docName, $docMime, $docSize, $nullBlob);
+                        $insAtt->send_long_data(4, $docData);
+                        $insAtt->execute();
                     }
                 }
                 $insAtt->close();
@@ -259,7 +263,7 @@ try {
             requireAdmin();
 
             $attachmentId = (int)($_POST['attachment_id'] ?? 0);
-            $stmt = $db->prepare("DELETE FROM app_attachments WHERE attachment_id = ? AND entity_type = 'event'");
+            $stmt = $db->prepare("DELETE FROM document_lib WHERE document_id = ? AND entity_type = 'event'");
             $stmt->bind_param("i", $attachmentId);
             $stmt->execute();
             $stmt->close();
@@ -273,7 +277,7 @@ try {
             $id = (int)($_POST['prg_evnt_id'] ?? 0);
             $db->begin_transaction();
 
-            $stmt1 = $db->prepare("DELETE FROM app_attachments WHERE entity_type = 'event' AND entity_id = ?");
+            $stmt1 = $db->prepare("DELETE FROM document_lib WHERE entity_type = 'event' AND entity_id = ?");
             $stmt1->bind_param("i", $id);
             $stmt1->execute();
             $stmt1->close();

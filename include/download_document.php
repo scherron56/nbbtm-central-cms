@@ -29,8 +29,12 @@ $docMime = $document['document_mime'];
 $docData = $document['document_data'];
 if (isDocxDocument($docName, $docMime)) {
     $docData = normalizeDocxData($docData);
+    $docMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 }
 
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
 header('Content-Description: File Transfer');
 header('Content-Type: ' . ($docMime ?: 'application/octet-stream'));
 header('Content-Disposition: attachment; filename="' . basename($docName) . '"');
