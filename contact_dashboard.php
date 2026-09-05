@@ -22,7 +22,6 @@ require_once __DIR__ . '/include/auth.php';
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-
   <style>
     .alert-box {
       padding: 12px 16px;
@@ -32,6 +31,7 @@ require_once __DIR__ . '/include/auth.php';
       font-size: 0.95rem;
       display: none;
     }
+
     .alert-error {
       background-color: #fee2e2;
       border: 1px solid #fca5a5;
@@ -119,6 +119,7 @@ require_once __DIR__ . '/include/auth.php';
       padding-left: 0;
       margin: 0;
     }
+
     .doc-list li {
       padding: 8px 0;
       border-bottom: 1px solid #e2e8f0;
@@ -126,6 +127,7 @@ require_once __DIR__ . '/include/auth.php';
       justify-content: space-between;
       align-items: center;
     }
+
     .doc-list li:last-child {
       border-bottom: none;
     }
@@ -161,7 +163,9 @@ require_once __DIR__ . '/include/auth.php';
         $.ajax({
           url: 'getContact.php',
           type: 'POST',
-          data: { contactid: contactid },
+          data: {
+            contactid: contactid
+          },
           dataType: 'json',
           success: function(data) {
             if (data.error) {
@@ -180,7 +184,7 @@ require_once __DIR__ . '/include/auth.php';
 
       function loadContactList() {
         let membersOnly = $('input[name="contact_filter"]:checked').val() || 0;
-        let ageFilter   = $('input[name="age_filter"]:checked').val() || 0;
+        let ageFilter = $('input[name="age_filter"]:checked').val() || 0;
         let currentSelection = $('#contactID').val();
 
         $.ajax({
@@ -259,40 +263,52 @@ require_once __DIR__ . '/include/auth.php';
           $('#dash-active-badge')
             .text('Deceased')
             .attr('class', 'status-badge badge-secondary')
-            .css({'background-color': '#475569', 'color': '#ffffff'});
-            
+            .css({
+              'background-color': '#475569',
+              'color': '#ffffff'
+            });
+
           $('#deceased-group').show();
           $('#dash-deceased').text(c.date_of_death);
         } else {
           $('#dash-active-badge')
             .text(isActive ? 'Active' : 'Inactive')
             .attr('class', 'status-badge ' + (isActive ? 'badge-success' : 'badge-secondary'))
-            .css({'background-color': '', 'color': ''});
-            
+            .css({
+              'background-color': '',
+              'color': ''
+            });
+
           $('#deceased-group').hide();
         }
 
         let maritalDesc = c.marital_status_desc || '—';
-        
+
         if (c.date_of_birth) {
-            const [bYear, bMonth, bDay] = c.date_of_birth.split('-');
-            const bDate = new Date(bYear, bMonth - 1, bDay);
-            $('#dash-dob').text(bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+          const [bYear, bMonth, bDay] = c.date_of_birth.split('-');
+          const bDate = new Date(bYear, bMonth - 1, bDay);
+          $('#dash-dob').text(bDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+          }));
         } else {
-            $('#dash-dob').text('—');
+          $('#dash-dob').text('—');
         }
-        
+
         $('#dash-gender').text(c.gender === 'M' ? 'Male' : (c.gender === 'F' ? 'Female' : '—'));
         $('#dash-marital').text(maritalDesc);
         $('#dash-head').text(String(c.is_head) === "1" ? 'Yes' : 'No');
 
         if (String(maritalDesc).toLowerCase() === 'married' && c.anniv_date) {
-            const [aYear, aMonth, aDay] = c.anniv_date.split('-');
-            const aDate = new Date(aYear, aMonth - 1, aDay);
-            $('#dash-anniv').text(aDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-            $('#anniv-group').show();
+          const [aYear, aMonth, aDay] = c.anniv_date.split('-');
+          const aDate = new Date(aYear, aMonth - 1, aDay);
+          $('#dash-anniv').text(aDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+          }));
+          $('#anniv-group').show();
         } else {
-            $('#anniv-group').hide();
+          $('#anniv-group').hide();
         }
 
         let addressParts = [c.address_1, c.city, c.state, c.zipcode].filter(Boolean);
@@ -348,7 +364,7 @@ require_once __DIR__ . '/include/auth.php';
         let tbody = table.find('tbody');
         $.each(members, function(i, m) {
           let mName = `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'N/A';
-          
+
           let roleTag = 'Family Member';
           if (String(m.is_head) === "1") {
             roleTag = 'Head of Household';
@@ -390,7 +406,9 @@ require_once __DIR__ . '/include/auth.php';
         }
 
         let rolesMap = {};
-        $.each(roleList, function(i, r) { rolesMap[r.role_id] = r.role_desc; });
+        $.each(roleList, function(i, r) {
+          rolesMap[r.role_id] = r.role_desc;
+        });
 
         let minDetailsMap = {};
         $.each(fullMinistryList, function(i, m) {
@@ -402,7 +420,10 @@ require_once __DIR__ . '/include/auth.php';
 
         let grouped = {};
         $.each(userMinistries, function(i, m) {
-          let detail = minDetailsMap[m.min_comm_id] || { name: `Ministry #${m.min_comm_id}`, groupType: 'General' };
+          let detail = minDetailsMap[m.min_comm_id] || {
+            name: `Ministry #${m.min_comm_id}`,
+            groupType: 'General'
+          };
           let gType = detail.groupType;
 
           if (!grouped[gType]) grouped[gType] = [];
@@ -452,16 +473,20 @@ require_once __DIR__ . '/include/auth.php';
         }
 
         $.each(attachments, function(i, att) {
-          let downloadUrl = `download_document.php?attachment_id=${att.attachment_id}`;
+          let readUrl = `include/document_reader.php?document_id=${att.document_id}`;
+          let downloadUrl = `include/download_document.php?document_id=${att.document_id}`;
+          let name = att.document_name || '';
+
           $list.append(`
             <li>
               <div>
-                <span class="status-badge badge-secondary" style="margin-right: 6px;">${escapeHtml(att.category_name || 'General')}</span>
-                <strong>${escapeHtml(att.document_name)}</strong>
+                <span class="status-badge badge-secondary" style="margin-right: 6px;">${escapeHtml(att.document_short_name || 'Document')}</span>
+                <strong>${escapeHtml(name)}</strong>
               </div>
-              <a href="${downloadUrl}" class="btn-switch-family" target="_blank" style="text-decoration:none; padding:3px 8px;">
-                Download
-              </a>
+              <div style="display: flex; gap: 6px;">
+                <a href="${readUrl}" class="btn-switch-family" target="_blank" rel="noopener" style="text-decoration:none; padding:3px 8px;">Read</a>
+                <a href="${downloadUrl}" class="btn-switch-family" target="_blank" style="text-decoration:none; padding:3px 8px;">Download</a>
+              </div>
             </li>
           `);
         });
@@ -651,9 +676,8 @@ require_once __DIR__ . '/include/auth.php';
     </div>
 
   </div>
-  
-  <?php include_once 'include/footer.php'; ?>
 
+  <?php include_once 'include/footer.php'; ?>
 </body>
 
 </html>

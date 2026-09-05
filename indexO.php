@@ -29,8 +29,10 @@ function formatPhoneNumber($val) {
     return $val;
 }
 
-// Require updated auth helper (which also resolves database connection)
+// Database Connection (Uses relative path from current directory)
 require_once __DIR__ . '/config/db.php';
+
+// Require auth helper
 require_once __DIR__ . '/include/auth.php';
 
 // Initialize default metric counters

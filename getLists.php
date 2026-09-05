@@ -1,5 +1,6 @@
 <?php
 // getLists.php
+ob_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
@@ -18,6 +19,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'config/db.php';
 
 if (!isset($db) || !($db instanceof mysqli)) {
+    ob_clean();
     http_response_code(500);
     echo json_encode([
         'status'   => 'error',
@@ -31,7 +33,6 @@ $membersOnly = isset($_REQUEST['members_only']) ? (int)$_REQUEST['members_only']
 $ageFilter   = isset($_REQUEST['age_filter']) ? (int)$_REQUEST['age_filter'] : 0;
 
 try {
-    // 1. Build Filter Conditions
     $whereConditions = [];
 
     if ($membersOnly === 1) {
@@ -48,7 +49,6 @@ try {
 
     $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
-    // 2. Fetch Contacts (Primary Query)
     $contacts = [];
     $contactQuery = "SELECT contact_id, 
                             TRIM(CONCAT(
@@ -61,12 +61,12 @@ try {
                      ORDER BY last_name ASC, first_name ASC";
     
     $cRes = $db->query($contactQuery);
-    if ($cRes) {
-        $contacts = $cRes->fetch_all(MYSQLI_ASSOC);
-        $cRes->free();
+    if (!$cRes) {
+        throw new Exception("Contact Query Failed: " . $db->error);
     }
+    $contacts = $cRes->fetch_all(MYSQLI_ASSOC);
+    $cRes->free();
 
-    // 3. Fetch Heads of Household
     $heads = [];
     $headRes = $db->query("SELECT contact_id, 
                                   TRIM(CONCAT(
@@ -82,81 +82,51 @@ try {
         $headRes->free();
     }
 
-    // 4. Safe Optional Metadata Lookups (Titles)
     $titles = [];
-    try {
-        $tRes = $db->query("SELECT title_id, titleabr FROM titles ORDER BY titleabr ASC");
-        if ($tRes) { $titles = $tRes->fetch_all(MYSQLI_ASSOC); $tRes->free(); }
-    } catch (Throwable $e) {
-        try {
-            $tRes = $db->query("SELECT title_id, titleabr FROM title ORDER BY titleabr ASC");
-            if ($tRes) { $titles = $tRes->fetch_all(MYSQLI_ASSOC); $tRes->free(); }
-        } catch (Throwable $ignored) {}
+    $tRes = $db->query("SELECT title_id, titleabr FROM title ORDER BY titleabr ASC");
+    if ($tRes) { 
+        $titles = $tRes->fetch_all(MYSQLI_ASSOC); 
+        $tRes->free(); 
     }
 
-    // 5. Marital Status
     $marital = [];
-    try {
-        $mRes = $db->query("SELECT marital_id, marital_status FROM marital_status ORDER BY marital_status ASC");
-        if ($mRes) { $marital = $mRes->fetch_all(MYSQLI_ASSOC); $mRes->free(); }
-    } catch (Throwable $e) {}
+    $mRes = $db->query("SELECT marital_id, marital_status FROM marital_status ORDER BY marital_status ASC");
+    if ($mRes) { 
+        $marital = $mRes->fetch_all(MYSQLI_ASSOC); 
+        $mRes->free(); 
+    }
 
-    // 6. Phone Types
     $phonetype = [];
-    try {
-        $pRes = $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER BY phone_type_desc ASC");
-        if ($pRes) { $phonetype = $pRes->fetch_all(MYSQLI_ASSOC); $pRes->free(); }
-    } catch (Throwable $e) {
-        try {
-            $pRes = $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER BY phone_type_desc ASC");
-            if ($pRes) { $phonetype = $pRes->fetch_all(MYSQLI_ASSOC); $pRes->free(); }
-        } catch (Throwable $ignored) {}
+    $pRes = $db->query("SELECT phone_type_id, phone_type_desc FROM phone_type ORDER BY phone_type_desc ASC");
+    if ($pRes) { 
+        $phonetype = $pRes->fetch_all(MYSQLI_ASSOC); 
+        $pRes->free(); 
     }
 
-    // 7. Ministry & Committee List (Unified with safe group type joins)
     $ministryList = [];
-    try {
-        $minRes = $db->query("
-            SELECT 
-                mc.min_comm_id, 
-                mc.min_comm_name, 
-                mc.min_comm_type_id,
-                COALESCE(NULLIF(gt.min_grp_type_desc, ''), 'General Associations') AS min_grp_type_desc
-            FROM ministry_committee mc
-            LEFT JOIN min_group_type gt ON mc.min_comm_type_id = gt.min_grp_type_id
-            ORDER BY min_grp_type_desc ASC, mc.min_comm_name ASC
-        ");
-        if ($minRes) { 
-            $ministryList = $minRes->fetch_all(MYSQLI_ASSOC); 
-            $minRes->free(); 
-        }
-    } catch (Throwable $e) {
-        try {
-            $minRes = $db->query("
-                SELECT 
-                    mc.min_comm_id, 
-                    mc.min_comm_name, 
-                    mc.min_comm_type_id,
-                    COALESCE(NULLIF(mgt.min_grp_type_desc, ''), 'General Associations') AS min_grp_type_desc
-                FROM ministry_committee mc
-                LEFT JOIN ministry_group_types mgt ON mc.min_comm_type_id = mgt.min_grp_type_id
-                ORDER BY min_grp_type_desc ASC, mc.min_comm_name ASC
-            ");
-            if ($minRes) { 
-                $ministryList = $minRes->fetch_all(MYSQLI_ASSOC); 
-                $minRes->free(); 
-            }
-        } catch (Throwable $ignored) {}
+    $minRes = $db->query("
+        SELECT 
+            mc.min_comm_id, 
+            mc.min_comm_name, 
+            mc.min_comm_type_id,
+            COALESCE(NULLIF(gt.min_grp_type_desc, ''), 'General Associations') AS min_grp_type_desc
+        FROM ministry_committee mc
+        LEFT JOIN min_group_type gt ON mc.min_comm_type_id = gt.min_grp_type_id
+        ORDER BY min_grp_type_desc ASC, mc.min_comm_name ASC
+    ");
+    if ($minRes) { 
+        $ministryList = $minRes->fetch_all(MYSQLI_ASSOC); 
+        $minRes->free(); 
     }
 
-    // 8. Roles
     $roleList = [];
-    try {
-        $rRes = $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc ASC");
-        if ($rRes) { $roleList = $rRes->fetch_all(MYSQLI_ASSOC); $rRes->free(); }
-    } catch (Throwable $e) {}
+    $rRes = $db->query("SELECT role_id, role_desc FROM roles ORDER BY role_desc ASC");
+    if ($rRes) { 
+        $roleList = $rRes->fetch_all(MYSQLI_ASSOC); 
+        $rRes->free(); 
+    }
 
-    // Output JSON
+    ob_clean();
     echo json_encode([
         'status'       => 'success',
         'contacts'     => $contacts,
@@ -169,10 +139,15 @@ try {
     ]);
 
 } catch (Throwable $e) {
+    ob_clean();
     http_response_code(500);
     echo json_encode([
         'status'   => 'error',
         'message'  => 'Database Error: ' . $e->getMessage(),
         'contacts' => []
     ]);
+}
+
+if (isset($db) && $db instanceof mysqli) {
+    mysqli_close($db);
 }

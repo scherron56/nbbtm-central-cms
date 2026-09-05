@@ -1,4 +1,4 @@
- <?php
+<?php
 // include/auth.php
 ob_start();
 
@@ -12,9 +12,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Ensure non-authenticated users default to the 'browser' role
+// Ensure non-authenticated users default to the 'view' role
 if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_role'] = 'browser';
+    $_SESSION['user_role'] = 'view';
 }
 
 $dbPathConfig = __DIR__ . '/../config/db.php';
@@ -37,53 +37,10 @@ if (file_exists($dbPathConfig)) {
 }
 
 /**
- * Log user access and security events to access_logs table
- */
-function logAccess($db, $userId, $identifier, $action) {
-    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
-
-    $stmt = $db->prepare("INSERT INTO access_logs (user_id, identifier_used, action, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("issss", $userId, $identifier, $action, $ipAddress, $userAgent);
-    $stmt->execute();
-    $stmt->close();
-}
-
-/**
- * Rate Limiter: Checks if current IP exceeds maximum allowed failed attempts.
- * Standard Rule: Max 5 failed attempts in 15 minutes.
- */
-function isRateLimited($db, $maxAttempts = 5, $timeWindowMinutes = 15) {
-    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-
-    $query = "SELECT COUNT(*) AS failed_count 
-              FROM access_logs 
-              WHERE ip_address = ? 
-                AND action LIKE 'LOGIN_FAILED%' 
-                AND created_at >= NOW() - INTERVAL ? MINUTE";
-
-    $stmt = $db->prepare($query);
-    $stmt->bind_param("si", $ipAddress, $timeWindowMinutes);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
-    $stmt->close();
-
-    return ($row['failed_count'] ?? 0) >= $maxAttempts;
-}
-
-/**
  * Check if user is Admin
  */
 function isAdmin() {
     return isset($_SESSION['user_id'], $_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
-}
-
-/**
- * Check if user is Developer
- */
-function isDeveloper() {
-    return isset($_SESSION['user_id'], $_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'developer';
 }
 
 /**
@@ -94,12 +51,12 @@ function isStaff() {
 }
 
 /**
- * Check if user has edit permissions (Admin, Developer, or Staff)
+ * Check if user has edit permissions (Admin or Staff)
  */
 function canEdit() {
     if (!isset($_SESSION['user_role'])) return false;
     $role = strtolower($_SESSION['user_role']);
-    return in_array($role, ['admin', 'developer', 'staff'], true);
+    return in_array($role, ['admin', 'staff'], true);
 }
 
 /**
@@ -120,24 +77,7 @@ function requireAdmin() {
 }
 
 /**
- * Security middleware: Developer ONLY (Locks out Admin and everyone else)
- */
-function requireDeveloperOnly() {
-    if (!isDeveloper()) {
-        ob_clean();
-        header('Content-Type: application/json; charset=utf-8');
-        http_response_code(403);
-        echo json_encode([
-            'status'  => 'error', 
-            'success' => false, 
-            'message' => 'Access Denied: Developer-only privileges required.'
-        ]);
-        exit;
-    }
-}
-
-/**
- * Security middleware: Editors only (Admin, Developer & Staff)
+ * Security middleware: Editors only (Admin & Staff)
  */
 function requireEditor() {
     if (!canEdit()) {
@@ -156,8 +96,8 @@ function requireEditor() {
 /**
  * Flexible security middleware
  */
-function requireRole(array $allowedRoles = ['admin', 'developer', 'staff', 'browser']) {
-    $currentRole = strtolower($_SESSION['user_role'] ?? 'browser');
+function requireRole(array $allowedRoles = ['admin', 'staff', 'view']) {
+    $currentRole = strtolower($_SESSION['user_role'] ?? 'view');
     $normalizedAllowed = array_map('strtolower', $allowedRoles);
 
     if (!in_array($currentRole, $normalizedAllowed, true)) {
@@ -168,29 +108,6 @@ function requireRole(array $allowedRoles = ['admin', 'developer', 'staff', 'brow
             'status'  => 'error', 
             'success' => false, 
             'message' => 'Access Denied: Insufficient permissions.'
-        ]);
-        exit;
-    }
-}
-
-/**
- * Security middleware: Restrict page to specific User IDs (Admins and Developers always bypass)
- */
-function requireSpecificUser(array $allowedUserIds) {
-    if (isAdmin() || isDeveloper()) {
-        return;
-    }
-
-    $currentUserId = $_SESSION['user_id'] ?? 0;
-
-    if (!in_array($currentUserId, $allowedUserIds, true)) {
-        ob_clean();
-        header('Content-Type: application/json; charset=utf-8');
-        http_response_code(403);
-        echo json_encode([
-            'status'  => 'error', 
-            'success' => false, 
-            'message' => 'Access Denied: This page is restricted to specific users.'
         ]);
         exit;
     }
@@ -211,21 +128,9 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Rate limiting check: Max 5 failed attempts within 15 minutes
-    if (isRateLimited($db, 5, 15)) {
-        logAccess($db, null, $identity, 'LOGIN_BLOCKED_RATE_LIMIT');
-        http_response_code(429);
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Too many failed login attempts. Please try again in 15 minutes.'
-        ]);
-        exit;
-    }
-
-    $query = "SELECT nu.user_id, nu.username, nu.full_name, nu.email, nu.password_hash, nu.nbbtm_role_id, nr.nbbtm_role_name, nu.is_active 
-              FROM nbbtm_users nu
-              LEFT JOIN nbbtm_roles nr ON nu.nbbtm_role_id = nr.nbbtm_role_id
-              WHERE nu.username = ? OR nu.email = ?";
+    $query = "SELECT user_id, username, full_name, email, password_hash, role, is_active 
+              FROM nbbtm_users 
+              WHERE username = ? OR email = ?";
 
     $stmt = $db->prepare($query);
     $stmt->bind_param("ss", $identity, $identity);
@@ -234,19 +139,16 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($user = $result->fetch_assoc()) {
         if ((int)$user['is_active'] !== 1) {
-            logAccess($db, (int)$user['user_id'], $identity, 'LOGIN_BLOCKED_INACTIVE');
             echo json_encode(['success' => false, 'message' => 'Account is inactive. Please contact system admin.']);
             exit;
         }
 
         if (password_verify($password, $user['password_hash'])) {
-            $_SESSION['user_id']    = (int)$user['user_id'];
-            $_SESSION['username']   = $user['username'];
-            $_SESSION['full_name']  = $user['full_name'];
+            $_SESSION['user_id']   = (int)$user['user_id'];
+            $_SESSION['username']  = $user['username'];
+            $_SESSION['full_name'] = $user['full_name'];
             $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_role']  = $user['nbbtm_role_name'] ?? 'browser';
-
-            logAccess($db, (int)$user['user_id'], $identity, 'LOGIN_SUCCESS');
+            $_SESSION['user_role']  = $user['role'];
 
             echo json_encode([
                 'success' => true,
@@ -254,15 +156,11 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     'username'  => $user['username'],
                     'full_name' => $user['full_name'],
                     'email'     => $user['email'],
-                    'role'      => $_SESSION['user_role']
+                    'role'      => $user['role']
                 ]
             ]);
             exit;
-        } else {
-            logAccess($db, (int)$user['user_id'], $identity, 'LOGIN_FAILED_BAD_PASSWORD');
         }
-    } else {
-        logAccess($db, null, $identity, 'LOGIN_FAILED_NO_USER');
     }
 
     echo json_encode(['success' => false, 'message' => 'Invalid username/email or password.']);
@@ -307,7 +205,6 @@ if ($action === 'change_password' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($user = $result->fetch_assoc()) {
         if (!password_verify($currentPassword, $user['password_hash'])) {
-            logAccess($db, $userId, $_SESSION['username'] ?? '', 'PASSWORD_CHANGE_FAILED');
             echo json_encode(['success' => false, 'message' => 'Incorrect current password.']);
             exit;
         }
@@ -317,7 +214,6 @@ if ($action === 'change_password' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $updateStmt->bind_param("si", $newHash, $userId);
 
         if ($updateStmt->execute()) {
-            logAccess($db, $userId, $_SESSION['username'] ?? '', 'PASSWORD_CHANGE_SUCCESS');
             echo json_encode(['success' => true, 'message' => 'Password updated successfully!']);
             exit;
         }
@@ -329,12 +225,8 @@ if ($action === 'change_password' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // --- ACTION: LOGOUT ---
 if ($action === 'logout') {
-    if (isset($_SESSION['user_id'])) {
-        logAccess($db, (int)$_SESSION['user_id'], $_SESSION['username'] ?? '', 'LOGOUT');
-    }
-
     session_unset();
-    $_SESSION['user_role'] = 'browser';
+    $_SESSION['user_role'] = 'view';
     
     if (isset($_GET['ajax']) || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)) {
         ob_clean();
@@ -352,21 +244,14 @@ if ($action === 'check_session') {
     ob_clean();
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
-        'logged_in'    => isset($_SESSION['user_id']),
-        'username'     => $_SESSION['username'] ?? 'Guest',
-        'full_name'    => $_SESSION['full_name'] ?? '',
-        'email'        => $_SESSION['user_email'] ?? null,
-        'role'         => $_SESSION['user_role'] ?? 'browser',
-        'is_admin'     => isAdmin(),
-        'is_developer' => isDeveloper(),
-        'can_edit'     => canEdit()
+        'logged_in' => isset($_SESSION['user_id']),
+        'username'  => $_SESSION['username'] ?? 'Guest',
+        'full_name' => $_SESSION['full_name'] ?? '',
+        'email'     => $_SESSION['user_email'] ?? null,
+        'role'      => $_SESSION['user_role'] ?? 'view',
+        'is_admin'  => isAdmin(),
+        'can_edit'  => canEdit()
     ]);
     exit;
-}
-
-// Log page views for logged-in users on standard requests
-if (isset($_SESSION['user_id']) && empty($action)) {
-    $currentPage = $_SERVER['SCRIPT_NAME'] ?? 'UNKNOWN_PAGE';
-    logAccess($db, (int)$_SESSION['user_id'], $_SESSION['username'] ?? '', 'PAGE_VIEW: ' . $currentPage);
 }
 ?>

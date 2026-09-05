@@ -22,8 +22,8 @@ $currentYear = date('Y');
       </div>
 
       <?php if (empty($hide_menu)): ?>
-        <?php if (isAdmin()): ?>
-          <!-- Full Admin Navigation Columns (Includes Admin Section) -->
+        <?php if (isAdmin() || isDeveloper()): ?>
+          <!-- Full Admin & Developer Navigation Columns -->
           <div class="footer-col">
             <h4>Navigation</h4>
             <ul>
@@ -75,7 +75,7 @@ $currentYear = date('Y');
           </div>
 
         <?php elseif (canEdit()): ?>
-          <!-- Staff Navigation Columns: Editing links visible, Admin section omitted -->
+          <!-- Staff Navigation: Editing links visible, Admin section omitted -->
           <div class="footer-col">
             <h4>Navigation</h4>
             <ul>
@@ -107,7 +107,7 @@ $currentYear = date('Y');
           </div>
 
         <?php else: ?>
-          <!-- View Role Limited Quick Links -->
+          <!-- View / Browser Role Limited Quick Links -->
           <div class="footer-col">
             <h4>Quick Links</h4>
             <ul>
@@ -156,89 +156,17 @@ $currentYear = date('Y');
   width: 100%;
   box-sizing: border-box;
 }
-
-.footer-container {
-  max-width: 1400px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.footer-grid {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 2.5rem;
-  margin-bottom: 2.5rem;
-}
-
-.footer-col {
-  flex: 1 1 180px;
-  min-width: 160px;
-}
-
-.church-info-col {
-  flex: 1.5 1 240px;
-  min-width: 220px;
-}
-
-.footer-col h4 {
-  color: #f8fafc;
-  font-size: 1rem;
-  margin-top: 0;
-  margin-bottom: 0.85rem;
-  border-bottom: 2px solid #334155;
-  padding-bottom: 0.4rem;
-}
-
-.church-address {
-  font-style: normal;
-  line-height: 1.6;
-  color: #cbd5e1;
-}
-
-.church-address p {
-  margin: 0 0 0.35rem 0;
-}
-
-.footer-subheading {
-  display: block;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #f59e0b;
-  font-weight: 600;
-  margin-top: 0.85rem;
-  margin-bottom: 0.3rem;
-}
-
-.footer-col ul {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 0.5rem 0;
-}
-
-.footer-col ul li {
-  margin-bottom: 0.45rem;
-}
-
-.footer-col ul li a {
-  color: #cbd5e1;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.footer-col ul li a:hover,
-.footer-col ul li a.active {
-  color: #60a5fa;
-}
-
-.footer-bottom {
-  text-align: center;
-  border-top: 1px solid #1e293b;
-  padding-top: 1.5rem;
-  font-size: 0.85rem;
-  color: #64748b;
-  width: 100%;
-}
+.footer-container { max-width: 1400px; width: 100%; margin: 0 auto; }
+.footer-grid { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 2.5rem; margin-bottom: 2.5rem; }
+.footer-col { flex: 1 1 180px; min-width: 160px; }
+.church-info-col { flex: 1.5 1 240px; min-width: 220px; }
+.footer-col h4 { color: #f8fafc; font-size: 1rem; margin-top: 0; margin-bottom: 0.85rem; border-bottom: 2px solid #334155; padding-bottom: 0.4rem; }
+.church-address { font-style: normal; line-height: 1.6; color: #cbd5e1; }
+.church-address p { margin: 0 0 0.35rem 0; }
+.footer-subheading { display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #f59e0b; font-weight: 600; margin-top: 0.85rem; margin-bottom: 0.3rem; }
+.footer-col ul { list-style: none; padding: 0; margin: 0 0 0.5rem 0; }
+.footer-col ul li { margin-bottom: 0.45rem; }
+.footer-col ul li a { color: #cbd5e1; text-decoration: none; transition: color 0.2s ease; }
+.footer-col ul li a:hover, .footer-col ul li a.active { color: #60a5fa; }
+.footer-bottom { text-align: center; border-top: 1px solid #1e293b; padding-top: 1.5rem; font-size: 0.85rem; color: #64748b; width: 100%; }
 </style>

@@ -14,7 +14,8 @@ require_once __DIR__ . '/auth.php';
 $currentPage = basename($_SERVER['PHP_SELF']);
 $isLoggedIn  = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 $username    = $_SESSION['username'] ?? '';
-$userRole    = $_SESSION['user_role'] ?? 'view';
+$userRole    = $_SESSION['user_role'] ?? 'browser';
+$mustChangePassword = !empty($_SESSION['must_change_password']);
 ?>
 <header class="site-header">
   <div class="header-content">
@@ -31,8 +32,11 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
     <ul class="nav-links"> 
       <li><a href="index.php" class="<?= in_array($currentPage, ['index.php', 'index1.php']) ? 'active' : '' ?>">Home</a></li> 
       
-      <?php if (isAdmin()): ?>
-        <!-- Full Admin Navigation (Includes Admin Menu) -->
+      <?php if ($isLoggedIn && isMember()): ?>
+        <li><a href="member_documents.php" class="<?= ($currentPage === 'member_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
+
+      <?php elseif ($isLoggedIn && (isAdmin() || isDeveloper())): ?>
+        <!-- Full Admin & Developer Navigation -->
         <li class="dropdown">
           <a href="#" class="<?= in_array($currentPage, ['contacts.php', 'contact_dashboard.php']) ? 'active' : '' ?>">Contacts</a>
           <ul class="submenu">
@@ -68,7 +72,7 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
           </ul>
         </li>
 
-        <!-- Admin-Only Menu Dropdown -->
+        <!-- Admin / Full Control Menu Dropdown -->
         <li class="dropdown">
           <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
             Admin &#9662;
@@ -95,11 +99,12 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
             </li>
             <li><a href="self_register.php" class="<?= ($currentPage === 'self_register.php') ? 'active' : '' ?>">Self Registration</a></li>
             <li><a href="user_management.php" class="<?= ($currentPage === 'user_management.php') ? 'active' : '' ?>">👥 User Management</a></li>
+            <li><a href="admin_documents.php" class="<?= ($currentPage === 'admin_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
           </ul>
         </li>
 
-      <?php elseif (canEdit()): ?>
-        <!-- Staff Navigation: Full operational access without Admin menu -->
+      <?php elseif ($isLoggedIn && canEdit()): ?>
+        <!-- Staff Navigation: Operational access without Admin menu -->
         <li class="dropdown">
           <a href="#" class="<?= in_array($currentPage, ['contacts.php', 'contact_dashboard.php']) ? 'active' : '' ?>">Contacts</a>
           <ul class="submenu">
@@ -135,8 +140,8 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
           </ul>
         </li>
 
-      <?php else: ?>
-        <!-- View Role Navigation -->
+      <?php elseif ($isLoggedIn): ?>
+        <!-- Browser / View Role Navigation -->
         <li><a href="contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contacts Dashboard</a></li>
         <li><a href="ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
         <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Members</a></li>
@@ -158,7 +163,7 @@ $userRole    = $_SESSION['user_role'] ?? 'view';
         </li>
       <?php else: ?>
         <li style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 0.85rem; opacity: 0.9; font-style: normal;">Mode: <strong>View</strong></span>
+          <span style="font-size: 0.85rem; opacity: 0.9; font-style: normal;">Mode: <strong>Browser</strong></span>
           <a href="#" id="open-login-btn" style="background-color: #2563eb; color: #ffffff;">Sign In</a>
         </li>
       <?php endif; ?>
@@ -303,7 +308,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('./include/auth.php?action=login', { method: 'POST', body: formData });
         const result = await res.json();
         if (result.success) {
-          window.location.reload();
+          if (result.must_change_password) {
+            loginModal.classList.add('hidden');
+            changePwdModal.classList.remove('hidden');
+            if (closeChangePwdBtn) closeChangePwdBtn.style.display = 'none';
+            changePwdMsg.className = 'text-danger';
+            changePwdMsg.textContent = 'Please change your temporary password before continuing.';
+          } else {
+            window.location.reload();
+          }
         } else {
           loginErrorMsg.textContent = result.message || 'Login failed.';
           loginErrorMsg.classList.remove('hidden');
@@ -327,19 +340,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await res.json();
 
         if (result.success) {
-          changePwdMsg.textContent = result.message;
-          changePwdMsg.className = 'text-success';
-          changePwdForm.reset();
-          setTimeout(() => changePwdModal.classList.add('hidden'), 2000);
+          window.location.reload();
         } else {
           changePwdMsg.textContent = result.message || 'Password update failed.';
           changePwdMsg.className = 'text-danger';
         }
+
       } catch (err) {
         changePwdMsg.textContent = 'Server connection error.';
         changePwdMsg.className = 'text-danger';
       }
     });
+  }
+
+  if (<?= $mustChangePassword ? 'true' : 'false' ?> && changePwdModal) {
+    changePwdModal.classList.remove('hidden');
+    if (closeChangePwdBtn) closeChangePwdBtn.style.display = 'none';
+    changePwdMsg.className = 'text-danger';
+    changePwdMsg.textContent = 'Please change your temporary password before continuing.';
   }
 
   if (logoutBtn) {

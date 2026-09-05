@@ -114,11 +114,16 @@ $(document).ready(function() {
   const DEFAULT_STATE = 'MN';
   let globalMinistryList = [];
   let globalRoleList = [];
-  let contactCategoriesCache = [];
+  let contactLoadRequest = 0;
+  let statusHideTimer = null;
 
-  function showStatusMessage(message, type = 'success') {
+  function showStatusMessage(message, type = 'success', persist = false) {
     let $box = $('#status-message');
     let htmlContent = '';
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
 
     if (Array.isArray(message)) {
       htmlContent = '<ul style="margin: 0; padding-left: 20px;">' + message.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
@@ -136,12 +141,19 @@ $(document).ready(function() {
 
     $('html, body').animate({ scrollTop: $box.offset().top - 20 }, 200);
 
-    if (type === 'success') {
-      setTimeout(function() { $box.fadeOut(500); }, 5000);
+    if (type === 'success' && !persist) {
+      statusHideTimer = setTimeout(function() {
+        $box.fadeOut(500);
+        statusHideTimer = null;
+      }, 5000);
     }
   }
 
   function clearStatusMessage() {
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
     $('#status-message').fadeOut(200).empty();
   }
 
@@ -196,50 +208,59 @@ $(document).ready(function() {
     this.setSelectionRange(cursorPosition, cursorPosition);
   });
 
-  function loadContactCategories() {
-    $.ajax({
-      url: 'category_api.php',
-      type: 'GET',
-      data: { action: 'get_categories', entity_type: 'contact', only_active: 1 },
-      dataType: 'json',
-      success: function(res) {
-        if (res.success) {
-          contactCategoriesCache = res.categories || [];
-          populateCategoryDropdowns();
-        }
-      }
-    });
-  }
-
-  function populateCategoryDropdowns() {
-    $('.attach-cat-select').each(function() {
-      let $sel = $(this);
-      let currentVal = $sel.val();
-      $sel.find('option:not(:first)').remove();
-      $.each(contactCategoriesCache, function(i, c) {
-        $sel.append(`<option value="${c.doc_category_id}">${escapeHtml(c.category_name)}</option>`);
-      });
-      if (currentVal) $sel.val(currentVal);
-    });
-  }
-
+  // Dynamic File Upload Row Addition
   $('#btnAddFileRow').on('click', function() {
     let newRow = `
       <div class="file-upload-row">
-        <select name="attach_cat_ids[]" class="form-control attach-cat-select" style="flex: 1;" required>
-          <option value="">-- Select Category --</option>
-        </select>
+        <input type="text" name="document_short_name[]" class="form-control" placeholder="Tag Name (e.g. ID, Certificate)" style="flex: 1;">
+        <input type="date" name="document_date[]" class="form-control" style="flex: 1;" title="Document Date">
         <input type="file" name="attach_files[]" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" class="form-control" style="flex: 2; background:#fff;" required>
+        <a href="#" class="btn btn-secondary btnPreviewFile" target="_blank" rel="noopener" style="white-space:nowrap; opacity:0.5;">Preview</a>
         <button type="button" class="btn btn-danger btnRemoveFileRow" style="padding: 6px 10px;">&times;</button>
       </div>
     `;
     $('#uploadRowsContainer').append(newRow);
-    populateCategoryDropdowns();
     toggleFileRowButtons();
   });
 
+  // Auto-fill date input when a file is selected
+  $(document).on('change', 'input[type="file"][name="attach_files[]"]', function() {
+    const file = this.files[0];
+    const $row = $(this).closest('.file-upload-row');
+    const $preview = $row.find('.btnPreviewFile');
+    const previousUrl = $preview.data('object-url');
+
+    if (previousUrl) {
+      URL.revokeObjectURL(previousUrl);
+      $preview.removeData('object-url');
+    }
+
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      $preview.data('object-url', objectUrl).prop('href', objectUrl).css('opacity', '1');
+    } else {
+      $preview.removeAttr('href').css('opacity', '0.5');
+    }
+
+    if (file && file.lastModified) {
+      const fileDate = new Date(file.lastModified).toISOString().split('T')[0];
+      $row.find('input[name="document_date[]"]').val(fileDate);
+    }
+  });
+
+  $(document).on('click', '.btnPreviewFile', function(event) {
+    if (!$(this).data('object-url')) {
+      event.preventDefault();
+    }
+  });
+
   $(document).on('click', '.btnRemoveFileRow', function() {
-    $(this).closest('.file-upload-row').remove();
+    const $row = $(this).closest('.file-upload-row');
+    const objectUrl = $row.find('.btnPreviewFile').data('object-url');
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+    }
+    $row.remove();
     toggleFileRowButtons();
   });
 
@@ -258,14 +279,16 @@ $(document).ready(function() {
       $('#existingAttachmentsTable').show();
       $.each(attachments, function(i, att) {
         let sizeKb = att.document_size ? Math.round(att.document_size / 1024) + ' KB' : '-';
-        let downloadUrl = `download_document.php?attachment_id=${att.attachment_id}`;
+        let viewUrl = `include/document_reader.php?document_id=${att.document_id}`;
+        let downloadUrl = `include/download_document.php?document_id=${att.document_id}`;
         
         $tbody.append(`
           <tr>
-            <td><span class="status-badge badge-secondary">${escapeHtml(att.category_name || 'General')}</span></td>
-            <td><a href="${downloadUrl}" target="_blank" style="font-weight: 600;">📄 ${escapeHtml(att.document_name)}</a></td>
+            <td><span class="status-badge badge-secondary">${escapeHtml(att.document_short_name || 'General')}</span></td>
+            <td><a href="${viewUrl}" target="_blank" style="font-weight: 600;">📄 ${escapeHtml(att.document_name)}</a></td>
             <td>${sizeKb}</td>
             <td style="text-align:right;">
+              <a href="${viewUrl}" class="btn btn-sm btn-secondary" target="_blank">Read</a>
               <a href="${downloadUrl}" class="btn btn-sm btn-primary" target="_blank">Download</a>
               <button type="button" class="btn btn-sm btn-danger btnDeleteAttachment" data-id="${att.attachment_id}" ${!CAN_EDIT ? 'disabled' : ''}>Delete</button>
             </td>
@@ -298,14 +321,13 @@ $(document).ready(function() {
   function resetUploadRows() {
     $('#uploadRowsContainer').html(`
       <div class="file-upload-row">
-        <select name="attach_cat_ids[]" class="form-control attach-cat-select" style="flex: 1;">
-          <option value="">-- Select Category --</option>
-        </select>
+        <input type="text" name="document_short_name[]" class="form-control" placeholder="Tag Name (e.g. ID, Certificate)" style="flex: 1;">
+        <input type="date" name="document_date[]" class="form-control" style="flex: 1;" title="Document Date">
         <input type="file" name="attach_files[]" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" class="form-control" style="flex: 2; background:#fff;">
+        <a href="#" class="btn btn-secondary btnPreviewFile" target="_blank" rel="noopener" style="white-space:nowrap; opacity:0.5;">Preview</a>
         <button type="button" class="btn btn-danger btnRemoveFileRow" style="padding: 6px 10px;" disabled>&times;</button>
       </div>
     `);
-    populateCategoryDropdowns();
   }
 
   function populateCities(stateCode, selectedCity = '', callback = null) {
@@ -368,14 +390,10 @@ $(document).ready(function() {
   });
 
   updateFormLists();
-  loadContactCategories();
 
   function toggleMemberSections(shouldShow) {
-    if (shouldShow) {
-      $('#membership-section, #ministry-section').show();
-    } else {
-      $('#membership-section, #ministry-section').hide();
-    }
+    $('#membership-section').show();
+    $('#ministry-section').toggle(shouldShow);
   }
 
   function buildMinistryCheckboxes(ministryList, roleList, savedMinistries = []) {
@@ -384,10 +402,8 @@ $(document).ready(function() {
     if (ministryList && ministryList.length > 0) {
       let groupedMinistries = {};
 
-      // Sort full list alphabetically by committee name first
       ministryList.sort((a, b) => a.min_comm_name.localeCompare(b.min_comm_name));
 
-      // Group elements by their committee type description
       $.each(ministryList, function(index, item) {
         let typeId = item.min_comm_type_id || 0;
         if (!groupedMinistries[typeId]) {
@@ -399,7 +415,6 @@ $(document).ready(function() {
         groupedMinistries[typeId].items.push(item);
       });
 
-      // Render grouped sections inside the two-column grid layout
       $.each(groupedMinistries, function(typeId, groupData) {
         let groupHeader = $('<h3>').text(groupData.typeDesc);
         $('#checkbox-container').append(groupHeader);
@@ -578,6 +593,7 @@ $(document).ready(function() {
   });
 
   $('#addNewContact, #resetBtn').click(function(e) {
+    contactLoadRequest++;
     clearStatusMessage();
     if ($('#contact-form').length) {
       $('#contact-form')[0].reset();
@@ -608,6 +624,7 @@ $(document).ready(function() {
   $('#contactID').change(function() {
     clearStatusMessage();
     let contactid = $(this).val();
+    const requestId = ++contactLoadRequest;
 
     if (contactid === "") {
       if ($('#contact-form').length) {
@@ -638,6 +655,10 @@ $(document).ready(function() {
       data: { contactid: contactid },
       dataType: 'json',
       success: function(data) {
+        if (requestId !== contactLoadRequest || String($('#contactID').val()) !== String(contactid)) {
+          return;
+        }
+
         if (data.error) {
           showStatusMessage(data.error, 'error');
           return;
@@ -740,7 +761,7 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(response) {
         if (response.status === 'success') {
-          showStatusMessage(response.message, 'success');
+          showStatusMessage(response.message, 'success', true);
           let savedId = response.contact_id || response.id;
           
           updateFormLists(function() {
@@ -1066,7 +1087,7 @@ $(document).ready(function() {
         </div>
       </fieldset>
 
-      <!-- RENAMED: NEW BEGINNINGS CENSUS INFORMATION FIELDSET -->
+      <!-- NEW BEGINNINGS CENSUS INFORMATION FIELDSET -->
       <fieldset id="membership-section">
         <legend>
           <h2>New Beginnings Census Information</h2>
@@ -1126,16 +1147,16 @@ $(document).ready(function() {
               <tbody></tbody>
             </table>
 
-            <label style="font-size: 0.85rem; color: #475569; font-weight: bold; margin-bottom: 5px; display: flex; justify-space-between; align-items: center;">
+            <label style="font-size: 0.85rem; color: #475569; font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
               Upload New Documents:
               <button type="button" id="btnAddFileRow" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Document</button>
             </label>
             <div id="uploadRowsContainer">
               <div class="file-upload-row">
-                <select name="attach_cat_ids[]" class="form-control attach-cat-select" style="flex: 1;">
-                  <option value="">-- Select Category --</option>
-                </select>
+                <input type="text" name="document_short_name[]" class="form-control" placeholder="Tag Name (e.g. ID, Certificate)" style="flex: 1;">
+                <input type="date" name="document_date[]" class="form-control" style="flex: 1;" title="Document Date">
                 <input type="file" name="attach_files[]" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" class="form-control" style="flex: 2; background:#fff;">
+                <a href="#" class="btn btn-secondary btnPreviewFile" target="_blank" rel="noopener" style="white-space:nowrap; opacity:0.5;">Preview</a>
                 <button type="button" class="btn btn-danger btnRemoveFileRow" style="padding: 6px 10px;" disabled>&times;</button>
               </div>
             </div>

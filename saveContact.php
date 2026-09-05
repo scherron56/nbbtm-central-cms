@@ -8,12 +8,13 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once 'config/db.php';
 require_once 'include/auth.php';
+require_once 'include/document_binary.php';
 
 if (!isset($db) && isset($conn)) {
     $db = $conn;
 }
 
-requireAdmin();
+requireEditor();
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     http_response_code(405);
@@ -21,13 +22,14 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
+// Delete Attachment action using document_lib
 if (isset($_POST['action']) && $_POST['action'] === 'delete_attachment') {
-    $attachmentId = (int)($_POST['attachment_id'] ?? 0);
-    $stmt = $db->prepare("DELETE FROM app_attachments WHERE attachment_id = ? AND entity_type = 'contact'");
-    $stmt->bind_param("i", $attachmentId);
+    $documentId = (int)($_POST['document_id'] ?? 0);
+    $stmt = $db->prepare("DELETE FROM document_lib WHERE document_id = ? AND entity_type = 'contact'");
+    $stmt->bind_param("i", $documentId);
     $stmt->execute();
     $stmt->close();
-    echo json_encode(["status" => "success", "message" => "Attachment removed."]);
+    echo json_encode(["status" => "success", "message" => "Document removed."]);
     exit;
 }
 
@@ -71,7 +73,7 @@ function sanitizeDate($val) {
 }
 
 // 1. Collect & Sanitize Form Inputs
-$contact_id     = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : 3015;
+$contact_id     = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : null;
 $title_id       = !empty($_POST['title_id']) ? intval($_POST['title_id']) : null;
 $first_name     = trim($_POST['first_name'] ?? '');
 $middle_name    = trim($_POST['middle_name'] ?? '');
@@ -143,16 +145,14 @@ try {
             join_date = ?, baptized_date = ?, is_child = ?, is_head = ?, is_active = ?
             WHERE contact_id = ?");
 
-        // Corrected bind_param string: replaced trailing 'hi' with 'ii' (34 parameters total)[cite: 3]
-        $stmt->bind_param("iissssssissssssisissisiisissiiiiii", 
-            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth,
-            $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode,
-            $phone_1, $phone_1_type, $phone_2, $phone_2_type,
-            $emergency_contact, $phone_3, $phone_3_type, $c_email,
-            $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status,
-            $join_date, $baptized_date, $is_child, $is_head, $is_active,
-            $contact_id
+        $stmt->bind_param("iissssssissssssisissisiiississiiii", 
+            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, 
+            $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode, 
+            $phone_1, $phone_1_type, $phone_2, $phone_2_type, $emergency_contact, $phone_3, $phone_3_type, $c_email, 
+            $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status, 
+            $join_date, $baptized_date, $is_child, $is_head, $is_active, $contact_id
         );
+
         $stmt->execute();
         $stmt->close();
     } else {
@@ -167,17 +167,18 @@ try {
             join_date, baptized_date, is_child, is_head, is_active
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("iissssssissssssisissisiisissiii", 
-            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, $date_of_death, $is_deceased,
-            $gender, $address_1, $city, $state, $zipcode,
-            $phone_1, $phone_1_type, $phone_2, $phone_2_type,
-            $emergency_contact, $phone_3, $phone_3_type, $c_email,
-            $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status,
+        $stmt->bind_param("iissssssissssssisissisiiississiii", 
+            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, 
+            $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode, 
+            $phone_1, $phone_1_type, $phone_2, $phone_2_type, $emergency_contact, $phone_3, $phone_3_type, $c_email, 
+            $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status, 
             $join_date, $baptized_date, $is_child, $is_head, $is_active
         );
+
         $stmt->execute();
         $contact_id = $stmt->insert_id;
         $stmt->close();
+
         if ($is_head === 1 && $contact_id > 0) {
             $assigned_family = $contact_id;
             $updFamCol = $db->prepare("UPDATE contacts SET family_id = ? WHERE contact_id = ?");
@@ -187,63 +188,39 @@ try {
         }
     }
 
-    // 3. Update Families Mapping Table (Including is_spouse field)
-    $delFam = $db->prepare("DELETE FROM Families WHERE contact_id = ?");
-    $delFam->bind_param("i", $contact_id);
-    $delFam->execute();
-    $delFam->close();
+    // 3. Save Attachments into document_lib
+    $fileKey = !empty($_FILES['attach_files']['name']) ? 'attach_files' : (!empty($_FILES['document_name']['name']) ? 'document_name' : null);
 
-    if (!empty($assigned_family)) {
-        $insFam = $db->prepare("INSERT INTO Families (contact_id, family_id, is_spouse) VALUES (?, ?, ?)");
-        $insFam->bind_param("iii", $contact_id, $assigned_family, $is_spouse);
-        $insFam->execute();
-        $insFam->close();
-    }
-
-    // 4. Update Ministry Alliances (`member_alliance`)
-    $delMin = $db->prepare("DELETE FROM member_alliance WHERE contact_id = ?");
-    $delMin->bind_param("i", $contact_id);
-    $delMin->execute();
-    $delMin->close();
-
-    if ($is_member === 1 && !empty($_POST['ministries']) && is_array($_POST['ministries'])) {
-        $insMin = $db->prepare("INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)");
-        
-        foreach ($_POST['ministries'] as $min_comm_id) {
-            $min_comm_id = intval($min_comm_id);
-            $role_id = !empty($_POST['roles'][$min_comm_id]) ? intval($_POST['roles'][$min_comm_id]) : null;
-
-            $insMin->bind_param("iii", $contact_id, $min_comm_id, $role_id);
-            $insMin->execute();
-        }
-        $insMin->close();
-    }
-
-    // 5. Save Attachments
-    if (!empty($_FILES['attach_files']['name'])) {
-        $files  = $_FILES['attach_files'];
-        $catIds = $_POST['attach_cat_ids'] ?? [];
+    if ($fileKey && !empty($_FILES[$fileKey]['name'])) {
+        $files      = $_FILES[$fileKey];
+        $shortNames = $_POST['document_short_name'] ?? [];
+        $entityType = $_POST['entity_type'] ?? 'contact'; // Default to contact
 
         $insAtt = $db->prepare("
-            INSERT INTO app_attachments (entity_type, entity_id, doc_category_id, document_name, document_mime, document_size, document_data) 
-            VALUES ('contact', ?, ?, ?, ?, ?, ?)
+            INSERT INTO document_lib (entity_type, entity_id, document_short_name, document_name, document_mime, document_size, document_data) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($files['name'] as $fIdx => $fileName) {
             if (!empty($fileName) && $files['error'][$fIdx] === UPLOAD_ERR_OK) {
-                $catId = !empty($catIds[$fIdx]) ? (int)$catIds[$fIdx] : 0;
-                if ($catId > 0) {
-                    $tmpPath = $files['tmp_name'][$fIdx];
-                    $docName = basename($fileName);
-                    $docSize = (int)$files['size'][$fIdx];
-                    $docMime = mime_content_type($tmpPath) ?: $files['type'][$fIdx];
-                    $docData = file_get_contents($tmpPath);
-
-                    $nullBlob = NULL;
-                    $insAtt->bind_param("iissib", $contact_id, $catId, $docName, $docMime, $docSize, $nullBlob);
-                    $insAtt->send_long_data(5, $docData);
-                    $insAtt->execute();
+                $docShortName = !empty($shortNames[$fIdx]) ? trim($shortNames[$fIdx]) : 'General';
+                $tmpPath      = $files['tmp_name'][$fIdx];
+                $docFullName  = basename($fileName);
+                $docSize      = (int)$files['size'][$fIdx];
+                $docMime      = mime_content_type($tmpPath) ?: $files['type'][$fIdx];
+                $docData      = file_get_contents($tmpPath);
+                if ($docData === false) {
+                    throw new RuntimeException('The attachment could not be read.');
                 }
+                if (isDocxDocument($docFullName, $docMime)) {
+                    $docData = normalizeDocxData($docData);
+                    $docSize = strlen($docData);
+                }
+
+                $nullBlob = NULL;
+                $insAtt->bind_param("sisssib", $entityType, $contact_id, $docShortName, $docFullName, $docMime, $docSize, $nullBlob);
+                $insAtt->send_long_data(6, $docData);
+                $insAtt->execute();
             }
         }
         $insAtt->close();
@@ -267,6 +244,7 @@ try {
         "line" => $e->getLine()
     ]);
 }
+
 if (isset($db) && $db instanceof mysqli) {
     mysqli_close($db);
 }

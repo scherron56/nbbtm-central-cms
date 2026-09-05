@@ -85,11 +85,10 @@ try {
     $contact['phone_2_type_desc'] = getPhoneDesc($db, $contact['phone_2_type'] ?? null);
     $contact['phone_3_type_desc'] = getPhoneDesc($db, $contact['phone_3_type'] ?? null);
 
-    // 4. Fetch Family Members (Using the Families table for household grouping)
+    // 4. Fetch Family Members
     $familyId = null;
     $familyMembers = [];
     try {
-        // Get the family_id for the current contact from the Families table
         $famCheck = $db->prepare("SELECT family_id FROM Families WHERE contact_id = ? LIMIT 1");
         $famCheck->bind_param("i", $contactId);
         $famCheck->execute();
@@ -130,7 +129,7 @@ try {
         $mStmt->close();
     } catch (Throwable $e) {}
 
-    // 6. Lookups (Joined with min_group_type table and sorted)
+    // 6. Lookups
     $minList = [];
     try {
         $minRes = $db->query("
@@ -158,20 +157,21 @@ try {
         }
     } catch (Throwable $e) {}
 
-    // 7. Fetch Attachments
+    // 7. Fetch Attachments from document_lib
     $attachments = [];
     try {
         $attStmt = $db->prepare("
-            SELECT a.attachment_id, a.doc_category_id, a.document_name, a.document_size, a.uploaded_at, c.category_name
-            FROM app_attachments a
-            LEFT JOIN doc_categories c ON a.doc_category_id = c.doc_category_id
-            WHERE a.entity_type = 'contact' AND a.entity_id = ?
-            ORDER BY c.category_name ASC, a.uploaded_at DESC
+            SELECT document_id, document_short_name, document_name, document_size, document_mime 
+            FROM document_lib 
+            WHERE entity_type = 'contact' AND entity_id = ?
         ");
         if ($attStmt) {
             $attStmt->bind_param("i", $contactId);
             $attStmt->execute();
-            $attachments = $attStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $attRes = $attStmt->get_result();
+            while ($row = $attRes->fetch_assoc()) {
+                $attachments[] = $row;
+            }
             $attStmt->close();
         }
     } catch (Throwable $e) {}
