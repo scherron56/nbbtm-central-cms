@@ -286,6 +286,7 @@ try {
 
           <div style="margin-top: 1.5rem;">
             <button type="submit" class="btn-primary"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
+            <a href="report_files.php" class="btn-secondary" style="text-decoration:none; margin-left:0.5rem;">Manage Saved Reports</a>
           </div>
         </form>
       </section>

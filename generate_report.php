@@ -27,6 +27,12 @@ if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
 require_once __DIR__ . '/vendor/autoload.php';
 
 use PHPJasper\PHPJasper;
+ 
+
+
+// 1. Set the CLASSPATH before PHPJasper runs Java
+$fontJar =  __DIR__ . '/vendor/geekcom/phpjasper/bin/jasperstarter/lib/custom-fonts.jar';
+putenv('CLASSPATH=' . $fontJar . PATH_SEPARATOR . getenv('CLASSPATH'));
 
 // 4. Retrieve Report Key
 $reportKey = trim($_POST['report'] ?? $_GET['report'] ?? '');
