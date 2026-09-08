@@ -1,4 +1,4 @@
-<<?php
+<?php
 // events.php
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -111,6 +111,7 @@ $canEdit = canEdit();
             $('#status-message').fadeOut(200).empty();
         }
 
+        // Load Categories for Events
         function loadEventCategories() {
             $.ajax({
                 url: 'category_api.php',
@@ -146,6 +147,7 @@ $canEdit = canEdit();
             });
         }
 
+        // Add File Upload Row
         $('#btnAddFileRow').on('click', function() {
             let newRow = `
                 <div class="file-upload-row">
@@ -171,26 +173,20 @@ $canEdit = canEdit();
             rows.find('.btnRemoveFileRow').prop('disabled', rows.length <= 1);
         }
 
-        // Dynamic Schedule Dates with Activity Description
+        // Dynamic Schedule Dates
         $('#btnAddDate').on('click', function() {
             $('#dateTimeContainer').append(`
-                <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
-                    <div class="field-group" style="margin-bottom: 6px;">
-                        <label>Activity Description:</label>
-                        <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
+                <div class="date-time-row">
+                    <div class="field-group">
+                        <label>Start Date & Time:</label>
+                        <input type="datetime-local" name="start_datetimes[]" required class="form-control">
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <div class="field-group" style="flex: 1;">
-                            <label>Start Date & Time:</label>
-                            <input type="datetime-local" name="start_datetimes[]" required class="form-control">
-                        </div>
-                        <div class="field-group" style="flex: 1;">
-                            <label>End Date & Time (Optional):</label>
-                            <input type="datetime-local" name="end_datetimes[]" class="form-control">
-                        </div>
-                        <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
-                            <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
-                        </div>
+                    <div class="field-group">
+                        <label>End Date & Time (Optional):</label>
+                        <input type="datetime-local" name="end_datetimes[]" class="form-control">
+                    </div>
+                    <div class="btn-remove-wrapper">
+                        <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
                     </div>
                 </div>`);
             toggleDateButtons();
@@ -278,6 +274,7 @@ $canEdit = canEdit();
             refreshSignoffCheckboxes();
         });
 
+        // Contacts list formatted by Last Name, First Name
         function loadContactsDropdown(preselectedId = null) {
             $.ajax({
                 url: 'prg_event_api.php',
@@ -431,8 +428,6 @@ $canEdit = canEdit();
                         $('#location').val(ev.location);
                         $('#prg_evnt_purpose').val(ev.prg_evnt_purpose || '');
                         $('#goal').val(ev.goal || '');
-                        $('#audience_target').val(ev.audience_target || '');
-                        $('#attend_estimate').val(ev.attend_estimate || '');
                         $('#notes').val(ev.notes || '');
                         
                         // Support selections
@@ -445,7 +440,10 @@ $canEdit = canEdit();
                         }
                         refreshSignoffCheckboxes();
 
+                        // Render Existing Attachments Table
                         renderAttachmentsList(data.attachments || []);
+
+                        // Reset file upload rows
                         resetUploadRows();
 
                         let reqReg = parseInt(ev.requires_registration) === 1;
@@ -468,32 +466,25 @@ $canEdit = canEdit();
                             $('#btnGoRegister').hide();
                         }
 
-                        // Schedules populate including activity_scheduled
+                        // Schedules populate
                         $('#dateTimeContainer').empty();
                         if(data.schedules && data.schedules.length > 0) {
                             $.each(data.schedules, function(i, sch) {
-                                let actVal = escapeHtml(sch.activity_scheduled || '');
                                 let startVal = sch.start_datetime ? sch.start_datetime.replace(' ', 'T').substring(0,16) : '';
                                 let endVal = sch.end_datetime ? sch.end_datetime.replace(' ', 'T').substring(0,16) : '';
                                 
                                 $('#dateTimeContainer').append(`
-                                    <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
-                                        <div class="field-group" style="margin-bottom: 6px;">
-                                            <label>Activity Description:</label>
-                                            <input type="text" name="activity_scheduled[]" value="${actVal}" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
+                                    <div class="date-time-row">
+                                        <div class="field-group">
+                                            <label>Start Date & Time:</label>
+                                            <input type="datetime-local" name="start_datetimes[]" value="${startVal}" required class="form-control">
                                         </div>
-                                        <div style="display: flex; gap: 10px;">
-                                            <div class="field-group" style="flex: 1;">
-                                                <label>Start Date & Time:</label>
-                                                <input type="datetime-local" name="start_datetimes[]" value="${startVal}" required class="form-control">
-                                            </div>
-                                            <div class="field-group" style="flex: 1;">
-                                                <label>End Date & Time (Optional):</label>
-                                                <input type="datetime-local" name="end_datetimes[]" value="${endVal}" class="form-control">
-                                            </div>
-                                            <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
-                                                <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
-                                            </div>
+                                        <div class="field-group">
+                                            <label>End Date & Time (Optional):</label>
+                                            <input type="datetime-local" name="end_datetimes[]" value="${endVal}" class="form-control">
+                                        </div>
+                                        <div class="btn-remove-wrapper">
+                                            <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
                                         </div>
                                     </div>`);
                             });
@@ -581,6 +572,7 @@ $canEdit = canEdit();
         $(document).on('click', '.btnDeleteAttachment', function() {
             if (!confirm('Are you sure you want to delete this attachment?')) return;
             let attId = $(this).data('id');
+            let eventId = $('#prg_evnt_id').val();
 
             $.ajax({
                 url: 'prg_event_api.php',
@@ -590,6 +582,7 @@ $canEdit = canEdit();
                 success: function(res) {
                     if (res.success) {
                         showStatusMessage('Attachment deleted.', 'success');
+                        // Reload event details
                         $('#event_select').trigger('change');
                     } else {
                         showStatusMessage(res.error || 'Failed to delete attachment.', 'error');
@@ -611,6 +604,7 @@ $canEdit = canEdit();
             populateCategoryDropdowns();
         }
 
+        // Form Submit
         $('#eventForm').on('submit', function(e) {
             e.preventDefault();
             if (!CAN_EDIT) return;
@@ -716,23 +710,17 @@ $canEdit = canEdit();
             $('#rosterContent').hide();
             
             $('#dateTimeContainer').html(`
-            <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
-                <div class="field-group" style="margin-bottom: 6px;">
-                    <label>Activity Description:</label>
-                    <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
+            <div class="date-time-row">
+                <div class="field-group">
+                    <label>Start Date & Time:</label>
+                    <input type="datetime-local" name="start_datetimes[]" required class="form-control">
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <div class="field-group" style="flex: 1;">
-                        <label>Start Date & Time:</label>
-                        <input type="datetime-local" name="start_datetimes[]" required class="form-control">
-                    </div>
-                    <div class="field-group" style="flex: 1;">
-                        <label>End Date & Time (Optional):</label>
-                        <input type="datetime-local" name="end_datetimes[]" class="form-control">
-                    </div>
-                    <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
-                        <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
-                    </div>
+                <div class="field-group">
+                    <label>End Date & Time (Optional):</label>
+                    <input type="datetime-local" name="end_datetimes[]" class="form-control">
+                </div>
+                <div class="btn-remove-wrapper">
+                    <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
                 </div>
             </div>`);
 
@@ -850,31 +838,25 @@ $canEdit = canEdit();
                         <input type="email" id="contact_email" name="contact_email" placeholder="Email address" class="form-control">
                     </div>
 
-                    <!-- DYNAMIC ACTIVITIES, DATES & TIMES -->
+                    <!-- DYNAMIC DATES CONTAINER -->
                     <div class="field-group" style="--colspan: 2;">
                         <label style="display:flex; justify-content:space-between; align-items:center;">
-                            Event Activities, Dates & Times:
-                            <button type="button" id="btnAddDate" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Activity / Time</button>
+                            Event Date(s) & Time(s):
+                            <button type="button" id="btnAddDate" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Date</button>
                         </label>
                         
                         <div id="dateTimeContainer">
-                            <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
-                                <div class="field-group" style="margin-bottom: 6px;">
-                                    <label>Activity Description:</label>
-                                    <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
+                            <div class="date-time-row">
+                                <div class="field-group">
+                                    <label>Start Date & Time:</label>
+                                    <input type="datetime-local" name="start_datetimes[]" required class="form-control">
                                 </div>
-                                <div style="display: flex; gap: 10px;">
-                                    <div class="field-group" style="flex: 1;">
-                                        <label>Start Date & Time:</label>
-                                        <input type="datetime-local" name="start_datetimes[]" required class="form-control">
-                                    </div>
-                                    <div class="field-group" style="flex: 1;">
-                                        <label>End Date & Time (Optional):</label>
-                                        <input type="datetime-local" name="end_datetimes[]" class="form-control">
-                                    </div>
-                                    <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
-                                        <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
-                                    </div>
+                                <div class="field-group">
+                                    <label>End Date & Time (Optional):</label>
+                                    <input type="datetime-local" name="end_datetimes[]" class="form-control">
+                                </div>
+                                <div class="btn-remove-wrapper">
+                                    <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
                                 </div>
                             </div>
                         </div>
@@ -926,18 +908,6 @@ $canEdit = canEdit();
                     <div class="field-group" style="--colspan: 2;">
                         <label for="goal">Key Deliverables / Goals:</label>
                         <textarea id="goal" name="goal" rows="2" class="form-control" placeholder="Target objectives and deliverables..."></textarea>
-                    </div>
-
-                    <!-- TARGET AUDIENCE -->
-                    <div class="field-group" style="--colspan: 2;">
-                        <label for="audience_target">Target Audience:</label>
-                        <textarea id="audience_target" name="audience_target" rows="2" class="form-control" placeholder="Primary target demographic or group..."></textarea>
-                    </div>
-
-                    <!-- ESTIMATED ATTENDANCE -->
-                    <div class="field-group" style="--colspan: 2;">
-                        <label for="attend_estimate">Estimated Attendance:</label>
-                        <input type="number" id="attend_estimate" name="attend_estimate" class="form-control" placeholder="Expected number of attendees">
                     </div>
 
                     <!-- MINISTRY SUPPORT & COLLABORATION -->

@@ -18,7 +18,7 @@ $action = $_REQUEST['action'] ?? '';
 try {
     switch ($action) {
 
-        // --- FETCH CONTACTS LOOKUP ---
+        // --- FETCH CONTACTS LOOKUP (Sorted by Last Name, First Name) ---
         case 'get_contacts_list':
             $sql = "SELECT contact_id, 
                            CONCAT(COALESCE(last_name, ''), ', ', COALESCE(first_name, '')) AS full_name,
@@ -42,8 +42,7 @@ try {
             if ($prgevntId) {
                 $stmt = $db->prepare("
                     SELECT prg_evnt_id, prg_evnt_name, min_comm_id, contact_id, contact_phone, contact_email,
-                           location, goal, prg_evnt_purpose, notes, requires_registration, requires_fee, registration_fee,
-                           audience_target, attend_estimate
+                           location, goal, prg_evnt_purpose, notes, requires_registration, requires_fee, registration_fee
                     FROM programs_events 
                     WHERE prg_evnt_id = ?
                 ");
@@ -52,8 +51,8 @@ try {
                 $prgevnt = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
 
-                // Schedules including activity_scheduled
-                $schStmt = $db->prepare("SELECT activity_scheduled, start_datetime, end_datetime FROM prg_evnt_schedules WHERE prg_evnt_id = ? ORDER BY start_datetime ASC");
+                // Schedules
+                $schStmt = $db->prepare("SELECT start_datetime, end_datetime FROM prg_evnt_schedules WHERE prg_evnt_id = ? ORDER BY start_datetime ASC");
                 $schStmt->bind_param("i", $prgevntId);
                 $schStmt->execute();
                 $schedules = $schStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -78,7 +77,7 @@ try {
                 $support_ministries = $supStmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 $supStmt->close();
 
-                // Attachments
+                // Event documents are stored in document_lib in the current schema.
                 $attStmt = $db->prepare("
                     SELECT a.document_id AS attachment_id, a.document_name, a.document_size, a.uploaded_at,
                            NULL AS doc_category_id, NULL AS category_name
@@ -101,7 +100,7 @@ try {
                 ]);
             } else {
                 $sql = "SELECT e.prg_evnt_id, e.prg_evnt_name, e.min_comm_id, e.location, e.goal, e.prg_evnt_purpose, e.notes,
-                               e.requires_registration, e.requires_fee, e.registration_fee, e.audience_target, e.attend_estimate,
+                               e.requires_registration, e.requires_fee, e.registration_fee,
                                m.min_comm_name AS ministry_name, s.primary_start 
                         FROM programs_events e 
                         LEFT JOIN ministry_committee m ON e.min_comm_id = m.min_comm_id 
@@ -134,10 +133,7 @@ try {
             $reqReg = isset($_POST['requires_registration']) ? 1 : 0;
             $reqFee = isset($_POST['requires_fee']) ? 1 : 0;
             $fee = $reqFee ? floatval($_POST['registration_fee'] ?? 0) : 0.00;
-            $audience_target = trim($_POST['audience_target'] ?? '');
-            $attend_estimate = !empty($_POST['attend_estimate']) ? (int)$_POST['attend_estimate'] : null;
 
-            $activities = $_POST['activity_scheduled'] ?? [];
             $starts = $_POST['start_datetimes'] ?? [];
             $ends = $_POST['end_datetimes'] ?? [];
             $budDesc = $_POST['budget_desc'] ?? [];
@@ -155,12 +151,12 @@ try {
             if (empty($id)) {
                 $stmt = $db->prepare("
                     INSERT INTO programs_events 
-                    (prg_evnt_name, min_comm_id, contact_id, contact_phone, contact_email, location, prg_evnt_purpose, goal, requires_registration, requires_fee, registration_fee, audience_target, attend_estimate, notes) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (prg_evnt_name, min_comm_id, contact_id, contact_phone, contact_email, location, prg_evnt_purpose, goal, requires_registration, requires_fee, registration_fee, notes) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->bind_param(
-                    "siisssssiidssi",
-                    $prgevntname, $min_comm_id, $contact_id, $contact_phone, $contact_email, $location, $purpose, $goal, $reqReg, $reqFee, $fee, $audience_target, $attend_estimate, $notes
+                    "siisssssiids",
+                    $prgevntname, $min_comm_id, $contact_id, $contact_phone, $contact_email, $location, $purpose, $goal, $reqReg, $reqFee, $fee, $notes
                 );
                 $stmt->execute();
                 $id = $db->insert_id;
@@ -168,10 +164,10 @@ try {
             } else {
                 $stmt = $db->prepare("
                     UPDATE programs_events 
-                    SET prg_evnt_name=?, min_comm_id=?, contact_id=?, contact_phone=?, contact_email=?, location=?, prg_evnt_purpose=?, goal=?, requires_registration=?, requires_fee=?, registration_fee=?, audience_target=?, attend_estimate=?, notes=?
+                    SET prg_evnt_name=?, min_comm_id=?, contact_id=?, contact_phone=?, contact_email=?, location=?, prg_evnt_purpose=?, goal=?, requires_registration=?, requires_fee=?, registration_fee=?, notes=?
                     WHERE prg_evnt_id=?
                 ");
-                $stmt->bind_param("siisssssiidssii", $prgevntname, $min_comm_id, $contact_id, $contact_phone, $contact_email, $location, $purpose, $goal, $reqReg, $reqFee, $fee, $audience_target, $attend_estimate, $notes, $id);
+                $stmt->bind_param("siisssssiidsi", $prgevntname, $min_comm_id, $contact_id, $contact_phone, $contact_email, $location, $purpose, $goal, $reqReg, $reqFee, $fee, $notes, $id);
                 $stmt->execute();
                 $stmt->close();
 
@@ -192,14 +188,13 @@ try {
                 $delSup->close();
             }
 
-            // Sync Schedules with activity_scheduled
-            $insSch = $db->prepare("INSERT INTO prg_evnt_schedules (prg_evnt_id, activity_scheduled, start_datetime, end_datetime) VALUES (?, ?, ?, ?)");
+            // Sync Schedules
+            $insSch = $db->prepare("INSERT INTO prg_evnt_schedules (prg_evnt_id, start_datetime, end_datetime) VALUES (?, ?, ?)");
             foreach ($starts as $idx => $startVal) {
                 if (!empty($startVal)) {
-                    $actDesc = trim($activities[$idx] ?? '');
                     $formattedStart = date('Y-m-d H:i:s', strtotime($startVal));
                     $formattedEnd = !empty($ends[$idx]) ? date('Y-m-d H:i:s', strtotime($ends[$idx])) : null;
-                    $insSch->bind_param("isss", $id, $actDesc, $formattedStart, $formattedEnd);
+                    $insSch->bind_param("iss", $id, $formattedStart, $formattedEnd);
                     $insSch->execute();
                 }
             }
@@ -233,7 +228,7 @@ try {
                 $insSup->close();
             }
 
-            // Process attachments
+            // Process multi-row event documents.
             if (!empty($_FILES['attach_files']['name'])) {
                 $files = $_FILES['attach_files'];
                 $insAtt = $db->prepare("
@@ -263,8 +258,10 @@ try {
             echo json_encode(['success' => true, 'message' => 'Event details and attachments saved successfully!', 'prg_evnt_id' => $id]);
             break;
 
+        // --- DELETE SINGLE ATTACHMENT ---
         case 'delete_attachment':
             requireAdmin();
+
             $attachmentId = (int)($_POST['attachment_id'] ?? 0);
             $stmt = $db->prepare("DELETE FROM document_lib WHERE document_id = ? AND entity_type = 'event'");
             $stmt->bind_param("i", $attachmentId);
@@ -273,8 +270,10 @@ try {
             echo json_encode(['success' => true, 'message' => 'Attachment deleted.']);
             break;
 
+        // --- DELETE ENTIRE EVENT ---
         case 'delete_event':
             requireAdmin();
+
             $id = (int)($_POST['prg_evnt_id'] ?? 0);
             $db->begin_transaction();
 
@@ -292,6 +291,7 @@ try {
             echo json_encode(['success' => true, 'message' => 'Event and its attachments removed successfully.']);
             break;
 
+        // --- LIVE CHECK-IN ROSTER ---
         case 'get_event_roster':
             $prgevntId = (int)($_GET['prg_evnt_id'] ?? 0);
 
@@ -316,8 +316,10 @@ try {
             echo json_encode(['success' => true, 'event' => $eventDetails, 'registrations' => $registrations, 'attendance' => $attendance]);
             break;
 
+        // --- TOGGLE ATTENDANCE ---
         case 'toggle_attendance':
             requireAdmin();
+
             $prgevntId = (int)($_POST['prg_evnt_id'] ?? 0);
             $contactId = (int)($_POST['contact_id'] ?? 0);
 

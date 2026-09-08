@@ -118,8 +118,6 @@ require_once __DIR__ . '/include/auth.php';
                         $('#dash_location').text(ev.location || 'N/A');
                         $('#dash_purpose').text(ev.prg_evnt_purpose || 'N/A');
                         $('#dash_goal').text(ev.goal || 'N/A');
-                        $('#dash_audience').text(ev.audience_target || 'N/A');
-                        $('#dash_attend_estimate').text(ev.attend_estimate ? parseInt(ev.attend_estimate).toLocaleString() : 'N/A');
                         $('#dash_notes').text(ev.notes || 'None recorded.');
 
                         // Collaborations
@@ -132,13 +130,12 @@ require_once __DIR__ . '/include/auth.php';
                             $supList.append('<li style="color:#64748b;">No collaborative ministries assigned.</li>');
                         }
 
-                        // Schedules with Activity Description
+                        // Schedules
                         let $schedList = $('#dash_schedules').empty();
                         if (data.schedules && data.schedules.length > 0) {
                             $.each(data.schedules, function(i, sch) {
-                                let actDisp = sch.activity_scheduled ? `<strong>${escapeHtml(sch.activity_scheduled)}</strong> - ` : '';
                                 let endDisp = sch.end_datetime ? ` &nbsp;|&nbsp; <strong>Ends:</strong> ${sch.end_datetime}` : '';
-                                $schedList.append(`<li style="margin-bottom: 6px;">${actDisp}<strong>Starts:</strong> ${sch.start_datetime}${endDisp}</li>`);
+                                $schedList.append(`<li style="margin-bottom: 4px;"><strong>Starts:</strong> ${sch.start_datetime}${endDisp}</li>`);
                             });
                         } else {
                             $schedList.append('<li style="color:#64748b;">No schedule entries recorded.</li>');
@@ -306,22 +303,12 @@ require_once __DIR__ . '/include/auth.php';
                   </div>
 
                   <div class="detail-section">
-                      <div class="detail-label">Target Audience</div>
-                      <div id="dash_audience" class="detail-value">-</div>
-                  </div>
-
-                  <div class="detail-section">
-                      <div class="detail-label">Estimated Attendance</div>
-                      <div id="dash_attend_estimate" class="detail-value">-</div>
-                  </div>
-
-                  <div class="detail-section">
                       <div class="detail-label">Ministry Collaboration</div>
                       <ul id="dash_support_list" style="padding-left: 18px; margin: 6px 0 0 0;"></ul>
                   </div>
 
                   <div class="detail-section">
-                      <div class="detail-label">Event Activities, Dates & Times</div>
+                      <div class="detail-label">Schedule(s)</div>
                       <ul id="dash_schedules" style="padding-left: 18px; margin: 6px 0 0 0;"></ul>
                   </div>
 
