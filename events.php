@@ -1,4 +1,4 @@
-<<?php
+<?php
 // events.php
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -85,9 +85,13 @@ $canEdit = canEdit();
       border-radius: 4px;
     }
     .auth-item input[type="checkbox"] { cursor: pointer; width: 18px; height: 18px; }
-    .attachment-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .attachment-table th, .attachment-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
-    .attachment-table th { background: #f1f5f9; }
+    .attachment-table, .actuals-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .attachment-table th, .attachment-table td, .actuals-table th, .actuals-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
+    .attachment-table th, .actuals-table th { background: #f1f5f9; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-card { background: #fff; border-radius: 8px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .badge-expense { background-color: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-income { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
@@ -171,7 +175,6 @@ $canEdit = canEdit();
             rows.find('.btnRemoveFileRow').prop('disabled', rows.length <= 1);
         }
 
-        // Dynamic Schedule Dates with Activity Description
         $('#btnAddDate').on('click', function() {
             $('#dateTimeContainer').append(`
                 <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
@@ -206,7 +209,6 @@ $canEdit = canEdit();
             rows.find('.btnRemoveDate').prop('disabled', rows.length <= 1);
         }
 
-        // Dynamic Budgets
         $('#btnAddBudget').on('click', function() {
             $('#budgetContainer').append(`
                 <div class="form-row budget-row" style="margin-bottom: 8px;">
@@ -435,7 +437,6 @@ $canEdit = canEdit();
                         $('#attend_estimate').val(ev.attend_estimate || '');
                         $('#notes').val(ev.notes || '');
                         
-                        // Support selections
                         $('.chk-support-min').not('[onclick]').prop('checked', false);
                         if(data.support_ministries) {
                             $.each(data.support_ministries, function(i, sm) {
@@ -464,11 +465,12 @@ $canEdit = canEdit();
                         
                         if (reqReg) {
                             $('#btnGoRegister').attr('href', 'event_registration.php?prg_evnt_id=' + ev.prg_evnt_id).show();
+                            $('#liveCheckinCard').show();
                         } else {
                             $('#btnGoRegister').hide();
+                            $('#liveCheckinCard').hide();
                         }
 
-                        // Schedules populate including activity_scheduled
                         $('#dateTimeContainer').empty();
                         if(data.schedules && data.schedules.length > 0) {
                             $.each(data.schedules, function(i, sch) {
@@ -502,7 +504,6 @@ $canEdit = canEdit();
                         }
                         toggleDateButtons();
 
-                        // Itemized budgets populate
                         $('#budgetContainer').empty();
                         if(data.budgets && data.budgets.length > 0) {
                             $.each(data.budgets, function(i, bud) {
@@ -531,8 +532,10 @@ $canEdit = canEdit();
                         toggleBudgetButtons();
                         calculateLiveBudgetSummary();
 
+                        renderActualsTable(data.actuals || []);
+
                         if ($('#btnDelete').length) $('#btnDelete').show();
-                        loadRoster(id);
+                        if (reqReg) loadRoster(id);
                     }
                 },
                 error: function(xhr, status) {
@@ -540,6 +543,25 @@ $canEdit = canEdit();
                 }
             });
         });
+
+        function renderActualsTable(actuals) {
+            let $tbody = $('#actualsTable tbody').empty();
+            if (actuals.length === 0) {
+                $tbody.append('<tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">No actual transactions recorded.</td></tr>');
+            } else {
+                $.each(actuals, function(i, act) {
+                    let badgeClass = act.entry_type === 'Expense' ? 'badge-expense' : 'badge-income';
+                    let linked = act.budget_item_name ? `<br><small style="color:#64748b;">Line: ${escapeHtml(act.budget_item_name)}</small>` : '';
+                    $tbody.append(`
+                        <tr>
+                            <td>${escapeHtml(act.description)}${linked}</td>
+                            <td><span class="${badgeClass}">${escapeHtml(act.entry_type)}</span></td>
+                            <td>$${parseFloat(act.amount).toFixed(2)}</td>
+                        </tr>
+                    `);
+                });
+            }
+        }
 
         function getAjaxError(xhr, status) {
             if (xhr.responseJSON) {
@@ -630,11 +652,12 @@ $canEdit = canEdit();
                         showStatusMessage(res.message, 'success');
                         loadEventDropdown(res.prg_evnt_id);
                     } else {
-                        showStatusMessage("Error: " + (res.message || res.error), 'error');
+                        showStatusMessage("Error: " + (res.message || res.error || "Failed to save"), 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    showStatusMessage("Server Request Failed: " + error, 'error');
+                    let errMsg = getAjaxError(xhr, status);
+                    showStatusMessage("Server Request Failed: " + errMsg, 'error');
                 }
             });
         });
@@ -696,6 +719,44 @@ $canEdit = canEdit();
             });
         });
 
+        // Modal Handlers for Actual Transactions
+        $('#btnOpenActualModal').on('click', function() {
+            let eventId = $('#prg_evnt_id').val();
+            if (!eventId) {
+                alert('Please select or save an event first.');
+                return;
+            }
+
+            $('#actual_prg_evnt_id').val(eventId);
+
+            $.get('prg_event_api.php', { action: 'get_event_budget_items', prg_evnt_id: eventId }, function(res) {
+                if (res.success) {
+                    let $sel = $('#actual_budget_item_id').empty().append('<option value="">-- General / Unassigned --</option>');
+                    $.each(res.budget_items, function(i, item) {
+                        $sel.append(`<option value="${item.budget_item_id}">${escapeHtml(item.item_description)} (${item.item_type})</option>`);
+                    });
+                    $('#modalAddActual').fadeIn(200);
+                }
+            }, 'json');
+        });
+
+        $('#btnCloseActualModal').on('click', function() {
+            $('#modalAddActual').fadeOut(200);
+        });
+
+        $('#formAddActual').on('submit', function(e) {
+            e.preventDefault();
+            $.post('prg_event_api.php?action=save_actual', $(this).serialize(), function(res) {
+                if (res.success) {
+                    $('#modalAddActual').fadeOut(200);
+                    $('#formAddActual')[0].reset();
+                    $('#event_select').trigger('change');
+                } else {
+                    alert(res.error || 'Failed to save transaction.');
+                }
+            }, 'json');
+        });
+
         function resetForm() {
             clearStatusMessage();
             if ($('#eventForm').length) {
@@ -708,10 +769,12 @@ $canEdit = canEdit();
                 refreshSignoffCheckboxes();
                 renderAttachmentsList([]);
                 resetUploadRows();
+                renderActualsTable([]);
                 if ($('#btnDelete').length) $('#btnDelete').hide();
             }
             $('#event_select').val('');
             $('#btnGoRegister').hide();
+            $('#liveCheckinCard').hide();
             $('#rosterPlaceholder').show();
             $('#rosterContent').hide();
             
@@ -1047,7 +1110,7 @@ $canEdit = canEdit();
 
     <div class="card">
         <h2>Financial Projection Ledger</h2>
-        <div class="form-row" style="margin-bottom:20px; text-align:center;">
+        <div class="form-row" style="margin-bottom:20px; text-align:center; display:flex; gap:10px;">
             <div class="card" style="background:#fef2f2; border:1px solid #fee2e2; padding:10px; flex:1;">
                 <span style="font-size:0.85rem; color:#991b1b; font-weight:bold;">Total Expenses</span>
                 <h3 id="summaryExpenses" style="margin:5px 0 0 0; color:#ef4444;">$0.00</h3>
@@ -1064,17 +1127,80 @@ $canEdit = canEdit();
 
         <hr>
 
-        <h2>Live Attendance Check-In</h2>
-        <div id="rosterPlaceholder">
-            <p>Select or save a program/event on the left to manage live attendee check-ins.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <h2>Recorded Actual Transactions</h2>
+            <?php if ($canEdit): ?>
+                <button type="button" id="btnOpenActualModal" class="btn btn-sm btn-primary">+ Add Actual</button>
+            <?php endif; ?>
         </div>
+        <table class="actuals-table" id="actualsTable">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">Select an event to view transactions.</td></tr>
+            </tbody>
+        </table>
 
-        <div id="rosterContent" style="display: none;">
-            <h3>Registered Attendees Check-In Grid</h3>
-            <div id="attendanceGrid" class="kpi-grid"></div>
+        <div id="liveCheckinCard" style="display: none; margin-top: 25px;">
+            <hr>
+            <h2>Live Attendance Check-In</h2>
+            <div id="rosterPlaceholder">
+                <p style="color:#64748b;">Loading attendee check-in roster...</p>
+            </div>
+
+            <div id="rosterContent" style="display: none;">
+                <h3>Registered Attendees Check-In Grid</h3>
+                <div id="attendanceGrid" class="kpi-grid"></div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Modal: Add Actual Transaction -->
+<div id="modalAddActual" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <h3 style="margin-top:0; margin-bottom: 15px;">Add Actual Transaction</h3>
+        <form id="formAddActual">
+            <input type="hidden" id="actual_prg_evnt_id" name="prg_evnt_id">
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Budget Line Item (Optional):</label>
+                <select id="actual_budget_item_id" name="budget_item_id" class="form-control">
+                    <option value="">-- General / Unassigned --</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Type:</label>
+                <select id="actual_entry_type" name="entry_type" class="form-control" required>
+                    <option value="Expense">Expense</option>
+                    <option value="Income">Income</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Description:</label>
+                <input type="text" id="actual_description" name="description" placeholder="e.g. Catering Invoice #102" required class="form-control">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Amount ($):</label>
+                <input type="number" step="0.01" min="0.01" id="actual_amount" name="amount" placeholder="0.00" required class="form-control">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" id="btnCloseActualModal" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <?php include_once 'include/footer.php'; ?>
 </body>
 </html>

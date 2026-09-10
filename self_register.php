@@ -21,6 +21,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/include/registration_fee.php';
 
 // --- CONFIGURABLE DEFAULTS ---
 $target_event_id = 11004; // Change event ID here
@@ -44,11 +45,6 @@ if ($stmtEvt) {
 $errors = [];
 $success_msg = '';
 
-function cleanPhone($val)
-{
-  return preg_replace('/\D/', '', (string)$val);
-}
-
 // Form Submission Processing
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $registrants = $_POST['registrants'] ?? [];
@@ -64,8 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $contact_id  = !empty($person['contact_id']) ? intval($person['contact_id']) : null;
         $first_name  = trim($person['first_name'] ?? '');
         $last_name   = trim($person['last_name'] ?? '');
-        $phone_1     = cleanPhone($person['phone_1'] ?? '');
-        $c_email     = filter_var(trim($person['c_email'] ?? ''), FILTER_VALIDATE_EMAIL) ?: null;
         $pay_method  = trim($person['payment_method'] ?? 'Cash');
 
         // Dynamic fee calculation based on payment method
@@ -84,25 +78,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // UPDATE existing contact record IF contact_id exists
         if ($contact_id) {
           $stmtUpdate = $db->prepare("
-            UPDATE contacts 
-            SET first_name = ?, last_name = ?,
-                phone_1 = COALESCE(NULLIF(?, ''), phone_1),
-                c_email = COALESCE(NULLIF(?, ''), c_email)
+            UPDATE contacts
+            SET first_name = ?, last_name = ?
             WHERE contact_id = ?
           ");
           if ($stmtUpdate) {
-            $stmtUpdate->bind_param("ssssi", $first_name, $last_name, $phone_1, $c_email, $contact_id);
+            $stmtUpdate->bind_param("ssi", $first_name, $last_name, $contact_id);
             $stmtUpdate->execute();
             $stmtUpdate->close();
           }
         } else {
           // INSERT brand-new contact record
           $stmtInsert = $db->prepare("
-            INSERT INTO contacts (first_name, last_name, phone_1, c_email) 
-            VALUES (?, ?, ?, ?)
+            INSERT INTO contacts (first_name, last_name)
+            VALUES (?, ?)
           ");
           if ($stmtInsert) {
-            $stmtInsert->bind_param("ssss", $first_name, $last_name, $phone_1, $c_email);
+            $stmtInsert->bind_param("ss", $first_name, $last_name);
             if ($stmtInsert->execute()) {
               $contact_id = $stmtInsert->insert_id;
             }
@@ -110,16 +102,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
 
-        // Insert into prg_evnt_registrations table with prg_evnt_id included
+        // Always set Payment Status to 'Pending' for everyone who registers
+        $payment_status = 'Pending';
+        $is_completed   = 0;
+
         if ($contact_id) {
           $stmtReg = $db->prepare("
-            INSERT INTO prg_evnt_registrations (prg_evnt_id, contact_id, amount_paid, payment_method, payment_status, registered_at) 
-            VALUES (?, ?, ?, ?, 'Pending', NOW())
+            INSERT INTO prg_evnt_registrations (prg_evnt_id, contact_id, amount_paid, payment_method, payment_status, is_completed, registered_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
           ");
           if ($stmtReg) {
-            $stmtReg->bind_param("iids", $target_event_id, $contact_id, $amount_paid, $pay_method);
+            $stmtReg->bind_param("iidssi", $target_event_id, $contact_id, $amount_paid, $pay_method, $payment_status, $is_completed);
             $stmtReg->execute();
             $stmtReg->close();
+
+            logRegistrationFeeActual($db, $target_event_id, $contact_id, $amount_paid, $is_completed, $payment_status);
           }
         }
 
@@ -146,17 +143,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Group Registration - CMS</title>
+  <title><?= htmlspecialchars(trim($prg_evnt_name)) ?> Registration - CMS</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Root-relative path prevents stylesheet resolution breaks on form submit -->
+  <link rel="stylesheet" href="/css/style.css">
+  
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <style>
-    .reg-wrapper {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
+    /* Scoped UI styling for self registration workflow */
     .person-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
@@ -164,12 +160,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       padding: 1.25rem;
       margin-bottom: 1.25rem;
       position: relative;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      transition: border-color 0.2s;
-    }
-
-    .person-card:focus-within {
-      border-color: #0d9488;
     }
 
     .person-card-header {
@@ -178,13 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       align-items: center;
       margin-bottom: 1rem;
       padding-bottom: 0.5rem;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
     }
 
     .person-card-title {
       font-size: 1.05rem;
       font-weight: 700;
-      color: #0f172a;
+      color: #28089a;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -202,22 +192,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       font-size: 0.8rem;
     }
 
-    .btn-remove-person {
-      background: transparent;
-      border: none;
-      color: #ef4444;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-
-    .btn-remove-person:hover {
-      background-color: #fef2f2;
-    }
-
-    /* Live Search Auto-complete Overlay */
     .search-box-container {
       position: relative;
       margin-bottom: 1rem;
@@ -245,80 +219,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       font-size: 0.875rem;
     }
 
-    .search-result-item:last-child {
-      border-bottom: none;
-    }
-
     .search-result-item:hover {
       background-color: #f0fdf4;
       color: #0d9488;
     }
 
-    /* Input Grids */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-
-    @media (min-width: 640px) {
-      .form-grid-2 {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .form-grid-4 {
-        grid-template-columns: 2fr 2fr 1.5fr 1.5fr;
-      }
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-    }
-
-    .form-group label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #334155;
-    }
-
-    .form-control {
-      width: 100%;
-      padding: 0.625rem 0.75rem;
-      font-size: 0.95rem;
-      font-family: inherit;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      background-color: #f8fafc;
-      box-sizing: border-box;
-    }
-
-    .form-control:focus {
-      outline: none;
-      border-color: #0d9488;
-      background-color: #ffffff;
-      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
-    }
-
     .input-icon-group {
       position: relative;
+      display: flex;
+      align-items: center;
     }
 
     .input-icon-group span {
       position: absolute;
       left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
       color: #64748b;
       font-weight: 600;
     }
 
     .input-icon-group input {
-      padding-left: 24px;
+      padding-left: 24px !important;
     }
 
-    /* Dynamic Payment Method Alert Box */
     .payment-instruction-box {
       margin-top: 0.85rem;
       padding: 0.75rem 1rem;
@@ -339,18 +261,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: #92400e;
     }
 
-    .givelify-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      color: #2563eb;
-      font-weight: 700;
-      text-decoration: underline;
-    }
-
-    /* Checkout & Grand Total Section */
     .summary-bar {
-      background: #0f172a;
+      background: #043b8f;
       color: #ffffff;
       padding: 1.25rem;
       border-radius: 8px;
@@ -374,26 +286,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .total-display span {
-      color: #2dd4bf;
+      color: #38bdf8;
     }
 
-    .alert {
-      padding: 0.85rem 1rem;
-      border-radius: 6px;
-      margin-bottom: 1.25rem;
-      font-size: 0.9rem;
+    .form-control-custom {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.95rem;
+      box-sizing: border-box;
     }
 
-    .alert-danger {
-      background-color: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
-    }
-
-    .alert-success {
-      background-color: #f0fdf4;
-      color: #166534;
-      border: 1px solid #bbf7d0;
+    .form-control-custom[readonly] {
+      background-color: #e2e8f0;
+      color: #475569;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -402,15 +310,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <?php
   $hide_menu = true;
-  include 'include/header.php';
+  include __DIR__ . '/include/header.php';
   ?>
 
   <main class="dashboard-container">
-    <div class="reg-wrapper">
+    <div class="card">
+      <h3><?= htmlspecialchars(trim($prg_evnt_name)) ?> Registration</h3>
 
-      <!-- Alert Notices -->
+      <!-- Status Alerts -->
       <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger">
+        <div class="text-danger" style="margin-bottom: 1rem;">
           <strong>Please check the following items:</strong>
           <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0;">
             <?php foreach ($errors as $err): ?>
@@ -421,30 +330,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <?php if ($success_msg): ?>
-        <div class="alert alert-success">
+        <div class="text-success" style="margin-bottom: 1rem; font-weight: 600;">
           <?= $success_msg ?>
         </div>
       <?php endif; ?>
 
-      <form id="group-reg-form" action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
-        <h1><?= htmlspecialchars(trim($prg_evnt_name)) ?> Registration</h1>
+      <form id="group-reg-form" action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST" style="max-width: 100%; padding: 0; box-shadow: none; background: transparent;">
         <div id="people-container"></div>
 
-        <!-- Control Toolbar to Add More People -->
-        <div style="margin-top: 0.5rem; text-align: center;">
-          <button type="button" id="btn-add-person" class="btn btn-secondary" style="width: 100%; max-width: 300px; padding: 0.75rem;">
+        <!-- Add Registrant Action -->
+        <div style="margin-top: 1rem; text-align: center;">
+          <button type="button" id="btn-add-person" class="btn-secondary" style="width: 100%; max-width: 300px;">
             + Add Another Person
           </button>
         </div>
 
-        <!-- Checkout Summary Bar -->
+        <!-- Summary & Checkout Controls -->
         <div class="summary-bar">
           <div>
-            <div style="font-size: 0.85rem; color: #94a3b8;">Total Registration Summary</div>
+            <div style="font-size: 0.85rem; opacity: 0.9;">Total Registration Summary</div>
             <div class="total-display">Total Amount Due: <span id="grand-total">$0.00</span></div>
           </div>
           <div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; min-width: 200px; padding: 0.75rem 1.5rem; font-size: 1rem;">
+            <button type="submit" class="btn-accent" style="width: 100%; min-width: 200px; padding: 0.75rem 1.5rem; font-size: 1rem;">
               Submit Registration
             </button>
           </div>
@@ -455,76 +363,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </main>
 
-  <?php include_once 'include/footer.php'; ?>
+  <?php include_once __DIR__ . '/include/footer.php'; ?>
 
   <script>
     $(document).ready(function() {
       const DEFAULT_REG_FEE = 40.00;
       let personIndex = 0;
 
-      // Render individual Registrant HTML block
       function createPersonCard(index) {
         const personNum = index + 1;
         return `
       <div class="person-card" data-index="${index}">
         <input type="hidden" name="registrants[${index}][contact_id]" class="contact-id-input" value="">
-        
+
         <div class="person-card-header">
           <div class="person-card-title">
             <span class="person-card-number">${personNum}</span>
             <span>Registrant Info</span>
           </div>
-          ${index > 0 ? `<button type="button" class="btn-remove-person">&times; Remove</button>` : ''}
+          ${index > 0 ? `<button type="button" class="btn-danger btn-remove-person" style="padding: 4px 8px; font-size: 0.8rem;">&times; Remove</button>` : ''}
         </div>
 
-        <!-- Live Database Lookup Field -->
         <div class="search-box-container">
-          <div class="form-group">
-            <label>🔍 Lookup Existing Contact by Name (Optional)</label>
-            <input type="text" class="form-control contact-search-input" placeholder="Type a first or last name to search..." autocomplete="off">
+          <div class="field-group">
+            <label><strong>🔍 Lookup Existing Contact by Name (Optional)</strong></label>
+            <input type="text" class="form-control-custom contact-search-input" placeholder="Type a first or last name to search..." autocomplete="off">
             <div class="search-results-dropdown"></div>
           </div>
         </div>
 
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label for="fname_${index}">First Name *</label>
-            <input type="text" id="fname_${index}" name="registrants[${index}][first_name]" class="form-control fname-input" required>
+        <div class="form-grid-section-8" style="margin-bottom: 1rem;">
+          <div class="field-group" style="grid-column: span 4;">
+            <label for="fname_${index}"><strong>First Name *</strong></label>
+            <input type="text" id="fname_${index}" name="registrants[${index}][first_name]" class="form-control-custom fname-input" required>
           </div>
-          <div class="form-group">
-            <label for="lname_${index}">Last Name *</label>
-            <input type="text" id="lname_${index}" name="registrants[${index}][last_name]" class="form-control lname-input" required>
+          <div class="field-group" style="grid-column: span 4;">
+            <label for="lname_${index}"><strong>Last Name *</strong></label>
+            <input type="text" id="lname_${index}" name="registrants[${index}][last_name]" class="form-control-custom lname-input" required>
           </div>
         </div>
 
-        <div class="form-grid form-grid-4" style="margin-top: 0.85rem;">
-          <div class="form-group">
-            <label for="phone_${index}">Phone Number</label>
-            <input type="tel" id="phone_${index}" name="registrants[${index}][phone_1]" class="form-control phone-input" placeholder="(555) 000-0000">
-          </div>
-          <div class="form-group">
-            <label for="email_${index}">Email Address</label>
-            <input type="email" id="email_${index}" name="registrants[${index}][c_email]" class="form-control email-input" placeholder="email@example.com">
-          </div>
-          <div class="form-group">
-            <label for="fee_${index}">Amount Paid</label>
+        <div class="form-grid-section-9">
+          <div class="field-group" style="grid-column: span 3;">
+            <label for="fee_${index}"><strong>Amount Paid</strong></label>
             <div class="input-icon-group">
               <span>$</span>
-              <input type="number" id="fee_${index}" step="0.01" min="0" name="registrants[${index}][amount_paid]" class="form-control fee-input" value="${DEFAULT_REG_FEE.toFixed(2)}">
+              <input type="number" id="fee_${index}" step="0.01" min="0" name="registrants[${index}][amount_paid]" class="form-control-custom fee-input" value="${DEFAULT_REG_FEE.toFixed(2)}">
             </div>
           </div>
-          <div class="form-group">
-            <label for="pay_${index}">Payment Method</label>
-            <select id="pay_${index}" name="registrants[${index}][payment_method]" class="form-control payment-method-select">
+          <div class="field-group" style="grid-column: span 3;">
+            <label for="pay_${index}"><strong>Payment Method</strong></label>
+            <select id="pay_${index}" name="registrants[${index}][payment_method]" class="form-control-custom payment-method-select">
               <option value="Cash">Cash</option>
               <option value="Check">Check</option>
               <option value="Givelify">Givelify</option>
               <option value="None">None / Free</option>
             </select>
           </div>
+          <div class="field-group" style="grid-column: span 3;">
+            <label for="pay_status_${index}"><strong>Payment Status</strong></label>
+            <input type="text" id="pay_status_${index}" name="registrants[${index}][payment_status]" class="form-control-custom" value="Pending" readonly>
+          </div>
         </div>
 
-        <!-- Payment Notice Box -->
         <div class="payment-instruction-box admin-box">
           If paying by cash or check, please see Central Administration in order to complete your registration.
         </div>
@@ -532,11 +433,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     `;
       }
 
-      // Add initial person card
+      // Initialize first form card
       $('#people-container').append(createPersonCard(personIndex));
       calculateGrandTotal();
 
-      // Add card event
       $('#btn-add-person').on('click', function() {
         personIndex++;
         $('#people-container').append(createPersonCard(personIndex));
@@ -544,14 +444,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         calculateGrandTotal();
       });
 
-      // Remove card event
       $(document).on('click', '.btn-remove-person', function() {
         $(this).closest('.person-card').remove();
         reindexCards();
         calculateGrandTotal();
       });
 
-      // Dynamic Contact Search Lookup
       $(document).on('input', '.contact-search-input', function() {
         const $input = $(this);
         const $card = $input.closest('.person-card');
@@ -563,16 +461,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           return;
         }
 
-        $.getJSON('ajax_search_contacts.php', {
-          q: query
-        }, function(data) {
+        $.getJSON('ajax_search_contacts.php', { q: query }, function(data) {
           $dropdown.empty();
           if (data && data.length > 0) {
             data.forEach(function(item) {
               $dropdown.append(`
-                <div class="search-result-item" 
-                     data-id="${item.id}" 
-                     data-fname="${escapeHtml(item.first_name)}" 
+                <div class="search-result-item"
+                     data-id="${item.id}"
+                     data-fname="${escapeHtml(item.first_name)}"
                      data-lname="${escapeHtml(item.last_name)}">
                   <strong>${escapeHtml(item.first_name + ' ' + item.last_name)}</strong>
                 </div>
@@ -585,7 +481,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
       });
 
-      // Select contact from dropdown and populate form
       $(document).on('click', '.search-result-item[data-id]', function() {
         const $item = $(this);
         const $card = $item.closest('.person-card');
@@ -598,14 +493,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $card.find('.search-results-dropdown').hide().empty();
       });
 
-      // Close search dropdown when clicking outside
       $(document).on('click', function(e) {
         if (!$(e.target).closest('.search-box-container').length) {
           $('.search-results-dropdown').hide();
         }
       });
 
-      // Handle Payment Method Switching & Dynamic Fee Adjustment
       $(document).on('change', '.payment-method-select', function() {
         const method = $(this).val();
         const $card = $(this).closest('.person-card');
@@ -624,8 +517,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (method === 'Givelify') {
           $noticeBox.attr('class', 'payment-instruction-box givelify-box').html(`
-            You have selected Givelify. 
-            <a href="https://www.givelify.com/" target="_blank" rel="noopener noreferrer" class="givelify-link">
+            You have selected Givelify.
+            <a href="https://www.givelify.com/" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 700;">
               Click here to pay via Givelify &rarr;
             </a>
           `);
@@ -640,21 +533,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
       });
 
-      // Format phone inputs dynamically
-      $(document).on('input', '.phone-input', function() {
-        $(this).val(formatPhoneString($(this).val()));
-      });
-
-      function formatPhoneString(val) {
-        let input = val.replace(/\D/g, '');
-        if (input.length > 10) input = input.substring(0, 10);
-        if (input.length > 6) return `(${input.substring(0, 3)}) ${input.substring(3, 6)}-${input.substring(6)}`;
-        if (input.length > 3) return `(${input.substring(0, 3)}) ${input.substring(3)}`;
-        if (input.length > 0) return `(${input}`;
-        return '';
-      }
-
-      // Live calculation of Grand Total
       $(document).on('input', '.fee-input', function() {
         calculateGrandTotal();
       });
