@@ -11,6 +11,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/config/db.php';
+
+$contactTypesList = [];
+if (isset($db) && $db instanceof mysqli) {
+    $ctRes = $db->query("SELECT contact_type_id, contact_desc FROM contact_type ORDER BY contact_desc ASC");
+    if ($ctRes) {
+        $contactTypesList = $ctRes->fetch_all(MYSQLI_ASSOC);
+        $ctRes->free();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -146,7 +156,7 @@ require_once __DIR__ . '/include/auth.php';
 
       loadContactList();
 
-      $(document).on('change', 'input[name="contact_filter"], input[name="age_filter"]', function() {
+      $(document).on('change', '#contact_type_id, input[name="age_filter"]', function() {
         loadContactList();
       });
 
@@ -196,7 +206,7 @@ require_once __DIR__ . '/include/auth.php';
       });
 
       function loadContactList() {
-        let membersOnly = $('input[name="contact_filter"]:checked').val() || 0;
+        let contactTypes = $('#contact_type_id').val() || [];
         let ageFilter = $('input[name="age_filter"]:checked').val() || 0;
         let currentSelection = $('#contactID').val();
 
@@ -204,7 +214,7 @@ require_once __DIR__ . '/include/auth.php';
           url: "getLists.php",
           type: 'POST',
           data: {
-            members_only: membersOnly,
+            contact_type_id: contactTypes,
             age_filter: ageFilter
           },
           dataType: 'text',
@@ -356,6 +366,7 @@ require_once __DIR__ . '/include/auth.php';
           $('#dash-emergency').text('—');
         }
 
+        $('#dash-contact-type').text(c.contact_desc || '—');
         $('#dash-joined').text(c.join_date || '—');
         $('#dash-baptized').text(String(c.is_baptized) === "1" ? (c.baptized_date ? `Yes (${c.baptized_date})` : 'Yes') : 'No');
 
@@ -540,17 +551,15 @@ require_once __DIR__ . '/include/auth.php';
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
 
-          <div>
-            <label style="font-weight: bold; color: #28089a; margin-right: 10px;">Membership:</label>
-            <label style="cursor: pointer; margin-right: 10px;">
-              <input type="radio" name="contact_filter" value="0" checked> All
-            </label>
-            <label style="cursor: pointer; margin-right: 10px;">
-              <input type="radio" name="contact_filter" value="1"> Members
-            </label>
-            <label style="cursor: pointer;">
-              <input type="radio" name="contact_filter" value="2"> Non-Members
-            </label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="contact_type_id" style="font-weight: bold; color: #28089a;">Census:</label>
+            <select id="contact_type_id" name="contact_type_id[]" multiple style="min-width: 160px; height: 75px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 4px;">
+              <?php foreach ($contactTypesList as $ct): ?>
+                <option value="<?= htmlspecialchars($ct['contact_type_id']) ?>">
+                  <?= htmlspecialchars($ct['contact_desc']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
           </div>
 
           <div>
@@ -673,12 +682,16 @@ require_once __DIR__ . '/include/auth.php';
             </div>
           </div>
 
-          <!-- MEMBERSHIP DETAILS -->
+          <!-- NBBTM CENSUS DETAILS -->
           <div class="card" style="margin-bottom: 1.5rem;">
-            <h3>Membership Details</h3>
+            <h3>NBBTM Census Details</h3>
             <div class="info-group" id="deceased-group" style="display: none; margin-bottom: 1rem;">
               <span class="info-label">Deceased</span>
               <span class="info-value" id="dash-deceased">—</span>
+            </div>
+            <div class="info-group" style="margin-bottom: 1rem;">
+              <span class="info-label">Contact Type</span>
+              <span class="info-value" id="dash-contact-type">—</span>
             </div>
             <div class="info-group" style="margin-bottom: 1rem;">
               <span class="info-label">Date Joined</span>

@@ -66,6 +66,20 @@ try {
         } catch (Throwable $e) {}
     }
 
+    // 2.1 Fetch Contact Type Description as contact_desc
+    $contact['contact_desc'] = '';
+    $contactTypeId = $contact['contact_type'] ?? ($contact['contact_type_id'] ?? null);
+    if (!empty($contactTypeId)) {
+        try {
+            $ctStmt = $db->prepare("SELECT contact_desc FROM contact_type WHERE contact_type_id = ?");
+            $ctStmt->bind_param("i", $contactTypeId);
+            $ctStmt->execute();
+            $ctRow = $ctStmt->get_result()->fetch_assoc();
+            $contact['contact_desc'] = $ctRow['contact_desc'] ?? '';
+            $ctStmt->close();
+        } catch (Throwable $e) {}
+    }
+
     // 3. Phone Types Helper
     function getPhoneDesc($db, $typeId) {
         if (empty($typeId)) return '';

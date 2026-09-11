@@ -116,6 +116,7 @@ $(document).ready(function() {
   let globalRoleList = [];
   let contactLoadRequest = 0;
   let statusHideTimer = null;
+  let memberSyncLock = false;
 
   function showStatusMessage(message, type = 'success', persist = false) {
     let $box = $('#status-message');
@@ -396,6 +397,17 @@ $(document).ready(function() {
     $('#ministry-section').toggle(shouldShow);
   }
 
+  function getMemberContactTypeId() {
+    let memberTypeId = '';
+    $('#contact_type_id option').each(function() {
+      if ($(this).text().trim().toLowerCase() === 'member') {
+        memberTypeId = $(this).val();
+        return false;
+      }
+    });
+    return memberTypeId;
+  }
+
   function buildMinistryCheckboxes(ministryList, roleList, savedMinistries = []) {
     $('#checkbox-container').empty(); 
 
@@ -471,7 +483,48 @@ $(document).ready(function() {
   }
 
   $('#is_member').change(function() {
-    toggleMemberSections($(this).is(':checked'));
+    let isChecked = $(this).is(':checked');
+    toggleMemberSections(isChecked);
+
+    if (memberSyncLock) return;
+    memberSyncLock = true;
+
+    let memberTypeId = getMemberContactTypeId();
+    let $typeSelect = $('#contact_type_id');
+
+    if (isChecked) {
+      if (memberTypeId) {
+        $typeSelect.val(memberTypeId);
+      }
+    } else {
+      if (memberTypeId && String($typeSelect.val()) === String(memberTypeId)) {
+        $typeSelect.val('');
+      }
+    }
+
+    memberSyncLock = false;
+  });
+
+  $(document).on('change', '#contact_type_id', function() {
+    if (memberSyncLock) return;
+    memberSyncLock = true;
+
+    let selectedText = $(this).find('option:selected').text().trim().toLowerCase();
+    let $memberCheckbox = $('#is_member');
+
+    if (selectedText === 'member') {
+      if (!$memberCheckbox.is(':checked')) {
+        $memberCheckbox.prop('checked', true);
+        toggleMemberSections(true);
+      }
+    } else {
+      if ($memberCheckbox.is(':checked')) {
+        $memberCheckbox.prop('checked', false);
+        toggleMemberSections(false);
+      }
+    }
+
+    memberSyncLock = false;
   });
 
   $('#is_head').change(function() {
@@ -510,13 +563,14 @@ $(document).ready(function() {
   function updateFormLists(callback) {
     let membersOnly = $('input[name="contact_filter"]:checked').val();
 
-    let selContact  = $('#contactID').val();
-    let selFamily   = $('#family_id').val();
-    let selTitle    = $('#title_id').val();
-    let selMarital  = $('#marital_status').val();
-    let selPhone1   = $('#phone_1_type').val();
-    let selPhone2   = $('#phone_2_type').val();
-    let selPhone3   = $('#phone_3_type').val();
+    let selContact     = $('#contactID').val();
+    let selFamily      = $('#family_id').val();
+    let selTitle       = $('#title_id').val();
+    let selMarital     = $('#marital_status').val();
+    let selPhone1      = $('#phone_1_type').val();
+    let selPhone2      = $('#phone_2_type').val();
+    let selPhone3      = $('#phone_3_type').val();
+    let selContactType = $('#contact_type_id').val();
 
     $.ajax({
       url: "getLists.php",
@@ -568,6 +622,16 @@ $(document).ready(function() {
           });
         }
 
+        $('#contact_type_id').empty().append($('<option>', { value: '', text: '--Select Contact Type--' }));
+        let contactTypesList = data.contactTypes || data.contact_types || data.contactType || [];
+        if (contactTypesList && Array.isArray(contactTypesList)) {
+          $.each(contactTypesList, function(index, item) {
+            let typeId = item.contact_type_id || item.id;
+            let typeDesc = item.contact_desc || item.contact_type_desc || item.description;
+            $('#contact_type_id').append($('<option>', { value: typeId, text: typeDesc }));
+          });
+        }
+
         if (selContact) $('#contactID').val(selContact);
         if (selFamily) $('#family_id').val(selFamily);
         if (selTitle) $('#title_id').val(selTitle);
@@ -575,6 +639,7 @@ $(document).ready(function() {
         if (selPhone1) $('#phone_1_type').val(selPhone1);
         if (selPhone2) $('#phone_2_type').val(selPhone2);
         if (selPhone3) $('#phone_3_type').val(selPhone3);
+        if (selContactType) $('#contact_type_id').val(selContactType);
 
         if (!$('#contact_id').val() && $('#checkbox-container').is(':empty')) {
           buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
@@ -600,6 +665,7 @@ $(document).ready(function() {
       $('#contact_id').val('');
       $('#contactID').val('');
       $('#title_id').val('');
+      $('#contact_type_id').val('');
       $('#n_sufix').val('');
       $('#date_of_death').val('');
       $('#dedication_date').val('');
@@ -631,6 +697,7 @@ $(document).ready(function() {
         $('#contact-form')[0].reset();
         $('#contact_id').val('');
         $('#title_id').val('');
+        $('#contact_type_id').val('');
         $('#n_sufix').val('');
         $('#date_of_death').val('');
         $('#dedication_date').val('');
@@ -726,6 +793,12 @@ $(document).ready(function() {
         let isMember = String(contact.is_member) === "1" || contact.is_member === true;
         $('#is_member').prop('checked', isMember);
         
+        $('#contact_type_id').val(contact.contact_type_id || '');
+        if (!$('#contact_type_id').val() && isMember) {
+          let memberTypeId = getMemberContactTypeId();
+          if (memberTypeId) $('#contact_type_id').val(memberTypeId);
+        }
+
         toggleMemberSections(isMember);
         buildMinistryCheckboxes(data.ministryList, data.roleList, data.ministries);
         
@@ -1093,6 +1166,13 @@ $(document).ready(function() {
           <h2>New Beginnings Census Information</h2>
         </legend>
         
+        <div class="field-group" style="margin-bottom: 15px; max-width: 300px;">
+          <label for="contact_type_id">Contact Type</label>
+          <select id="contact_type_id" name="contact_type_id" class="form-control">
+            <option value="">--Select Contact Type--</option>
+          </select>
+        </div>
+
         <div class="census-row-container">
           <div class="census-item">
             <input type="hidden" name="is_active" value="0">

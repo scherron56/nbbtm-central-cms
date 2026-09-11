@@ -31,16 +31,26 @@ if (!isset($db) || !($db instanceof mysqli)) {
     exit;
 }
 
-$membersOnly = isset($_REQUEST['members_only']) ? (int)$_REQUEST['members_only'] : 0;
-$ageFilter   = isset($_REQUEST['age_filter']) ? (int)$_REQUEST['age_filter'] : 0;
+$rawContactTypes = isset($_REQUEST['contact_type_id']) ? $_REQUEST['contact_type_id'] : [];
+$ageFilter       = isset($_REQUEST['age_filter']) ? (int)$_REQUEST['age_filter'] : 0;
+
+$contactTypeIds = [];
+if (is_array($rawContactTypes)) {
+    foreach ($rawContactTypes as $id) {
+        if (is_numeric($id) && (int)$id > 0) {
+            $contactTypeIds[] = (int)$id;
+        }
+    }
+} elseif (is_numeric($rawContactTypes) && (int)$rawContactTypes > 0) {
+    $contactTypeIds[] = (int)$rawContactTypes;
+}
 
 try {
     $whereConditions = [];
 
-    if ($membersOnly === 1) {
-        $whereConditions[] = "is_member = 1";
-    } elseif ($membersOnly === 2) {
-        $whereConditions[] = "(is_member = 0 OR is_member IS NULL)";
+    if (!empty($contactTypeIds)) {
+        $idsCsv = implode(',', $contactTypeIds);
+        $whereConditions[] = "contact_type_id IN ({$idsCsv})";
     }
 
     if ($ageFilter === 1) {
@@ -105,6 +115,13 @@ try {
         $pRes->free(); 
     }
 
+    $contactTypes = [];
+    $ctRes = $db->query("SELECT contact_type_id, contact_desc FROM contact_type ORDER BY contact_desc ASC");
+    if ($ctRes) {
+        $contactTypes = $ctRes->fetch_all(MYSQLI_ASSOC);
+        $ctRes->free();
+    }
+
     $ministryList = [];
     $minRes = $db->query("
         SELECT 
@@ -138,6 +155,7 @@ try {
         'titles'       => $titles,
         'marital'      => $marital,
         'phonetype'    => $phonetype,
+        'contactTypes' => $contactTypes,
         'ministryList' => $ministryList,
         'roleList'     => $roleList
     ], JSON_INVALID_UTF8_SUBSTITUTE);

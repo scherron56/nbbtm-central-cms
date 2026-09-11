@@ -73,12 +73,13 @@ function sanitizeDate($val) {
 }
 
 // 1. Collect & Sanitize Form Inputs
-$contact_id     = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : null;
-$title_id       = !empty($_POST['title_id']) ? intval($_POST['title_id']) : null;
-$first_name     = trim($_POST['first_name'] ?? '');
-$middle_name    = trim($_POST['middle_name'] ?? '');
-$n_sufix        = trim($_POST['n_sufix'] ?? '');
-$last_name      = trim($_POST['last_name'] ?? '');
+$contact_id      = !empty($_POST['contact_id']) ? intval($_POST['contact_id']) : null;
+$title_id        = !empty($_POST['title_id']) ? intval($_POST['title_id']) : null;
+$contact_type_id = !empty($_POST['contact_type_id']) ? intval($_POST['contact_type_id']) : null;
+$first_name      = trim($_POST['first_name'] ?? '');
+$middle_name     = trim($_POST['middle_name'] ?? '');
+$n_sufix         = trim($_POST['n_sufix'] ?? '');
+$last_name       = trim($_POST['last_name'] ?? '');
 
 $date_of_birth   = sanitizeDate($_POST['date_of_birth'] ?? null);
 $is_deceased     = isset($_POST['is_deceased']) ? intval($_POST['is_deceased']) : 0;
@@ -137,7 +138,7 @@ try {
         $assigned_family = ($is_head === 1) ? $contact_id : $family_id;
 
         $stmt = $db->prepare("UPDATE contacts SET 
-            family_id = ?, title_id = ?, first_name = ?, middle_name = ?, n_sufix = ?, last_name = ?, date_of_birth = ?, 
+            family_id = ?, title_id = ?, contact_type_id = ?, first_name = ?, middle_name = ?, n_sufix = ?, last_name = ?, date_of_birth = ?, 
             date_of_death = ?, is_deceased = ?, gender = ?, address_1 = ?, city = ?, state = ?, zipcode = ?, 
             phone_1 = ?, phone_1_type = ?, phone_2 = ?, phone_2_type = ?, 
             emergency_contact = ?, phone_3 = ?, phone_3_type = ?, c_email = ?, 
@@ -145,8 +146,8 @@ try {
             join_date = ?, baptized_date = ?, is_child = ?, is_head = ?, is_active = ?
             WHERE contact_id = ?");
 
-        $stmt->bind_param("iissssssissssssisissisiiississiiii", 
-            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, 
+        $stmt->bind_param("iiissssssissssssisissisiiississiiii", 
+            $assigned_family, $title_id, $contact_type_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, 
             $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode, 
             $phone_1, $phone_1_type, $phone_2, $phone_2_type, $emergency_contact, $phone_3, $phone_3_type, $c_email, 
             $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status, 
@@ -159,16 +160,16 @@ try {
         $assigned_family = ($is_head === 1) ? null : $family_id;
 
         $stmt = $db->prepare("INSERT INTO contacts (
-            family_id, title_id, first_name, middle_name, n_sufix, last_name, date_of_birth, date_of_death, is_deceased,
+            family_id, title_id, contact_type_id, first_name, middle_name, n_sufix, last_name, date_of_birth, date_of_death, is_deceased,
             gender, address_1, city, state, zipcode, 
             phone_1, phone_1_type, phone_2, phone_2_type, 
             emergency_contact, phone_3, phone_3_type, c_email, 
             is_member, is_baptized, is_dedicated, dedication_date, anniv_date, marital_status, 
             join_date, baptized_date, is_child, is_head, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("iissssssissssssisissisiiississiii", 
-            $assigned_family, $title_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, 
+        $stmt->bind_param("iiissssssissssssisissisiiississiii", 
+            $assigned_family, $title_id, $contact_type_id, $first_name, $middle_name, $n_sufix, $last_name, $date_of_birth, 
             $date_of_death, $is_deceased, $gender, $address_1, $city, $state, $zipcode, 
             $phone_1, $phone_1_type, $phone_2, $phone_2_type, $emergency_contact, $phone_3, $phone_3_type, $c_email, 
             $is_member, $is_baptized, $is_dedicated, $dedication_date, $anniv_date, $marital_status, 
