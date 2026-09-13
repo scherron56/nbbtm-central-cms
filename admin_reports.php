@@ -106,58 +106,6 @@ if ($userIsAdmin) {
 </main>
 
 <?php include_once __DIR__ . '/include/footer.php'; ?>
-
-<script>
-function loadReportParams(reportKey) {
-  const container = document.getElementById('dynamic-params');
-  const submitBtn = document.getElementById('btn-submit');
-  container.innerHTML = '';
-  
-  if (!reportKey) {
-    submitBtn.disabled = true;
-    return;
-  }
-
-  fetch('get_params.php?report=' + encodeURIComponent(reportKey))
-    .then(res => res.json())
-    .then(params => {
-      if (params.error) {
-        container.innerHTML = '<span class="text-danger">' + params.error + '</span>';
-        return;
-      }
-
-      if (!params || params.length === 0) {
-        container.innerHTML = '<p style="grid-column: span 12; color: #64748b; font-style: italic;">No additional parameters required for this report.</p>';
-        submitBtn.disabled = false;
-        return;
-      }
-
-      params.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'field-group';
-        div.style.setProperty('--colspan', '6');
-
-        let inputType = 'text';
-        if (p.param_type === 'int' || p.param_type === 'float') inputType = 'number';
-        if (p.param_type === 'date') inputType = 'date';
-
-        const reqAttr = p.is_required == 1 ? 'required' : '';
-        const reqStar = p.is_required == 1 ? '<span class="text-danger">*</span>' : '';
-        const defVal  = p.default_value ? p.default_value : '';
-
-        div.innerHTML = `
-          <label for="${p.param_name}">${p.param_name} ${reqStar}</label>
-          <input type="${inputType}" id="${p.param_name}" name="${p.param_name}" class="form-control" value="${defVal}" ${reqAttr}>
-        `;
-        container.appendChild(div);
-      });
-
-      submitBtn.disabled = false;
-    })
-    .catch(err => {
-      container.innerHTML = '<span class="text-danger">Failed to communicate with server.</span>';
-    });
-}
-</script>
+<script src="js/admin_reports.js"></script>
 </body>
 </html>

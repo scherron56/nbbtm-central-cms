@@ -1,584 +1,529 @@
-<<?php
-// Enforce persistent cookie scope before session start
+<?php
+// event_registration.php
 if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params([
-        'lifetime' => 86400, // 24 Hours
-        'path'     => '/',   // Root path ensures session spans all sub-folders
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    session_start();
+  session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'httponly' => true,
+    'samesite' => 'Lax'
+  ]);
+  session_start();
 }
 
-// Require auth helper
 require_once __DIR__ . '/include/auth.php';
 $canEdit = canEdit();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Event Registration - Administrative Portal</title>
-  <link href="https://api.fontshare.com/v2/css?f%5B%5D=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&amp;f%5B%5D=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&amp;display=swap" rel="stylesheet">
+  <title>Event Registration - NBBTM CMS</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .alert-box {
-      padding: 12px 16px;
-      margin-bottom: 20px;
-      border-radius: 6px;
-      font-weight: 500;
-      font-size: 0.95rem;
-      display: none;
-    }
-    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
-    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
-    .read-only-banner {
-      background-color: #f1f5f9;
-      border-left: 4px solid #0ea5e9;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-      color: #334155;
+    .registration-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
     }
 
-    .registration-wrapper {
-      width: 100%;
-      max-width: 1000px;
-      margin: 2rem auto;
+    @media (max-width: 850px) {
+      .registration-layout {
+        grid-template-columns: 1fr;
+      }
     }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #1e293b;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+
     .event-info-box {
       background: #f8fafc;
-      border: 1px solid #cbd5e1;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 15px;
+      padding: 16px;
       margin-bottom: 20px;
+    }
+
+    .event-info-box h3 {
+      margin-top: 0;
+      color: #28089a;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .badge-secondary {
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-weight: 500;
       display: none;
     }
-    .badge-fee {
-      background: #dbeafe;
-      color: #1e40af;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 0.95rem;
-    }
-    .badge-free {
+
+    .alert-success {
       background: #dcfce7;
       color: #15803d;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 0.95rem;
+      border: 1px solid #bbf7d0;
     }
-    .contact-select-row {
-      display: flex;
-      gap: 12px;
-      align-items: center;
+
+    .alert-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
     }
-    .contact-select-row select {
-      flex: 1;
-    }
-    .btn-add-contact {
-      background-color: #28089a;
-      color: #ffffff;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      white-space: nowrap;
-      height: 38px;
-      transition: background-color 0.15s ease;
-    }
-    .btn-add-contact:hover {
-      background-color: #1e0573;
-      color: #ffffff;
-      text-decoration: none;
-    }
-    select, input[type="number"] {
+
+    table.data-table {
       width: 100%;
-      height: 38px;
-      padding: 0 10px;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    table.data-table th,
+    table.data-table td {
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background-color: #f1f5f9;
       color: #28089a;
-      font-family: inherit;
-    }
-    .status-indicator {
-      font-weight: bold;
-      padding: 6px 12px;
-      border-radius: 6px;
-      display: inline-block;
-      margin-top: 5px;
-    }
-    .status-completed {
-      background-color: #dcfce7;
-      color: #15803d;
-    }
-    .status-pending {
-      background-color: #fee2e2;
-      color: #991b1b;
-    }
-    .btn-edit-reg {
-      background-color: #0ea5e9;
-      color: #ffffff;
-      padding: 4px 10px;
-      border: none;
-      border-radius: 4px;
-      font-weight: 600;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-    .btn-delete-reg {
-      background-color: #ef4444;
-      color: #ffffff;
-      padding: 4px 10px;
-      border: none;
-      border-radius: 4px;
-      font-weight: 600;
-      font-size: 0.8rem;
-      cursor: pointer;
-      margin-left: 5px;
     }
   </style>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
     $(document).ready(function() {
-        const CAN_EDIT = <?php echo $canEdit ? 'true' : 'false'; ?>;
-        let eventsData = [];
-        let currentRegistrations = [];
+      const CAN_EDIT = <?php echo $canEdit ? 'true' : 'false'; ?>;
+      let editingRegId = null;
+      let urlParams = new URLSearchParams(window.location.search);
+      let preselectedEventId = urlParams.get('prg_evnt_id');
+      let currentEvent = null;
 
-        function showStatusMessage(message, type = 'success') {
-            let $box = $('#status-message');
-            $box.removeClass('alert-success alert-error')
-                .addClass(type === 'success' ? 'alert-success' : 'alert-error')
-                .html(message)
-                .stop(true, true)
-                .fadeIn(200);
-
-            if (type === 'success') {
-                setTimeout(function() { $box.fadeOut(500); }, 5000);
-            }
-        }
-
-        function clearStatusMessage() {
-            $('#status-message').fadeOut(200).empty();
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const preselectedEventId = urlParams.get('prg_evnt_id');
-
-        loadRegistrableEvents(preselectedEventId);
-        loadContactsDropdown();
-
-        function loadRegistrableEvents(selectedId = null) {
-            $.ajax({
-                url: 'prg_event_api.php',
-                type: 'GET',
-                data: { action: 'get_events' },
-                dataType: 'json',
-                success: function(data) {
-                    if (data.success && data.programs_events) {
-                        eventsData = data.programs_events;
-                        let $select = $('#prg_evnt_id');
-                        $select.find('option:not(:first)').remove();
-
-                        // Strict integer check for events requiring registration
-                        let registrableEvents = eventsData.filter(e => parseInt(e.requires_registration) === 1);
-
-                        if (registrableEvents.length === 0) {
-                            $select.append('<option value="" disabled>No upcoming events requiring registration</option>');
-                        } else {
-                            $.each(registrableEvents, function(i, ev) {
-                                let dispDate = ev.primary_start ? ` (${ev.primary_start.substring(0, 10)})` : '';
-                                $select.append(`<option value="${ev.prg_evnt_id}">${ev.prg_evnt_name}${dispDate}</option>`);
-                            });
-                        }
-
-                        if (selectedId) {
-                            $select.val(selectedId).trigger('change');
-                        }
-                    } else if (data.error) {
-                        showStatusMessage('Error fetching events: ' + data.error, 'error');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    showStatusMessage('Server error fetching events list: ' + error, 'error');
+      function loadEvents() {
+        $.ajax({
+          url: 'prg_event_api.php',
+          type: 'GET',
+          data: {
+            action: 'get_events'
+          },
+          dataType: 'json',
+          success: function(data) {
+            if (data.success) {
+              let $select = $('#event_select').empty().append('<option value="">-- Select Event --</option>');
+              $.each(data.programs_events, function(i, ev) {
+                if (parseInt(ev.requires_registration) === 1) {
+                  let dispDate = ev.primary_start ? ` (${ev.primary_start.substring(0,10)})` : '';
+                  $select.append(`<option value="${ev.prg_evnt_id}">${escapeHtml(ev.prg_evnt_name)}${dispDate}</option>`);
                 }
-            });
-        }
+              });
 
-        function loadContactsDropdown() {
-            $.ajax({
-                url: 'prg_event_api.php',
-                type: 'GET',
-                data: { action: 'get_contacts_list' },
-                dataType: 'json',
-                success: function(data) {
-                    if (data.success) {
-                        let $cSelect = $('#contact_id');
-                        $cSelect.find('option:not(:first)').remove();
-                        $.each(data.contacts, function(i, c) {
-                            $cSelect.append(`<option value="${c.contact_id}">${c.full_name}</option>`);
-                        });
-                    }
-                }
-            });
-        }
-
-        function updateCompletionPreview() {
-            let status = $('#payment_status').val();
-            let $box = $('#completionPreviewBox');
-
-            if (['Completed', 'Paid', 'Waived'].includes(status)) {
-                $box.html('<span class="status-indicator status-completed">✓ Registration Status: FULLY COMPLETED</span>');
-            } else {
-                $box.html('<span class="status-indicator status-pending">⚠ Registration Status: NOT COMPLETED (Unpaid/Pending)</span>');
+              if (preselectedEventId) {
+                $('#event_select').val(preselectedEventId).trigger('change');
+              }
             }
-        }
-
-        // Handle Event Selection
-        $('#prg_evnt_id').on('change', function() {
-            clearStatusMessage();
-            let eventId = $(this).val();
-            resetForm();
-            $('#prg_evnt_id').val(eventId);
-            $('#form_prg_evnt_id').val(eventId);
-
-            if (!eventId) {
-                $('#eventDetailsBox').hide();
-                $('#registrationFormFields').hide();
-                $('#rosterSection').slideUp();
-                return;
-            }
-
-            let ev = eventsData.find(e => e.prg_evnt_id == eventId);
-            if (ev) {
-                $('#infoLocation').text(ev.location || 'N/A');
-                $('#infoSponsor').text(ev.ministry_name || 'N/A');
-                
-                let reqFee = parseInt(ev.requires_fee) === 1;
-
-                if (reqFee) {
-                    let fee = parseFloat(ev.registration_fee || 0);
-                    $('#infoFee').html(`<span class="badge-fee">$${fee.toFixed(2)}</span>`);
-                    $('#amount_paid').val(fee.toFixed(2));
-                    $('#payment_status').val('Pending');
-                    $('#payment_method').val('Credit Card');
-                    
-                    $('#paymentFieldsSection').slideDown();
-                    updateCompletionPreview();
-                } else {
-                    $('#infoFee').html('<span class="badge-free">Free Event (No Fee)</span>');
-                    $('#amount_paid').val('0.00');
-                    $('#payment_status').val('Paid');
-                    $('#payment_method').val('None');
-                    
-                    $('#paymentFieldsSection').slideUp();
-                    $('#completionPreviewBox').html('<span class="status-indicator status-completed">✓ Free Event - Instant Check-In Allowed</span>');
-                }
-
-                $('#eventDetailsBox').slideDown();
-                if (CAN_EDIT) {
-                    $('#registrationFormFields').slideDown();
-                }
-                loadExistingRegistrations(eventId);
-            }
+          }
         });
+      }
 
-        function loadExistingRegistrations(eventId) {
-            $.ajax({
-                url: 'prg_event_api.php',
-                type: 'GET',
-                data: { action: 'get_event_registrations', prg_evnt_id: eventId },
-                dataType: 'json',
-                success: function(data) {
-                    if (data.success) {
-                        currentRegistrations = data.registrations || [];
-                        renderRegistrationsRoster();
-                        $('#rosterSection').slideDown();
-                    }
-                }
-            });
+      function loadContacts() {
+        $.ajax({
+          url: 'prg_event_api.php',
+          type: 'GET',
+          data: {
+            action: 'get_contacts_list'
+          },
+          dataType: 'json',
+          success: function(data) {
+            if (data.success) {
+              let $select = $('#contact_select').empty().append('<option value="">-- Select Contact --</option>');
+              $.each(data.contacts, function(i, c) {
+                $select.append(`<option value="${c.contact_id}">${escapeHtml(c.full_name)}</option>`);
+              });
+            }
+          }
+        });
+      }
+
+      $('#event_select').on('change', function() {
+        let eventId = $(this).val();
+        if (!eventId) {
+          $('#eventDetailsBox').hide();
+          $('#registrationSection').hide();
+          return;
         }
 
-        function renderRegistrationsRoster() {
-            let $tbody = $('#rosterTableBody').empty();
+        $.ajax({
+          url: 'prg_event_api.php',
+          type: 'GET',
+          data: {
+            action: 'get_events',
+            prg_evnt_id: eventId
+          },
+          dataType: 'json',
+          success: function(data) {
+            if (data.success && data.prgevnt) {
+              let ev = data.prgevnt;
+              currentEvent = ev;
+              $('#info_event_name').text(ev.prg_evnt_name);
+              $('#info_location').text(ev.location || 'N/A');
+              $('#info_fee').text(parseInt(ev.requires_fee) === 1 ? `$${parseFloat(ev.registration_fee || 0).toFixed(2)}` : 'Free');
 
-            if (currentRegistrations.length === 0) {
-                $tbody.append('<tr><td colspan="6" style="text-align:center; color:#64748b; padding:15px;">No existing registrations recorded for this event.</td></tr>');
-                return;
+              let reqFee = parseInt(ev.requires_fee) === 1;
+              if (reqFee) {
+                let fee = parseFloat(ev.registration_fee || 0);
+                $('#amount_paid').val(fee.toFixed(2));
+                $('#payment_status').val('Pending');
+                $('#payment_method').val('Cash');
+                $('#paymentFieldsSection').show();
+              } else {
+                $('#amount_paid').val('0.00');
+                $('#payment_status').val('Paid');
+                $('#payment_method').val('None');
+                $('#paymentFieldsSection').hide();
+              }
+
+              $('#eventDetailsBox').show();
+              $('#registrationSection').show();
+
+              loadRoster(eventId);
             }
+          }
+        });
+      });
 
-            $.each(currentRegistrations, function(i, r) {
-                let statusBadge = (parseInt(r.is_completed) === 1 || ['paid', 'completed', 'waived'].includes(String(r.payment_status).toLowerCase()))
-                    ? '<span class="status-indicator status-completed" style="padding: 2px 8px; font-size:0.8rem;">Completed</span>'
-                    : '<span class="status-indicator status-pending" style="padding: 2px 8px; font-size:0.8rem;">Pending</span>';
+      // Business rules in the UI:
+      // - "Waived" forces Amount Paid to 0.00
+      // - "Online" method forces Payment Status to "Pending" (until verified)
+      function applyPaymentRules() {
+        if ($('#payment_status').val() === 'Waived') {
+          $('#amount_paid').val('0.00');
+        }
+        if ($('#payment_method').val() === 'Online') {
+          $('#payment_status').val('Pending');
+        }
+      }
 
-                let actionBtns = CAN_EDIT ? `
-                    <button type="button" class="btn-edit-reg" data-id="${r.registration_id}">Edit</button>
-                    <button type="button" class="btn-delete-reg" data-id="${r.registration_id}">Cancel</button>
-                ` : '<em>Read Only</em>';
+      $('#payment_status').on('change', applyPaymentRules);
+      $('#payment_method').on('change', applyPaymentRules);
+
+      $('#registrationForm').on('submit', function(e) {
+        e.preventDefault();
+        if (!CAN_EDIT) return;
+        let eventId = $('#event_select').val();
+        let contactId = $('#contact_select').val();
+
+        if (!eventId || !contactId) {
+          showAlert('alert-danger', 'Please select both an event and a contact.');
+          return;
+        }
+
+        applyPaymentRules();
+
+        $.ajax({
+          url: 'prg_event_api.php',
+          type: 'POST',
+          data: {
+            action: editingRegId ? 'save_registration' : 'register_attendee',
+            registration_id: editingRegId || '',
+            prg_evnt_id: eventId,
+            contact_id: contactId,
+            payment_method: $('#payment_method').val() || 'None',
+            payment_status: $('#payment_status').val() || 'Pending',
+            amount_paid: $('#amount_paid').val() || '0.00'
+          },
+          dataType: 'json',
+          success: function(response) {
+            if (response.success) {
+              showAlert('alert-success', editingRegId ? 'Registration updated successfully.' : 'Attendee registered successfully.');
+              resetRegistrationForm();
+              loadRoster(eventId);
+            } else {
+              showAlert('alert-danger', response.message || response.error || 'Registration failed.');
+            }
+          },
+          error: function() {
+            showAlert('alert-danger', 'An error occurred while processing the registration.');
+          }
+        });
+      });
+
+      let currentRegistrations = [];
+
+      function loadRoster(eventId) {
+        $.ajax({
+          url: 'prg_event_api.php',
+          type: 'GET',
+          data: {
+            action: 'get_event_roster',
+            prg_evnt_id: eventId
+          },
+          dataType: 'json',
+          success: function(data) {
+            if (data.success) {
+              currentRegistrations = data.registrations || [];
+              let checkedInIds = (data.attendance || []).map(a => parseInt(a.contact_id));
+              let $tbody = $('#rosterTable tbody').empty();
+
+              if (!data.registrations || data.registrations.length === 0) {
+                $tbody.append('<tr><td colspan="7" style="text-align:center; color:#64748b;">No registered attendees yet.</td></tr>');
+                return;
+              }
+
+              $.each(data.registrations, function(i, r) {
+                let isCheckedIn = checkedInIds.includes(parseInt(r.contact_id));
+                let checkInBtn = isCheckedIn ?
+                  '<span class="badge badge-success">Checked In ✓</span>' :
+                  `<button class="btn btn-sm btn-checkin" data-contact="${r.contact_id}" style="padding:4px 8px; font-size:0.8rem; cursor:pointer;">Check In</button>`;
+                // Registration is Complete ONLY for "Waived" or "Completed/Paid"
+                let statusLc = String(r.payment_status || '').toLowerCase();
+                let isComplete = statusLc === 'waived' || statusLc === 'paid' || statusLc === 'completed' || parseInt(r.is_completed) === 1;
+                let paidBadge = isComplete ?
+                  '<span class="badge badge-success">Registration Complete</span>' :
+                  '<span class="badge badge-secondary">Registration Pending</span>';
+                let editBtn = CAN_EDIT ?
+                  `<button class="btn btn-sm btn-edit-reg" data-id="${r.registration_id}" style="padding:4px 8px; font-size:0.8rem; cursor:pointer; background:#0ea5e9; color:#fff; border:none; border-radius:4px;">Edit</button>` :
+                  '<em>Read Only</em>';
 
                 $tbody.append(`
-                    <tr>
-                        <td><strong>${r.full_name || 'Unknown'}</strong></td>
-                        <td>${r.payment_status || 'Pending'}</td>
-                        <td>${r.payment_method || 'None'}</td>
-                        <td>$${parseFloat(r.amount_paid || 0).toFixed(2)}</td>
-                        <td>${statusBadge}</td>
-                        <td style="text-align:right;">${actionBtns}</td>
-                    </tr>
-                `);
-            });
-        }
-
-        // Edit Registration Trigger
-        $(document).on('click', '.btn-edit-reg', function() {
-            if (!CAN_EDIT) return;
-            clearStatusMessage();
-            let regId = $(this).data('id');
-            let reg = currentRegistrations.find(r => r.registration_id == regId);
-
-            if (reg) {
-                $('#registration_id').val(reg.registration_id);
-                $('#contact_id').val(reg.contact_id);
-                $('#payment_method').val(reg.payment_method || 'None');
-                $('#payment_status').val(reg.payment_status || 'Paid');
-                $('#amount_paid').val(parseFloat(reg.amount_paid || 0).toFixed(2));
-
-                $('#submitBtn').text('Update Registration').addClass('btn-pulse');
-                $('#formLegendText').text('Edit Attendance Registration');
-                updateCompletionPreview();
-                $('html, body').animate({ scrollTop: $('#registrationFormFields').offset().top - 50 }, 300);
+                                <tr>
+                                    <td><strong>${escapeHtml(r.full_name)}</strong></td>
+                                    <td>${escapeHtml(r.payment_status || 'Pending')}</td>
+                                    <td>${escapeHtml(r.payment_method || 'None')}</td>
+                                    <td>$${parseFloat(r.amount_paid || 0).toFixed(2)}</td>
+                                    <td>${paidBadge}</td>
+                                    <td>${checkInBtn}</td>
+                                    <td>${editBtn}
+                                        <button class="btn btn-sm btn-danger btn-remove" data-contact="${r.contact_id}" style="padding:4px 8px; font-size:0.8rem; cursor:pointer; background:#dc2626; color:#fff; border:none; border-radius:4px;">Remove</button>
+                                    </td>
+                                </tr>
+                            `);
+              });
             }
+          }
         });
+      }
 
-        // Cancel Registration Trigger
-        $(document).on('click', '.btn-delete-reg', function() {
-            if (!CAN_EDIT) return;
-            clearStatusMessage();
-            let regId = $(this).data('id');
-            let eventId = $('#prg_evnt_id').val();
+      // Edit registration: load its payment details into the form
+      $(document).on('click', '.btn-edit-reg', function() {
+        if (!CAN_EDIT) return;
+        let regId = $(this).data('id');
+        let reg = (currentRegistrations || []).find(r => String(r.registration_id) === String(regId));
+        if (!reg) return;
 
-            if (!confirm('Are you sure you want to cancel and remove this registration?')) return;
-
-            $.ajax({
-                url: 'prg_event_api.php',
-                type: 'POST',
-                data: { action: 'cancel_registration', registration_id: regId },
-                dataType: 'json',
-                success: function(res) {
-                    if (res.success) {
-                        showStatusMessage(res.message || 'Registration canceled.', 'success');
-                        loadExistingRegistrations(eventId);
-                    } else {
-                        showStatusMessage(res.error || 'Failed to cancel registration.', 'error');
-                    }
-                }
-            });
+        editingRegId = reg.registration_id;
+        $('#contact_select').val(reg.contact_id);
+        $('#payment_method').val(reg.payment_method || 'None');
+        $('#payment_status').val(reg.payment_status || 'Pending');
+        applyPaymentRules();
+        $('#amount_paid').val(parseFloat(reg.amount_paid || 0).toFixed(2));
+        $('#paymentFieldsSection').show();
+        $('#registrationSubmitBtn').text('Update Registration');
+        $('#registrationSection')[0].scrollIntoView({
+          behavior: 'smooth'
         });
+      });
 
-        $('#payment_status').on('change', updateCompletionPreview);
+      function resetRegistrationForm() {
+        editingRegId = null;
+        $('#registrationForm')[0].reset();
+        $('#amount_paid').val('0.00');
+        $('#registrationSubmitBtn').text('Register Attendee');
+        // Re-apply defaults for the currently selected event
+        $('#event_select').trigger('change');
+      }
 
-        function resetForm() {
-            clearStatusMessage();
-            let selectedEvent = $('#prg_evnt_id').val();
-            if ($('#registrationForm').length) {
-                $('#registrationForm')[0].reset();
-                $('#registration_id').val('');
-                $('#prg_evnt_id').val(selectedEvent);
-                $('#form_prg_evnt_id').val(selectedEvent);
-                $('#submitBtn').text('Save Registration');
-                $('#formLegendText').text('Attendee & Registration Details');
+      $(document).on('click', '.btn-checkin', function() {
+        let eventId = $('#event_select').val();
+        let contactId = $(this).data('contact');
+
+        $.ajax({
+          url: 'prg_event_api.php',
+          type: 'POST',
+          data: {
+            action: 'record_attendance',
+            prg_evnt_id: eventId,
+            contact_id: contactId
+          },
+          dataType: 'json',
+          success: function(res) {
+            if (res.success) {
+              loadRoster(eventId);
+            } else {
+              alert(res.message || 'Error checking in attendee.');
             }
-        }
-
-        $('#resetBtn').on('click', function() {
-            resetForm();
-            $('#eventDetailsBox').slideUp();
-            $('#registrationFormFields').slideUp();
-            $('#rosterSection').slideUp();
+          }
         });
+      });
 
-        // Submit Event Registration
-        $('#registrationForm').on('submit', function(e) {
-            e.preventDefault();
-            if (!CAN_EDIT) return;
-            clearStatusMessage();
+      $(document).on('click', '.btn-remove', function() {
+        if (!confirm('Are you sure you want to remove this registration?')) return;
 
-            let eventId = $('#prg_evnt_id').val();
-            let contactId = $('#contact_id').val();
+        let eventId = $('#event_select').val();
+        let contactId = $(this).data('contact');
 
-            if (!eventId || !contactId) {
-                showStatusMessage('Please select both an event and a contact.', 'error');
-                return;
+        $.ajax({
+          url: 'prg_event_api.php',
+          type: 'POST',
+          data: {
+            action: 'remove_registration',
+            prg_evnt_id: eventId,
+            contact_id: contactId
+          },
+          dataType: 'json',
+          success: function(res) {
+            if (res.success) {
+              loadRoster(eventId);
+            } else {
+              alert(res.message || 'Error removing registration.');
             }
-
-            let $btn = $('#submitBtn');
-            $btn.prop('disabled', true).text('Processing...');
-
-            let actionName = $('#registration_id').val() ? 'save_registration' : 'register_contact';
-            let formData = $(this).serialize() + '&prg_evnt_id=' + encodeURIComponent(eventId) + '&action=' + actionName;
-
-            $.ajax({
-                url: 'prg_event_api.php',
-                type: 'POST',
-                data: formData,
-                dataType: 'json',
-                success: function(res) {
-                    if (res.success) {
-                        showStatusMessage(res.message || 'Registration saved!', 'success');
-                        resetForm();
-                        $('#prg_evnt_id').val(eventId).trigger('change');
-                    } else {
-                        showStatusMessage((res.message || res.error || 'Unknown error occurred.'), 'error');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    showStatusMessage('Server communication error: ' + error, 'error');
-                },
-                complete: function() {
-                    $btn.prop('disabled', false);
-                }
-            });
+          }
         });
+      });
+
+      function showAlert(type, message) {
+        $('.alert').hide().removeClass('alert-success alert-danger');
+        $('#' + type).text(message).fadeIn().delay(3500).fadeOut();
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+
+      loadEvents();
+      loadContacts();
     });
   </script>
 </head>
+
 <body>
-  <?php require_once("config/db.php"); ?>
-  <?php include 'include/header.php'; ?> 
+  <?php include_once __DIR__ . '/include/header.php'; ?>
 
-  <h1>Event Registration Portal</h1>
+  <main style="max-width: 1200px; margin: 20px auto; padding: 0 15px;">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #e2e8f0; padding-bottom:0.5rem;">
+        <h2 style="margin:0; color:#28089a;">Event Registration & Check-In</h2>
+        <a href="event_dashboard.php" class="btn" style="text-decoration:none; background:#e2e8f0; color:#334155; padding:6px 12px; border-radius:4px; font-weight:600;">&larr; Back to Dashboard</a>
+      </div>
 
-  <div id="status-message" class="alert-box"></div>
-
-  <div class="registration-wrapper">
-    <!-- STEP 1: EVENT SELECTION FIELDSET -->
-    <fieldset class="form-grid-section-8">
-      <legend>
-        <h2>Event Selection</h2>
-      </legend>
-      <div class="field-group" style="--colspan: 8;">
-        <label for="prg_evnt_id"><h3 style="color: #28089a; margin: 0 0 5px 0;">Select Event:</h3></label>
-        <select id="prg_evnt_id" name="prg_evnt_id" required>
-          <option value="">-- Choose an Event --</option>
+      <div class="form-group" style="max-width: 500px; margin-top: 20px;">
+        <label for="event_select">Select Event for Registration:</label>
+        <select id="event_select" class="form-control">
+          <option value="">-- Select Event --</option>
         </select>
       </div>
-    </fieldset>
-
-    <!-- DYNAMIC EVENT OVERVIEW BOX -->
-    <div id="eventDetailsBox" class="event-info-box">
-      <h3 style="margin-top:0; color: #28089a; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">Event Overview</h3>
-      <div class="form-row" style="display: flex; gap: 20px;">
-        <p style="flex:1; margin: 0;"><strong>Location:</strong> <span id="infoLocation">-</span></p>
-        <p style="flex:1; margin: 0;"><strong>Sponsor:</strong> <span id="infoSponsor">-</span></p>
-        <p style="flex:1; margin: 0;"><strong>Required Fee:</strong> <span id="infoFee">-</span></p>
-      </div>
     </div>
 
-    <?php if ($canEdit): ?>
-      <!-- STEP 2: ATTENDEE & PAYMENT DETAILS FIELDSET -->
-      <div id="registrationFormFields" style="display: none;">
-        <form id="registrationForm" name="registrationForm">
-          <input type="hidden" id="registration_id" name="registration_id" value="">
-          <input type="hidden" id="form_prg_evnt_id" name="prg_evnt_id" value="">
+    <div id="eventDetailsBox" class="event-info-box" style="display:none; margin-top:20px;">
+      <h3 id="info_event_name" style="margin-bottom:8px;">-</h3>
+      <div><strong>Location:</strong> <span id="info_location">-</span></div>
+      <div><strong>Registration Fee:</strong> <span id="info_fee">$0.00</span></div>
+    </div>
 
-          <fieldset class="form-grid-section-8 fieldset-relative">
-            <legend>
-              <h2 id="formLegendText">Attendee & Registration Details</h2>
-            </legend>
+    <div id="registrationSection" class="registration-layout" style="display:none;">
+      <!-- Left Column: Add Registration Form -->
+      <div class="card">
+        <h3 style="margin-top:0; color:#28089a;">Register Contact</h3>
 
-            <div class="field-group" style="--colspan: 8;">
-              <label for="contact_id">Select Contact / Attendee:</label>
-              <div class="contact-select-row">
-                <select id="contact_id" name="contact_id" required>
-                  <option value="">-- Select Contact --</option>
-                </select>
-                <a href="contacts.php" class="btn-add-contact" title="Create a new contact if person isn't listed">
-                  + Add New Contact
-                </a>
-              </div>
+        <div id="alert-success" class="alert alert-success"></div>
+        <div id="alert-danger" class="alert alert-danger"></div>
+
+        <form id="registrationForm">
+          <div class="form-group">
+            <label for="contact_select">Select Contact / Attendee:</label>
+            <select id="contact_select" class="form-control" required>
+              <option value="">-- Select Contact --</option>
+            </select>
+          </div>
+
+          <div id="paymentFieldsSection">
+            <div class="form-group">
+              <label for="payment_method">Payment Method:</label>
+              <select id="payment_method" name="payment_method" class="form-control">
+                <option value="None">None / Free</option>
+                <option value="Cash">Cash</option>
+                <option value="Check">Check</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Online">Online (Givelify)</option>
+              </select>
             </div>
 
-            <!-- DYNAMIC PAYMENT SECTION (HIDDEN IF NO FEE REQUIRED) -->
-            <div id="paymentFieldsSection" style="display: contents;">
-              <div class="field-group" style="--colspan: 4;">
-                <label for="payment_method">Payment Method:</label>
-                <select id="payment_method" name="payment_method">
-                  <option value="None">None / Free</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Check">Check</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Online">Online Transfer</option>
-                </select>
-              </div>
-
-              <div class="field-group" style="--colspan: 4;">
-                <label for="payment_status">Payment Status:</label>
-                <select id="payment_status" name="payment_status">
-                  <option value="Paid">Completed / Paid</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Waived">Waived</option>
-                </select>
-              </div>
-
-              <div class="field-group" style="--colspan: 8;">
-                <label for="amount_paid">Amount Paid ($):</label>
-                <input type="number" step="0.01" id="amount_paid" name="amount_paid" value="0.00">
-              </div>
+            <div class="form-group">
+              <label for="payment_status">Payment Status:</label>
+              <select id="payment_status" name="payment_status" class="form-control">
+                <option value="Paid">Completed / Paid</option>
+                <option value="Pending">Pending</option>
+                <option value="Waived">Waived</option>
+              </select>
             </div>
 
-            <div class="field-group" style="--colspan: 8; margin-top: 10px;" id="completionPreviewBox">
-              <!-- Dynamic indicator inserted here -->
+            <div class="form-group">
+              <label for="amount_paid">Amount Paid ($):</label>
+              <input type="number" step="0.01" id="amount_paid" name="amount_paid" class="form-control" value="0.00">
             </div>
-          </fieldset>
+          </div>
 
-          <!-- SUBMIT & RESET BUTTONS -->
-          <fieldset class="form-grid-section-short-rght">
-            <div class="field-group" style="--colspan: 3;">
-              <button type="submit" id="submitBtn" class="btn-pulse">Save Registration</button>
-            </div>
-            <div class="field-group" style="--colspan: 3;">
-              <button type="button" id="resetBtn" class="btn-secondary">Reset</button>
-            </div>
-          </fieldset> 
+          <button type="submit" id="registrationSubmitBtn" class="btn btn-accent" style="width:100%; padding:10px; font-weight:600; cursor:pointer;">Register Attendee</button>
         </form>
       </div>
-    <?php else: ?>
-      <div class="read-only-banner">
-        <strong>Read-Only Mode:</strong> You must be signed in as staff or an administrator to register contacts for events.
+
+      <!-- Right Column: Current Registrations Roster -->
+      <div class="card">
+        <h3 style="margin-top:0; color:#28089a;">Current Roster & Check-In</h3>
+        <table class="data-table" id="rosterTable">
+          <thead>
+            <tr>
+              <th>Attendee Name</th>
+              <th>Payment Status</th>
+              <th>Payment Method</th>
+              <th>Amount Paid</th>
+              <th>Registration</th>
+              <th>Check-In</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
-    <?php endif; ?>
-
-    <!-- ROSTER OF CURRENT REGISTRATIONS WITH EDIT/CANCEL CONTROLS -->
-    <div id="rosterSection" class="card" style="display: none; margin-top: 30px;">
-      <h3>Current Registered Attendees for Event</h3>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Attendee Name</th>
-            <th>Payment Status</th>
-            <th>Payment Method</th>
-            <th>Amount Paid</th>
-            <th>Status</th>
-            <th style="text-align:right;">Action</th>
-          </tr>
-        </thead>
-        <tbody id="rosterTableBody">
-          <!-- Dynamically populated rows -->
-        </tbody>
-      </table>
     </div>
+  </main>
 
-  </div>
-<?php include_once 'include/footer.php'; ?>
+  <?php include_once __DIR__ . '/include/footer.php'; ?>
 </body>
+
 </html>

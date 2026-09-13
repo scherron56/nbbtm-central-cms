@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/include/auth.php';
 
 // Security check: Admin access only
@@ -24,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($username && $fullName && $email && $password && strlen($password) >= 8) {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $db->prepare("INSERT INTO nbbtm_users (username, full_name, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?, 1)");
+            $stmt = $db->prepare("INSERT INTO nbbtm_users (username, full_name, email, password_hash, must_change_password, role, is_active) VALUES (?, ?, ?, ?, 1, ?, 1)");
             $stmt->bind_param("sssss", $username, $fullName, $email, $passwordHash, $role);
             
             try {
@@ -55,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($password)) {
                     if (strlen($password) >= 8) {
                         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-                        $stmt = $db->prepare("UPDATE nbbtm_users SET username = ?, full_name = ?, email = ?, role = ?, password_hash = ? WHERE user_id = ?");
+                        $stmt = $db->prepare("UPDATE nbbtm_users SET username = ?, full_name = ?, email = ?, role = ?, password_hash = ?, must_change_password = 1 WHERE user_id = ?");
                         $stmt->bind_param("sssssi", $username, $fullName, $email, $role, $passwordHash, $userId);
                     } else {
                         $message = "Password update requires at least 8 characters.";
@@ -108,10 +109,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "User account status updated.";
         $statusClass = "text-success";
     }
+
+    // --- BULK CREATE USERS FROM CSV ---
+    if ($action === 'bulk_create_users') {
+        $file = $_FILES['users_csv'] ?? null;
+        $allowedRoles = ['browser', 'member', 'staff', 'admin', 'developer'];
+        $createdCount = 0;
+
+        if (!$file || $file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            $message = 'Please select a valid CSV file.';
+            $statusClass = 'text-danger';
+        } else {
+            $handle = fopen($file['tmp_name'], 'r');
+            if ($handle === false) {
+                $message = 'The CSV file could not be read.';
+                $statusClass = 'text-danger';
+            } else {
+                try {
+                    $db->begin_transaction();
+                    $rowNumber = 0;
+                    $firstRow = true;
+                    $stmt = $db->prepare("INSERT INTO nbbtm_users (username, full_name, email, password_hash, must_change_password, role, is_active) VALUES (?, ?, ?, ?, 1, ?, 1)");
+
+                    while (($row = fgetcsv($handle)) !== false) {
+                        $rowNumber++;
+                        if ($firstRow && strtolower(trim((string)($row[0] ?? ''))) === 'username') {
+                            $firstRow = false;
+                            continue;
+                        }
+                        $firstRow = false;
+
+                        if (count($row) !== 5) {
+                            throw new RuntimeException("CSV row {$rowNumber} must contain username, temporary password, full name, email, and role.");
+                        }
+
+                        [$username, $password, $fullName, $email, $role] = array_map('trim', $row);
+                        $email = filter_var($email, FILTER_VALIDATE_EMAIL);
+                        if ($username === '' || $fullName === '' || !$email || strlen($password) < 8 || !in_array($role, $allowedRoles, true)) {
+                            throw new RuntimeException("CSV row {$rowNumber} contains invalid data. Passwords must be at least 8 characters and roles must be valid.");
+                        }
+
+                        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+                        $stmt->bind_param("sssss", $username, $fullName, $email, $passwordHash, $role);
+                        $stmt->execute();
+                        $createdCount++;
+                    }
+
+                    if ($createdCount === 0) {
+                        throw new RuntimeException('The CSV file did not contain any users.');
+                    }
+
+                    $db->commit();
+                    $message = "{$createdCount} user account(s) created successfully. Each user must change their temporary password at first sign-in.";
+                    $statusClass = 'text-success';
+                    $stmt->close();
+                } catch (Throwable $e) {
+                    $db->rollback();
+                    $message = 'No users were created: ' . $e->getMessage();
+                    $statusClass = 'text-danger';
+                } finally {
+                    fclose($handle);
+                }
+            }
+        }
+    }
 }
 
 // Fetch user directory
-$usersResult = $db->query("SELECT user_id, username, full_name, email, role, is_active FROM nbbtm_users ORDER BY user_id DESC");
+$usersResult = $db->query("SELECT user_id, username, full_name, email, role, is_active FROM nbbtm_users ORDER BY username ASC");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -174,9 +239,11 @@ $usersResult = $db->query("SELECT user_id, username, full_name, email, role, is_
         <div class="field-group">
           <label for="role"><strong>Role</strong></label>
           <select id="role" name="role" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; height: 38px; width: 100%;">
-            <option value="view">View</option>
+            <option value="browser">Browser</option>
+            <option value="member">Member</option>
             <option value="staff">Staff</option>
             <option value="admin">Admin</option>
+            <option value="developer">Developer</option>
           </select>
         </div>
       </div>
@@ -185,6 +252,16 @@ $usersResult = $db->query("SELECT user_id, username, full_name, email, role, is_
         <button type="submit" id="submit-btn" class="btn btn-primary">+ Create User</button>
         <button type="button" id="cancel-edit-btn" class="btn btn-secondary hidden" onclick="resetUserForm()">Cancel Edit</button>
       </div>
+    </form>
+  </div>
+
+  <div class="card" style="margin-bottom: 2rem;">
+    <h3>Bulk Create Users from CSV</h3>
+    <p>Upload a CSV with these columns: <code>username, temporary password, full name, email, role</code>.</p>
+    <form method="POST" enctype="multipart/form-data" style="max-width: 100%; box-shadow: none; padding: 0;">
+      <input type="hidden" name="action" value="bulk_create_users">
+      <input type="file" name="users_csv" accept=".csv,text/csv" required>
+      <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Import Users</button>
     </form>
   </div>
 

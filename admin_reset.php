@@ -23,13 +23,13 @@ $res = $check->get_result();
 
 if ($row = $res->fetch_assoc()) {
     // Update existing admin
-    $stmt = $db->prepare("UPDATE nbbtm_users SET password_hash = ?, full_name = ?, email = ?, role = ?, is_active = 1, updated_at = NOW() WHERE username = ?");
+    $stmt = $db->prepare("UPDATE nbbtm_users SET password_hash = ?, must_change_password = 1, full_name = ?, email = ?, role = ?, is_active = 1, updated_at = NOW() WHERE username = ?");
     $stmt->bind_param("sssss", $hash, $fullName, $email, $role, $username);
     $stmt->execute();
     echo "<h2 style='color:green;'>✓ Admin account UPDATED successfully.</h2>";
 } else {
     // Insert new admin
-    $stmt = $db->prepare("INSERT INTO nbbtm_users (username, password_hash, full_name, email, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())");
+    $stmt = $db->prepare("INSERT INTO nbbtm_users (username, password_hash, must_change_password, full_name, email, role, is_active, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?, 1, NOW(), NOW())");
     $stmt->bind_param("sssss", $username, $hash, $fullName, $email, $role);
     $stmt->execute();
     echo "<h2 style='color:green;'>✓ Admin account CREATED successfully.</h2>";

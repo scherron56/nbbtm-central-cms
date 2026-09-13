@@ -9,6 +9,11 @@ require __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
+function nbbtmMailerEnv($key, $default = '') {
+    $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+    return (is_string($value) && $value !== '') ? $value : $default;
+}
+
 /**
  * Send an email via Brevo SMTP with dynamic recipients, senders, attachments, and copies.
  *
@@ -28,31 +33,37 @@ function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [],
     try {
         // Brevo SMTP Server Configuration
         $mail->isSMTP();
-        $mail->Host       = $_ENV['BREVO_SMTP_HOST'];
+        $mail->Host       = nbbtmMailerEnv('BREVO_SMTP_HOST');
         $mail->SMTPAuth   = true;
-        $mail->Username   = $_ENV['BREVO_SMTP_USER'];
-        $mail->Password   = $_ENV['BREVO_SMTP_KEY'];
+        $mail->Username   = nbbtmMailerEnv('BREVO_SMTP_USER');
+        $mail->Password   = nbbtmMailerEnv('BREVO_SMTP_KEY');
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = (int)$_ENV['BREVO_SMTP_PORT'];
+        $mail->Port       = (int) nbbtmMailerEnv('BREVO_SMTP_PORT', 587);
+
+        if (empty($mail->Host) || empty($mail->Username) || empty($mail->Password)) {
+            throw new Exception('Brevo SMTP environment variables are missing.');
+        }
 
         // Sender Configuration (Dynamic with fallback to .env)
-        $senderEmail = $customSenderEmail ?: $_ENV['FROM_EMAIL'];
-        $senderName  = $customSenderName  ?: $_ENV['FROM_NAME'];
+        $senderEmail = $customSenderEmail ?: nbbtmMailerEnv('FROM_EMAIL');
+        $senderName  = $customSenderName  ?: nbbtmMailerEnv('FROM_NAME', 'NBBTM');
         $mail->setFrom($senderEmail, $senderName);
 
         // Primary Recipient Configuration
         $mail->addAddress($toEmail, $toName);
 
         // 1. Global Automatic BCC from .env
-        if (!empty($_ENV['GLOBAL_BCC_EMAIL'])) {
-            $mail->addBCC($_ENV['GLOBAL_BCC_EMAIL']);
+        $globalBcc = nbbtmMailerEnv('GLOBAL_BCC_EMAIL');
+        if (!empty($globalBcc)) {
+            $mail->addBCC($globalBcc);
         }
 
         // 2. Dynamic CCs (e.g., from admin_mailer.php)
         if (!empty($ccEmails) && is_array($ccEmails)) {
             foreach ($ccEmails as $cc) {
-                if (filter_var($cc, FILTER_VALIDATE_EMAIL)) {
-                    $mail->addCC($cc);
+                $cleanCc = is_string($cc) ? trim($cc) : '';
+                if (filter_var($cleanCc, FILTER_VALIDATE_EMAIL)) {
+                    $mail->addCC($cleanCc);
                 }
             }
         }
@@ -78,6 +89,6 @@ function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [],
         $mail->send();
         return ['success' => true];
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $mail->ErrorInfo];
+        return ['success' => false, 'error' => $mail->ErrorInfo ?: $e->getMessage()];
     }
 }

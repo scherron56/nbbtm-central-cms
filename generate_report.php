@@ -2,19 +2,9 @@
 // Suppress deprecation warnings
 ini_set('display_errors', 0);
 
-// Enforce session parameters
-if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params([
-        'lifetime' => 86400,
-        'path'     => '/',
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    session_start();
-}
-
-// 1. Verify Admin Authentication
-if (!isset($_SESSION['user_id']) || strtolower($_SESSION['user_role'] ?? '') !== 'admin') {
+// 1. Verify Admin Authentication. The shared auth helper treats developers as admins.
+require_once __DIR__ . '/include/auth.php';
+if (!isAdmin()) {
     http_response_code(403);
     die("Access Denied: You must be an administrator to generate reports.");
 }
@@ -37,6 +27,12 @@ if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
 require_once __DIR__ . '/vendor/autoload.php';
 
 use PHPJasper\PHPJasper;
+ 
+
+
+// 1. Set the CLASSPATH before PHPJasper runs Java
+$fontJar =  __DIR__ . '/vendor/geekcom/phpjasper/bin/jasperstarter/lib/custom-fonts.jar';
+putenv('CLASSPATH=' . $fontJar . PATH_SEPARATOR . getenv('CLASSPATH'));
 
 // 4. Retrieve Report Key
 $reportKey = trim($_POST['report'] ?? $_GET['report'] ?? '');

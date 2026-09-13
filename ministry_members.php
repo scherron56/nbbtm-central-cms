@@ -2,7 +2,7 @@
 // Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400, // 24 Hours
+        'lifetime' => 0, // 24 Hours
         'path'     => '/',   // Root path ensures session spans all sub-folders
         'httponly' => true,
         'samesite' => 'Lax'
@@ -18,7 +18,7 @@ require_once __DIR__ . '/include/auth.php';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ministry & Committee Members - New Beginnings Baptist Tabernacle Ministries</title>
+  <title>Ministry, Committee and Operations Participants - New Beginnings Baptist Tabernacle Ministries</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -97,7 +97,7 @@ require_once __DIR__ . '/include/auth.php';
           dataType: 'json',
           success: function(res) {
             if (res.status === 'success') {
-              let options = '<option value="">-- Select Ministry / Committee --</option>';
+              let options = '<option value="">-- Select Ministry / Committee / Operation --</option>';
               $.each(res.data, function(i, c) {
                 options += `<option value="${c.min_comm_id}">${escapeHtml(c.min_comm_name)}</option>`;
               });
@@ -138,7 +138,7 @@ require_once __DIR__ . '/include/auth.php';
         loadCommittees();
       });
 
-      // AJAX Call 3: Fetch Members when a Ministry/Committee is selected
+      // AJAX Call 3: Fetch Participants when a Ministry/Committee is selected
       selectMinistry.on('change', function() {
         clearStatusMessage();
         const minCommId = $(this).val();
@@ -149,7 +149,7 @@ require_once __DIR__ . '/include/auth.php';
           return;
         }
 
-        rosterTitle.text(`Members Roster: ${minCommName}`);
+        rosterTitle.text(`Participant Roster: ${minCommName}`);
         membersTableBody.html('<tr><td colspan="4" class="no-records">Loading members...</td></tr>');
         rosterCard.show();
 
@@ -176,7 +176,7 @@ require_once __DIR__ . '/include/auth.php';
         });
       });
 
-      function formatPhoneNumber(val) {
+     function formatPhoneNumber(val) {
         if (!val) return 'N/A';
         let digits = String(val).replace(/\D/g, '');
         if (digits.length === 10) {
@@ -232,7 +232,7 @@ require_once __DIR__ . '/include/auth.php';
       </div>
 
       <div style="flex-grow: 1; max-width: 400px;">
-        <label for="min_comm_id">Select Ministry / Committee: *</label>
+        <label for="min_comm_id">Select Ministry / Committee / Operation: *</label>
         <select id="min_comm_id" class="form-control">
           <option value="">Loading list...</option>
         </select>
@@ -241,7 +241,7 @@ require_once __DIR__ . '/include/auth.php';
 
     <!-- MEMBERS ROSTER DATA TABLE -->
     <div id="rosterCard" class="card" style="display: none;">
-      <h3 id="rosterTitle">Members Roster</h3>
+      <h3 id="rosterTitle">Participant Roster</h3>
       <table class="data-table">
         <thead>
           <tr>

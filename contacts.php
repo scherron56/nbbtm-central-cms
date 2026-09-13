@@ -1,16 +1,14 @@
 <?php
-// Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400, // 24 Hours
-        'path'     => '/',   // Root path ensures session spans all sub-folders
+        'lifetime' => 0,
+        'path'     => '/',
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
     session_start();
 }
 
-// Require auth helper
 require_once __DIR__ . '/include/auth.php';
 $canEdit = canEdit();
 ?>
@@ -23,80 +21,91 @@ $canEdit = canEdit();
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .fieldset-relative {
-      position: relative;
-      padding-top: 35px !important;
+    .fieldset-relative { position: relative; padding-top: 35px !important; }
+    .top-right-member { position: absolute; top: 10px; right: 20px; display: flex; align-items: center; gap: 6px; z-index: 10; }
+    .top-right-member label { font-weight: 700; }
+    .select-compact { padding-left: 4px; padding-right: 4px; text-overflow: ellipsis; }
+    input[type="checkbox"] { width: 14px; height: 14px; accent-color: #28089a; cursor: pointer; vertical-align: middle; }
+    .checkbox-inline-row { display: flex; align-items: center; gap: 25px; flex-wrap: wrap; padding: 6px 0; }
+    .checkbox-inline-item { display: flex; align-items: center; gap: 6px; }
+    .checkbox-inline-item label { font-weight: 600; cursor: pointer; margin: 0; }
+    .alert-box { padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; font-weight: 500; font-size: 0.95rem; transition: all 0.3s ease; display: none; }
+    .alert-success { background-color: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-error { background-color: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+    .read-only-banner { background-color: #f1f5f9; border-left: 4px solid #0ea5e9; padding: 15px; margin-bottom: 20px; border-radius: 4px; color: #334155; }
+    .doc-management-box { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 14px; margin-top: 10px; }
+    .file-upload-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .attachment-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .attachment-table th, .attachment-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
+    .attachment-table th { background: #f1f5f9; }
+
+    /* Single Row Layout for Census Information */
+    .census-row-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
     }
-    
-    .top-right-member {
-      position: absolute;
-      top: 10px;
-      right: 20px;
+    .census-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      z-index: 10;
+    }
+    .census-item label {
+      font-weight: 600;
+      margin: 0;
     }
 
-    .top-right-member label {
-      font-weight: 700;
-    }
-
-    .alert-box {
-      padding: 12px 16px;
-      margin-bottom: 20px;
+    /* Two-Column Layout for Associations */
+    #checkbox-container {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 20px;
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #cbd5e1;
       border-radius: 6px;
-      font-weight: 500;
-      font-size: 0.95rem;
-      transition: all 0.3s ease;
-      display: none;
     }
-    .alert-success {
-      background-color: #d1fae5;
-      border: 1px solid #6ee7b7;
-      color: #065f46;
-    }
-    .alert-error {
-      background-color: #fee2e2;
-      border: 1px solid #fca5a5;
-      color: #991b1b;
-    }
-    .read-only-banner {
-      background-color: #f1f5f9;
-      border-left: 4px solid #0ea5e9;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-      color: #334155;
-    }
-    .doc-management-box {
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1;
-      border-radius: 6px;
-      padding: 14px;
+    #checkbox-container h3 {
+      grid-column: 1 / -1;
+      color: #28089a;
       margin-top: 10px;
+      margin-bottom: 6px;
+      border-bottom: 2px solid #cbd5e1;
+      padding-bottom: 4px;
+      font-size: 1.1rem;
     }
-    .file-upload-row {
+    .ministry-card {
       display: flex;
-      gap: 10px;
       align-items: center;
-      margin-bottom: 8px;
-    }
-    .attachment-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-    }
-    .attachment-table th, .attachment-table td {
+      justify-content: space-between;
+      background: #f8fafc;
       border: 1px solid #e2e8f0;
-      padding: 6px 10px;
-      text-align: left;
+      padding: 8px 12px;
+      border-radius: 6px;
+      gap: 10px;
+    }
+    .ministry-card label {
+      font-weight: 500;
+      cursor: pointer;
+      margin: 0;
+      flex: 1;
       font-size: 0.9rem;
     }
-    .attachment-table th { background: #f1f5f9; }
+    .ministry-card select {
+      max-width: 140px;
+      padding: 4px;
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      #checkbox-container {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
   <script>
 $(document).ready(function() {
@@ -105,11 +114,17 @@ $(document).ready(function() {
   const DEFAULT_STATE = 'MN';
   let globalMinistryList = [];
   let globalRoleList = [];
-  let contactCategoriesCache = [];
+  let contactLoadRequest = 0;
+  let statusHideTimer = null;
+  let memberSyncLock = false;
 
-  function showStatusMessage(message, type = 'success') {
+  function showStatusMessage(message, type = 'success', persist = false) {
     let $box = $('#status-message');
     let htmlContent = '';
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
 
     if (Array.isArray(message)) {
       htmlContent = '<ul style="margin: 0; padding-left: 20px;">' + message.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
@@ -127,32 +142,61 @@ $(document).ready(function() {
 
     $('html, body').animate({ scrollTop: $box.offset().top - 20 }, 200);
 
-    if (type === 'success') {
-      setTimeout(function() { $box.fadeOut(500); }, 5000);
+    if (type === 'success' && !persist) {
+      statusHideTimer = setTimeout(function() {
+        $box.fadeOut(500);
+        statusHideTimer = null;
+      }, 5000);
     }
   }
 
   function clearStatusMessage() {
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
     $('#status-message').fadeOut(200).empty();
   }
 
-  $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+  // Toggle Visibility for Deceased Date
+  function toggleDeceasedField() {
+    if ($('#is_deceased').is(':checked')) {
+      $('#date_of_death_wrap').show();
+    } else {
+      $('#date_of_death_wrap').hide();
+      $('#date_of_death').val('');
+    }
+  }
+
+  // Toggle Visibility for Dedicated Date & Baptized Date
+  function toggleCensusConditionalFields() {
+    if ($('#is_dedicated').is(':checked')) {
+      $('#dedication_date_wrap').show();
+    } else {
+      $('#dedication_date_wrap').hide();
+      $('#dedication_date').val('');
+    }
+
+    if ($('#is_baptized').is(':checked')) {
+      $('#baptized_date_wrap').show();
+    } else {
+      $('#baptized_date_wrap').hide();
+      $('#baptized_date').val('');
+    }
+  }
+
+  $('#is_deceased').change(toggleDeceasedField);
+  $('#is_dedicated, #is_baptized').change(toggleCensusConditionalFields);
+
+  $('#is_member, #is_baptized, #is_dedicated, #is_active, #is_head, #is_spouse, #is_child, #is_deceased').prop('checked', false);
 
   function formatPhoneNumber(value) {
     if (!value) return '';
     let digits = String(value).replace(/\D/g, '');
-    if (digits.length === 10) {
-      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-    }
-    if (digits.length > 6) {
-      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
-    }
-    if (digits.length > 3) {
-      return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
-    }
-    if (digits.length > 0) {
-      return `(${digits}`;
-    }
+    if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    if (digits.length > 6) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
+    if (digits.length > 3) return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+    if (digits.length > 0) return `(${digits}`;
     return '';
   }
 
@@ -165,51 +209,59 @@ $(document).ready(function() {
     this.setSelectionRange(cursorPosition, cursorPosition);
   });
 
-  // --- DOCUMENT CATEGORIES & MULTI-ROW UPLOAD LOGIC ---
-  function loadContactCategories() {
-    $.ajax({
-      url: 'category_api.php',
-      type: 'GET',
-      data: { action: 'get_categories', entity_type: 'contact', only_active: 1 },
-      dataType: 'json',
-      success: function(res) {
-        if (res.success) {
-          contactCategoriesCache = res.categories || [];
-          populateCategoryDropdowns();
-        }
-      }
-    });
-  }
-
-  function populateCategoryDropdowns() {
-    $('.attach-cat-select').each(function() {
-      let $sel = $(this);
-      let currentVal = $sel.val();
-      $sel.find('option:not(:first)').remove();
-      $.each(contactCategoriesCache, function(i, c) {
-        $sel.append(`<option value="${c.doc_category_id}">${escapeHtml(c.category_name)}</option>`);
-      });
-      if (currentVal) $sel.val(currentVal);
-    });
-  }
-
+  // Dynamic File Upload Row Addition
   $('#btnAddFileRow').on('click', function() {
     let newRow = `
       <div class="file-upload-row">
-        <select name="attach_cat_ids[]" class="form-control attach-cat-select" style="flex: 1;" required>
-          <option value="">-- Select Category --</option>
-        </select>
+        <input type="text" name="document_short_name[]" class="form-control" placeholder="Tag Name (e.g. ID, Certificate)" style="flex: 1;">
+        <input type="date" name="document_date[]" class="form-control" style="flex: 1;" title="Document Date">
         <input type="file" name="attach_files[]" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" class="form-control" style="flex: 2; background:#fff;" required>
+        <a href="#" class="btn btn-secondary btnPreviewFile" target="_blank" rel="noopener" style="white-space:nowrap; opacity:0.5;">Preview</a>
         <button type="button" class="btn btn-danger btnRemoveFileRow" style="padding: 6px 10px;">&times;</button>
       </div>
     `;
     $('#uploadRowsContainer').append(newRow);
-    populateCategoryDropdowns();
     toggleFileRowButtons();
   });
 
+  // Auto-fill date input when a file is selected
+  $(document).on('change', 'input[type="file"][name="attach_files[]"]', function() {
+    const file = this.files[0];
+    const $row = $(this).closest('.file-upload-row');
+    const $preview = $row.find('.btnPreviewFile');
+    const previousUrl = $preview.data('object-url');
+
+    if (previousUrl) {
+      URL.revokeObjectURL(previousUrl);
+      $preview.removeData('object-url');
+    }
+
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      $preview.data('object-url', objectUrl).prop('href', objectUrl).css('opacity', '1');
+    } else {
+      $preview.removeAttr('href').css('opacity', '0.5');
+    }
+
+    if (file && file.lastModified) {
+      const fileDate = new Date(file.lastModified).toISOString().split('T')[0];
+      $row.find('input[name="document_date[]"]').val(fileDate);
+    }
+  });
+
+  $(document).on('click', '.btnPreviewFile', function(event) {
+    if (!$(this).data('object-url')) {
+      event.preventDefault();
+    }
+  });
+
   $(document).on('click', '.btnRemoveFileRow', function() {
-    $(this).closest('.file-upload-row').remove();
+    const $row = $(this).closest('.file-upload-row');
+    const objectUrl = $row.find('.btnPreviewFile').data('object-url');
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+    }
+    $row.remove();
     toggleFileRowButtons();
   });
 
@@ -228,14 +280,16 @@ $(document).ready(function() {
       $('#existingAttachmentsTable').show();
       $.each(attachments, function(i, att) {
         let sizeKb = att.document_size ? Math.round(att.document_size / 1024) + ' KB' : '-';
-        let downloadUrl = `download_document.php?attachment_id=${att.attachment_id}`;
+        let viewUrl = `include/document_reader.php?document_id=${att.document_id}`;
+        let downloadUrl = `include/download_document.php?document_id=${att.document_id}`;
         
         $tbody.append(`
           <tr>
-            <td><span class="status-badge badge-secondary">${escapeHtml(att.category_name || 'General')}</span></td>
-            <td><a href="${downloadUrl}" target="_blank" style="font-weight: 600;">📄 ${escapeHtml(att.document_name)}</a></td>
+            <td><span class="status-badge badge-secondary">${escapeHtml(att.document_short_name || 'General')}</span></td>
+            <td><a href="${viewUrl}" target="_blank" style="font-weight: 600;">📄 ${escapeHtml(att.document_name)}</a></td>
             <td>${sizeKb}</td>
             <td style="text-align:right;">
+              <a href="${viewUrl}" class="btn btn-sm btn-secondary" target="_blank">Read</a>
               <a href="${downloadUrl}" class="btn btn-sm btn-primary" target="_blank">Download</a>
               <button type="button" class="btn btn-sm btn-danger btnDeleteAttachment" data-id="${att.attachment_id}" ${!CAN_EDIT ? 'disabled' : ''}>Delete</button>
             </td>
@@ -268,17 +322,15 @@ $(document).ready(function() {
   function resetUploadRows() {
     $('#uploadRowsContainer').html(`
       <div class="file-upload-row">
-        <select name="attach_cat_ids[]" class="form-control attach-cat-select" style="flex: 1;">
-          <option value="">-- Select Category --</option>
-        </select>
+        <input type="text" name="document_short_name[]" class="form-control" placeholder="Tag Name (e.g. ID, Certificate)" style="flex: 1;">
+        <input type="date" name="document_date[]" class="form-control" style="flex: 1;" title="Document Date">
         <input type="file" name="attach_files[]" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" class="form-control" style="flex: 2; background:#fff;">
+        <a href="#" class="btn btn-secondary btnPreviewFile" target="_blank" rel="noopener" style="white-space:nowrap; opacity:0.5;">Preview</a>
         <button type="button" class="btn btn-danger btnRemoveFileRow" style="padding: 6px 10px;" disabled>&times;</button>
       </div>
     `);
-    populateCategoryDropdowns();
   }
 
-  // --- MULTI-STATE & CITY/ZIP POPULATION LOGIC ---
   function populateCities(stateCode, selectedCity = '', callback = null) {
     let $cityDropdown = $('#city');
     $cityDropdown.empty().append($('<option>', { value: '', text: '--Loading Cities...--' }));
@@ -315,7 +367,6 @@ $(document).ready(function() {
   $('#city').on('change', function() {
     let city = $(this).val();
     let state = $('#state').val();
-
     if (city && state) {
       $.getJSON('lookupZip.php', { action: 'getZip', city: city, state: state }, function(res) {
         if (res.status === 'success' && res.found) {
@@ -332,7 +383,6 @@ $(document).ready(function() {
         if (res.status === 'success' && res.found) {
           let stateCode = res.data.state_code;
           let cityName = res.data.city;
-
           $('#state').val(stateCode);
           populateCities(stateCode, cityName);
         }
@@ -341,14 +391,21 @@ $(document).ready(function() {
   });
 
   updateFormLists();
-  loadContactCategories();
 
   function toggleMemberSections(shouldShow) {
-    if (shouldShow) {
-      $('#membership-section, #ministry-section').show();
-    } else {
-      $('#membership-section, #ministry-section').hide();
-    }
+    $('#membership-section').show();
+    $('#ministry-section').toggle(shouldShow);
+  }
+
+  function getMemberContactTypeId() {
+    let memberTypeId = '';
+    $('#contact_type_id option').each(function() {
+      if ($(this).text().trim().toLowerCase() === 'member') {
+        memberTypeId = $(this).val();
+        return false;
+      }
+    });
+    return memberTypeId;
   }
 
   function buildMinistryCheckboxes(ministryList, roleList, savedMinistries = []) {
@@ -356,6 +413,8 @@ $(document).ready(function() {
 
     if (ministryList && ministryList.length > 0) {
       let groupedMinistries = {};
+
+      ministryList.sort((a, b) => a.min_comm_name.localeCompare(b.min_comm_name));
 
       $.each(ministryList, function(index, item) {
         let typeId = item.min_comm_type_id || 0;
@@ -369,15 +428,7 @@ $(document).ready(function() {
       });
 
       $.each(groupedMinistries, function(typeId, groupData) {
-        let groupHeader = $('<h3>').css({
-          'grid-column': '1 / -1',
-          'color': '#28089a',
-          'margin-top': '18px',
-          'margin-bottom': '6px',
-          'border-bottom': '2px solid #cbd5e1',
-          'padding-bottom': '4px'
-        }).text(groupData.typeDesc);
-
+        let groupHeader = $('<h3>').text(groupData.typeDesc);
         $('#checkbox-container').append(groupHeader);
 
         $.each(groupData.items, function(index, item) {
@@ -396,14 +447,17 @@ $(document).ready(function() {
             value: item.min_comm_id
           }).prop('checked', isChecked);
           
-          const label = $('<label>').attr('for', checkboxId).text(' ' + item.min_comm_name);
-          const rowDiv = $('<div>').addClass('ministry-card').css('margin-bottom', '10px');
-          rowDiv.append(checkbox).append(label).append(' ');
+          const label = $('<label>').attr('for', checkboxId).text(item.min_comm_name);
+          const rowDiv = $('<div>').addClass('ministry-card');
+          
+          let leftWrapper = $('<div>').css({ 'display': 'flex', 'align-items': 'center', 'gap': '8px', 'flex': '1' });
+          leftWrapper.append(checkbox).append(label);
+          rowDiv.append(leftWrapper);
 
           const roleSelect = $('<select>').attr({
             id: 'role_id_' + item.min_comm_id, 
             name: 'roles[' + item.min_comm_id + ']'
-          });
+          }).addClass('form-control');
           
           roleSelect.append($('<option>').val('').text('--Select Role--'));
 
@@ -429,7 +483,48 @@ $(document).ready(function() {
   }
 
   $('#is_member').change(function() {
-    toggleMemberSections($(this).is(':checked'));
+    let isChecked = $(this).is(':checked');
+    toggleMemberSections(isChecked);
+
+    if (memberSyncLock) return;
+    memberSyncLock = true;
+
+    let memberTypeId = getMemberContactTypeId();
+    let $typeSelect = $('#contact_type_id');
+
+    if (isChecked) {
+      if (memberTypeId) {
+        $typeSelect.val(memberTypeId);
+      }
+    } else {
+      if (memberTypeId && String($typeSelect.val()) === String(memberTypeId)) {
+        $typeSelect.val('');
+      }
+    }
+
+    memberSyncLock = false;
+  });
+
+  $(document).on('change', '#contact_type_id', function() {
+    if (memberSyncLock) return;
+    memberSyncLock = true;
+
+    let selectedText = $(this).find('option:selected').text().trim().toLowerCase();
+    let $memberCheckbox = $('#is_member');
+
+    if (selectedText === 'member') {
+      if (!$memberCheckbox.is(':checked')) {
+        $memberCheckbox.prop('checked', true);
+        toggleMemberSections(true);
+      }
+    } else {
+      if ($memberCheckbox.is(':checked')) {
+        $memberCheckbox.prop('checked', false);
+        toggleMemberSections(false);
+      }
+    }
+
+    memberSyncLock = false;
   });
 
   $('#is_head').change(function() {
@@ -468,13 +563,14 @@ $(document).ready(function() {
   function updateFormLists(callback) {
     let membersOnly = $('input[name="contact_filter"]:checked').val();
 
-    let selContact  = $('#contactID').val();
-    let selFamily   = $('#family_id').val();
-    let selTitle    = $('#title_id').val();
-    let selMarital  = $('#marital_status').val();
-    let selPhone1   = $('#phone_1_type').val();
-    let selPhone2   = $('#phone_2_type').val();
-    let selPhone3   = $('#phone_3_type').val();
+    let selContact     = $('#contactID').val();
+    let selFamily      = $('#family_id').val();
+    let selTitle       = $('#title_id').val();
+    let selMarital     = $('#marital_status').val();
+    let selPhone1      = $('#phone_1_type').val();
+    let selPhone2      = $('#phone_2_type').val();
+    let selPhone3      = $('#phone_3_type').val();
+    let selContactType = $('#contact_type_id').val();
 
     $.ajax({
       url: "getLists.php",
@@ -499,17 +595,19 @@ $(document).ready(function() {
           });
         }
 
-        $('#title_id').empty().append($('<option>', { value: '', text: '--Select--' }));
+        $('#title_id').empty().append($('<option>', { value: '', text: 'Select' }));
         if (data.titles && Array.isArray(data.titles)) {
           $.each(data.titles, function(index, item) {
-            $('#title_id').append($('<option>', { value: item.title_id, text: item.titleabr }));
+            let tVal = item.title_id || item.id || item.titleabr;
+            let tText = item.titleabr || item.title_abbr || item.title || item.title_desc;
+            $('#title_id').append($('<option>', { value: tVal, text: tText }));
           });
         }
 
         $('#marital_status').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.marital && Array.isArray(data.marital)) {
           $.each(data.marital, function(index, item) {
-            let mId = item.marital_id || item.maritial_id || item.marital_status_id;
+            let mId = item.marital_id || item.maritial_id || item.marital_id;
             $('#marital_status').append($('<option>', { value: mId, text: item.marital_status }));
           });
         }
@@ -524,6 +622,16 @@ $(document).ready(function() {
           });
         }
 
+        $('#contact_type_id').empty().append($('<option>', { value: '', text: '--Select Contact Type--' }));
+        let contactTypesList = data.contactTypes || data.contact_types || data.contactType || [];
+        if (contactTypesList && Array.isArray(contactTypesList)) {
+          $.each(contactTypesList, function(index, item) {
+            let typeId = item.contact_type_id || item.id;
+            let typeDesc = item.contact_desc || item.contact_type_desc || item.description;
+            $('#contact_type_id').append($('<option>', { value: typeId, text: typeDesc }));
+          });
+        }
+
         if (selContact) $('#contactID').val(selContact);
         if (selFamily) $('#family_id').val(selFamily);
         if (selTitle) $('#title_id').val(selTitle);
@@ -531,14 +639,13 @@ $(document).ready(function() {
         if (selPhone1) $('#phone_1_type').val(selPhone1);
         if (selPhone2) $('#phone_2_type').val(selPhone2);
         if (selPhone3) $('#phone_3_type').val(selPhone3);
+        if (selContactType) $('#contact_type_id').val(selContactType);
 
         if (!$('#contact_id').val() && $('#checkbox-container').is(':empty')) {
           buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
         }
 
-        if (typeof callback === 'function') {
-          callback();
-        }
+        if (typeof callback === 'function') callback();
       },
       error: function(xhr, status, error) {
         showStatusMessage("Error loading dropdown data.", 'error');
@@ -551,14 +658,22 @@ $(document).ready(function() {
   });
 
   $('#addNewContact, #resetBtn').click(function(e) {
+    contactLoadRequest++;
     clearStatusMessage();
     if ($('#contact-form').length) {
       $('#contact-form')[0].reset();
       $('#contact_id').val('');
       $('#contactID').val('');
+      $('#title_id').val('');
+      $('#contact_type_id').val('');
+      $('#n_sufix').val('');
       $('#date_of_death').val('');
-      $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+      $('#dedication_date').val('');
+      $('#is_member, #is_baptized, #is_dedicated, #is_active, #is_head, #is_spouse, #is_child, #is_deceased').prop('checked', false);
       
+      toggleDeceasedField();
+      toggleCensusConditionalFields();
+
       $('#state').val(DEFAULT_STATE);
       $('#city').val('');
       $('#zipcode').val('');
@@ -575,13 +690,20 @@ $(document).ready(function() {
   $('#contactID').change(function() {
     clearStatusMessage();
     let contactid = $(this).val();
+    const requestId = ++contactLoadRequest;
 
     if (contactid === "") {
       if ($('#contact-form').length) {
         $('#contact-form')[0].reset();
         $('#contact_id').val('');
+        $('#title_id').val('');
+        $('#contact_type_id').val('');
+        $('#n_sufix').val('');
         $('#date_of_death').val('');
-        $('#is_member, #is_baptized, #is_active, #is_head, #is_child').prop('checked', false);
+        $('#dedication_date').val('');
+        $('#is_member, #is_baptized, #is_dedicated, #is_active, #is_head, #is_spouse, #is_child, #is_deceased').prop('checked', false);
+        toggleDeceasedField();
+        toggleCensusConditionalFields();
         $('#state').val(DEFAULT_STATE);
         $('#city').val('');
         $('#zipcode').val('');
@@ -600,6 +722,10 @@ $(document).ready(function() {
       data: { contactid: contactid },
       dataType: 'json',
       success: function(data) {
+        if (requestId !== contactLoadRequest || String($('#contactID').val()) !== String(contactid)) {
+          return;
+        }
+
         if (data.error) {
           showStatusMessage(data.error, 'error');
           return;
@@ -608,10 +734,13 @@ $(document).ready(function() {
         let contact = data.contact || {};
 
         $('#contact_id').val(contactid || '');
-        $('#title_id').val(contact.title_id || '');
+        let selectedTitle = contact.title_id || contact.title || contact.titleabr || '';
+        $('#title_id').val(selectedTitle);
+
         $('#first_name').val(contact.first_name || '');
         $('#middle_name').val(contact.middle_name || '');
         $('#last_name').val(contact.last_name || '');
+        $('#n_sufix').val(contact.n_sufix || '');
         $('#address_1').val(contact.address_1 || '');
 
         let contactState = contact.state || DEFAULT_STATE;
@@ -621,6 +750,9 @@ $(document).ready(function() {
         $('#zipcode').val(contact.zipcode || '');
         $('#date_of_birth').val(contact.date_of_birth || '');
         $('#date_of_death').val(contact.date_of_death || '');
+        $('#is_deceased').prop('checked', String(contact.is_deceased) === "1" || contact.is_deceased === true);
+        toggleDeceasedField();
+
         $('#gender').val(contact.gender || '');
         $('#marital_status').val(contact.marital_status || '');
         $('#anniv_date').val(contact.anniv_date || '');
@@ -632,11 +764,22 @@ $(document).ready(function() {
         $('#phone_2_type').val(contact.phone_2_type || '');
         $('#phone_3_type').val(contact.phone_3_type || '');
         $('#c_email').val(contact.c_email || '');
+        
+        // Census information values
         $('#join_date').val(contact.join_date || '');
         $('#baptized_date').val(contact.baptized_date || '');
+        $('#dedication_date').val(contact.dedication_date || '');
+        
+        $('#is_dedicated').prop('checked', String(contact.is_dedicated) === "1" || contact.is_dedicated === true);
+        $('#is_baptized').prop('checked', String(contact.is_baptized) === "1" || contact.is_baptized === true);
+        $('#is_active').prop('checked', String(contact.is_active) === "1" || contact.is_active === true);
+        toggleCensusConditionalFields();
 
         let isHead = String(contact.is_head) === "1" || contact.is_head === true;
         $('#is_head').prop('checked', isHead);
+
+        let isSpouse = String(contact.is_spouse) === "1" || contact.is_spouse === true;
+        $('#is_spouse').prop('checked', isSpouse);
 
         let isChild = String(contact.is_child) === "1" || contact.is_child === true;
         $('#is_child').prop('checked', isChild);
@@ -647,12 +790,15 @@ $(document).ready(function() {
           $('#family_id').val(data.family_id || '');
         }
 
-        $('#is_baptized').prop('checked', String(contact.is_baptized) === "1" || contact.is_baptized === true);
-        $('#is_active').prop('checked', String(contact.is_active) === "1" || contact.is_active === true);
-
         let isMember = String(contact.is_member) === "1" || contact.is_member === true;
         $('#is_member').prop('checked', isMember);
         
+        $('#contact_type_id').val(contact.contact_type_id || '');
+        if (!$('#contact_type_id').val() && isMember) {
+          let memberTypeId = getMemberContactTypeId();
+          if (memberTypeId) $('#contact_type_id').val(memberTypeId);
+        }
+
         toggleMemberSections(isMember);
         buildMinistryCheckboxes(data.ministryList, data.roleList, data.ministries);
         
@@ -670,7 +816,6 @@ $(document).ready(function() {
     });
   });
 
-  // Save handler with FormData for file uploads
   $('#contact-form').on('submit', function(e) {
     e.preventDefault();
     if (!CAN_EDIT) return;
@@ -689,8 +834,8 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(response) {
         if (response.status === 'success') {
-          showStatusMessage(response.message, 'success');
-          let savedId = response.id;
+          showStatusMessage(response.message, 'success', true);
+          let savedId = response.contact_id || response.id;
           
           updateFormLists(function() {
             if (savedId) {
@@ -817,10 +962,10 @@ $(document).ready(function() {
 
         <input type="hidden" id="contact_id" name="contact_id">
 
-        <div class="field-group" style="--colspan: 2;">
+        <div class="field-group" style="--colspan: 1;">
           <label for="title_id">Salutation</label>
-          <select name="title_id" id="title_id">
-            <option value="">--Select--</option>
+          <select name="title_id" id="title_id" class="select-compact">
+            <option value="">Select</option>
           </select>
         </div>
         <div class="field-group" style="--colspan: 2;">
@@ -835,14 +980,38 @@ $(document).ready(function() {
           <label for="last_name">Last Name</label>
           <input type="text" id="last_name" name="last_name"/>
         </div>
+        <div class="field-group" style="--colspan: 1;">
+          <label for="n_sufix">Suffix</label>
+          <select id="n_sufix" name="n_sufix" class="select-compact">
+            <option value="">None</option>
+            <option value="Jr.">Jr.</option>
+            <option value="Sr.">Sr.</option>
+            <option value="II">II</option>
+            <option value="III">III</option>
+            <option value="IV">IV</option>
+            <option value="PhD">PhD</option>
+            <option value="MD">MD</option>
+          </select>
+        </div>
+
         <div class="field-group" style="--colspan: 2; --rowspan: 1;">
           <label for="date_of_birth">Date of Birth</label>
           <input type="date" id="date_of_birth" name="date_of_birth">
         </div>
-        <div class="field-group" style="--colspan: 2; --rowspan: 1;">
-          <label for="date_of_death">Deceased Date</label>
+
+        <!-- Deceased Checkbox -->
+        <div class="field-group" style="--colspan: 2; display: flex; align-items: center; gap: 6px; margin-top: 20px;">
+          <input type="hidden" name="is_deceased" value="0">
+          <input type="checkbox" id="is_deceased" name="is_deceased" value="1">
+          <label for="is_deceased" style="font-weight: 600; cursor: pointer;">Deceased</label>
+        </div>
+
+        <!-- Date of Death (Conditionally displayed) -->
+        <div class="field-group" id="date_of_death_wrap" style="--colspan: 2; --rowspan: 1; display: none;">
+          <label for="date_of_death">Date of Death</label>
           <input type="date" id="date_of_death" name="date_of_death">
         </div>
+
         <div class="field-group" style="--colspan: 2;">
           <label for="gender">Gender</label>
           <select id="gender" name="gender" size="1">
@@ -861,15 +1030,25 @@ $(document).ready(function() {
           <label for="anniv_date">Anniversary Date</label>
           <input type="date" id="anniv_date" name="anniv_date" />
         </div>
-        <div class="field-group" style="--colspan: 2; --rowspan: 3;">
-          <label for="is_head">Head of Household</label>
-          <input type="hidden" name="is_head" value="0">
-          <input type="checkbox" id="is_head" name="is_head" value="1">
-        </div>  
-        <div class="field-group" style="--colspan: 2; --rowspan: 3;">
-          <label for="is_child">Child</label>
-          <input type="hidden" name="is_child" value="0">
-          <input type="checkbox" id="is_child" name="is_child" value="1">
+
+        <div class="field-group" style="--colspan: 8;">
+          <div class="checkbox-inline-row">
+            <div class="checkbox-inline-item">
+              <input type="hidden" name="is_head" value="0">
+              <input type="checkbox" id="is_head" name="is_head" value="1">
+              <label for="is_head">Head of Household</label>
+            </div>
+            <div class="checkbox-inline-item">
+              <input type="hidden" name="is_spouse" value="0">
+              <input type="checkbox" id="is_spouse" name="is_spouse" value="1">
+              <label for="is_spouse">Spouse</label>
+            </div>
+            <div class="checkbox-inline-item">
+              <input type="hidden" name="is_child" value="0">
+              <input type="checkbox" id="is_child" name="is_child" value="1">
+              <label for="is_child">Child</label>
+            </div>
+          </div>
         </div>
 
         <div class="field-group" style="--colspan: 2;" >
@@ -981,35 +1160,56 @@ $(document).ready(function() {
         </div>
       </fieldset>
 
-      <!-- MEMBERSHIP INFORMATION FIELDSET (Includes Document Uploads) -->
-      <fieldset id="membership-section" class="form-grid-section-70">
+      <!-- NEW BEGINNINGS CENSUS INFORMATION FIELDSET -->
+      <fieldset id="membership-section">
         <legend>
-          <h2>Membership Information</h2>
+          <h2>New Beginnings Census Information</h2>
         </legend>
-        <div class="field-group" style="--colspan: 1;">
-          <label for="is_baptized">Baptized</label>
-          <input type="hidden" name="is_baptized" value="0">
-          <input type="checkbox" id="is_baptized" name="is_baptized" value="1">
-        </div> 
         
-        <div class="field-group" style="--colspan: 2;">
-          <label for="baptized_date">Date Baptized</label>
-          <input type="date" id="baptized_date" name="baptized_date">
+        <div class="field-group" style="margin-bottom: 15px; max-width: 300px;">
+          <label for="contact_type_id">Contact Type</label>
+          <select id="contact_type_id" name="contact_type_id" class="form-control">
+            <option value="">--Select Contact Type--</option>
+          </select>
         </div>
-        
-        <div class="field-group" style="--colspan: 2;">
-          <label for="join_date">Date Joined</label>
-          <input type="date" id="join_date" name="join_date">
-        </div>
-        
-        <div class="field-group" style="--colspan: 1; --rowspan: 1;">
-          <label for="is_active">Active</label>
-          <input type="hidden" name="is_active" value="0">
-          <input type="checkbox" id="is_active" name="is_active" value="1">
+
+        <div class="census-row-container">
+          <div class="census-item">
+            <input type="hidden" name="is_active" value="0">
+            <input type="checkbox" id="is_active" name="is_active" value="1">
+            <label for="is_active">Active</label>
+          </div>
+
+          <div class="census-item">
+            <input type="hidden" name="is_dedicated" value="0">
+            <input type="checkbox" id="is_dedicated" name="is_dedicated" value="1">
+            <label for="is_dedicated">Dedicated</label>
+          </div>
+
+          <div class="census-item" id="dedication_date_wrap" style="display: none;">
+            <label for="dedication_date">Dedication Date</label>
+            <input type="date" id="dedication_date" name="dedication_date">
+          </div>
+
+          <div class="census-item">
+            <input type="hidden" name="is_baptized" value="0">
+            <input type="checkbox" id="is_baptized" name="is_baptized" value="1">
+            <label for="is_baptized">Baptized</label>
+          </div> 
+          
+          <div class="census-item" id="baptized_date_wrap" style="display: none;">
+            <label for="baptized_date">Baptism Date</label>
+            <input type="date" id="baptized_date" name="baptized_date">
+          </div>
+          
+          <div class="census-item">
+            <label for="join_date">Date Joined</label>
+            <input type="date" id="join_date" name="join_date">
+          </div>
         </div>
 
         <!-- CONTACT DOCUMENTS SUB-SECTION -->
-        <div class="field-group" style="grid-column: 1 / -1;">
+        <div class="field-group" style="grid-column: 1 / -1; margin-top: 15px;">
           <label><strong>Important Contact Documents:</strong></label>
           <div class="doc-management-box">
             <label style="font-size: 0.85rem; color: #475569; font-weight: bold; margin-bottom: 5px; display: block;">Uploaded Documents:</label>
@@ -1033,10 +1233,10 @@ $(document).ready(function() {
             </label>
             <div id="uploadRowsContainer">
               <div class="file-upload-row">
-                <select name="attach_cat_ids[]" class="form-control attach-cat-select" style="flex: 1;">
-                  <option value="">-- Select Category --</option>
-                </select>
+                <input type="text" name="document_short_name[]" class="form-control" placeholder="Tag Name (e.g. ID, Certificate)" style="flex: 1;">
+                <input type="date" name="document_date[]" class="form-control" style="flex: 1;" title="Document Date">
                 <input type="file" name="attach_files[]" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" class="form-control" style="flex: 2; background:#fff;">
+                <a href="#" class="btn btn-secondary btnPreviewFile" target="_blank" rel="noopener" style="white-space:nowrap; opacity:0.5;">Preview</a>
                 <button type="button" class="btn btn-danger btnRemoveFileRow" style="padding: 6px 10px;" disabled>&times;</button>
               </div>
             </div>
@@ -1044,10 +1244,10 @@ $(document).ready(function() {
         </div>
       </fieldset>
 
-      <!-- DYNAMIC MINISTRY ALLIANCES AREA -->
+      <!-- ASSOCIATIONS FIELDSET -->
       <fieldset id="ministry-section">
         <legend>
-          <h2>Ministry/Committee Associations</h2>
+          <h2>Associations</h2>
         </legend>
         <div id="checkbox-container"></div>
       </fieldset>

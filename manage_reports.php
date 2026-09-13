@@ -63,16 +63,17 @@ if ($userIsAdmin) {
 
                 // Insert / Re-insert parameters
                 if (!empty($rawParams) && is_array($rawParams)) {
-                    $pStmt = $db->prepare("INSERT INTO app_report_parameters (report_id, param_name, param_type, is_required, default_value) VALUES (?, ?, ?, ?, ?)");
+                    $pStmt = $db->prepare("INSERT INTO app_report_parameters (report_id, lbl_param_name, param_name, param_type, is_required, default_value) VALUES (?, ?, ?, ?, ?, ?)");
                     foreach ($rawParams as $param) {
-                        $pName = trim($param['name'] ?? '');
+                        $pName  = trim($param['name'] ?? '');
                         if ($pName === '') continue;
 
-                        $pType = in_array($param['type'] ?? '', ['string', 'int', 'float', 'bool', 'date']) ? $param['type'] : 'string';
-                        $pReq  = isset($param['required']) ? 1 : 0;
-                        $pDef  = trim($param['default'] ?? '') !== '' ? trim($param['default']) : null;
+                        $pLabel = trim($param['label'] ?? '') !== '' ? trim($param['label']) : null;
+                        $pType  = in_array($param['type'] ?? '', ['string', 'int', 'float', 'bool', 'date']) ? $param['type'] : 'string';
+                        $pReq   = isset($param['required']) ? 1 : 0;
+                        $pDef   = trim($param['default'] ?? '') !== '' ? trim($param['default']) : null;
 
-                        $pStmt->bind_param('issis', $reportId, $pName, $pType, $pReq, $pDef);
+                        $pStmt->bind_param('isssis', $reportId, $pLabel, $pName, $pType, $pReq, $pDef);
                         $pStmt->execute();
                     }
                     $pStmt->close();
@@ -150,7 +151,7 @@ try {
     label { font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px; display: block; }
     .param-row {
       display: grid;
-      grid-template-columns: 2fr 1.5fr 0.8fr 1.5fr auto;
+      grid-template-columns: 2fr 2fr 1.2fr 0.6fr 1.2fr auto;
       gap: 0.5rem;
       align-items: center;
       margin-bottom: 0.5rem;
@@ -245,7 +246,8 @@ try {
             <?php if (!empty($editParams)): ?>
               <?php foreach ($editParams as $idx => $param): ?>
                 <div class="param-row">
-                  <input type="text" name="params[<?= $idx ?>][name]" class="form-control" value="<?= htmlspecialchars($param['param_name']) ?>" placeholder="Param Name" required>
+                  <input type="text" name="params[<?= $idx ?>][name]" class="form-control" value="<?= htmlspecialchars($param['param_name']) ?>" placeholder="Param Name (e.g. p_dept_id)" required>
+                  <input type="text" name="params[<?= $idx ?>][label]" class="form-control" value="<?= htmlspecialchars($param['lbl_param_name'] ?? '') ?>" placeholder="Display Label (e.g. Department)">
                   <select name="params[<?= $idx ?>][type]" class="form-control">
                     <option value="string" <?= $param['param_type'] === 'string' ? 'selected' : '' ?>>String / Text</option>
                     <option value="int" <?= $param['param_type'] === 'int' ? 'selected' : '' ?>>Integer</option>
@@ -262,7 +264,8 @@ try {
               <?php endforeach; ?>
             <?php else: ?>
               <div class="param-row">
-                <input type="text" name="params[0][name]" class="form-control" placeholder="Param Name (e.g. p_dept_id)">
+                <input type="text" name="params[0][name]" class="form-control" placeholder="Param Name (e.g. p_dept_id)" required>
+                <input type="text" name="params[0][label]" class="form-control" placeholder="Display Label (e.g. Department)">
                 <select name="params[0][type]" class="form-control">
                   <option value="string">String / Text</option>
                   <option value="int">Integer</option>
@@ -283,6 +286,7 @@ try {
 
           <div style="margin-top: 1.5rem;">
             <button type="submit" class="btn-primary"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
+            <a href="report_files.php" class="btn-secondary" style="text-decoration:none; margin-left:0.5rem;">Manage Saved Reports</a>
           </div>
         </form>
       </section>
@@ -342,7 +346,8 @@ function addParamRow() {
   const row = document.createElement('div');
   row.className = 'param-row';
   row.innerHTML = `
-    <input type="text" name="params[${paramCounter}][name]" class="form-control" placeholder="Param Name" required>
+    <input type="text" name="params[${paramCounter}][name]" class="form-control" placeholder="Param Name (e.g. p_dept_id)" required>
+    <input type="text" name="params[${paramCounter}][label]" class="form-control" placeholder="Display Label (e.g. Department)">
     <select name="params[${paramCounter}][type]" class="form-control">
       <option value="string">String / Text</option>
       <option value="int">Integer</option>

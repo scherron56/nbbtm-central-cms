@@ -10,6 +10,16 @@ header('Content-Type: application/json; charset=utf-8');
 // 2. Resolve the config directory properly
 require_once __DIR__ . '/config/db.php';
 
+function sendClassControllerJson(array $payload, int $status = 200): void
+{
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    http_response_code($status);
+    echo json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 try {
@@ -23,7 +33,8 @@ try {
             ];
 
             // Fetch VBS Sessions
-            $session_query = "SELECT vbs_sessions_id, vbs_year, vbs_theme, COALESCE(vbs_sessions_completed, 0) AS vbs_sessions_completed 
+            $session_query = "SELECT vbs_sessions_id, vbs_year, vbs_theme, vbs_start_date, vbs_end_date,
+                                     COALESCE(vbs_sessions_completed, 0) AS vbs_sessions_completed
                               FROM vbs_sessions 
                               ORDER BY vbs_year DESC";
             
@@ -33,11 +44,10 @@ try {
                 }
                 $session_result->free();
             } else {
-                echo json_encode([
+                sendClassControllerJson([
                     'success' => false,
                     'message' => 'Failed to fetch sessions: ' . $db->error
-                ]);
-                exit;
+                ], 500);
             }
 
             // Fetch Teachers
@@ -51,16 +61,14 @@ try {
                 }
                 $teacher_result->free();
             } else {
-                echo json_encode([
+                sendClassControllerJson([
                     'success' => false,
                     'message' => 'Failed to fetch teachers: ' . $db->error
-                ]);
-                exit;
+                ], 500);
             }
 
             $response['success'] = true;
-            echo json_encode($response);
-            exit;
+            sendClassControllerJson($response);
 
         case 'get_session':
             $vbs_sessions_id = intval($_GET['vbs_sessions_id'] ?? 0);
@@ -68,8 +76,7 @@ try {
             $stmt->bind_param("i", $vbs_sessions_id);
             $stmt->execute();
             $data = $stmt->get_result()->fetch_assoc();
-            echo json_encode(['success' => true, 'data' => $data]);
-            exit;
+            sendClassControllerJson(['success' => true, 'data' => $data]);
 
         case 'add_session':
             $vbs_theme_title = $_POST['vbs_theme_title'] ?? 'New Session';
@@ -122,8 +129,7 @@ try {
             while ($row = $result->fetch_assoc()) {
                 $classes[] = $row;
             }
-            echo json_encode($classes);
-            exit;
+            sendClassControllerJson($classes);
 
         case 'create':
         case 'update':
