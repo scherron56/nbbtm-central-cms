@@ -1,4 +1,8 @@
 {
+      "phpserver.phpPath": "/usr/bin/php",
+    "phpserver.port": 3001,
+    "phpserver.router": "/home/clarice/Repository/nbbtm-central/.vscode/router.php",
+    "phpserver.openBrowser": true,
     "livePreview.defaultPreviewPath": "/index.html",
     "sqltools.connections": [
         {
@@ -20,5 +24,6 @@
     "cSpell.words": [
         "actve"
     ],
-    "workbench.colorTheme": "Amethyst Dark (Higher Contrast)"
+    "workbench.colorTheme": "Amethyst Dark (Higher Contrast)",
+    "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }

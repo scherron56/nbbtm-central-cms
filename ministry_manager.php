@@ -2,7 +2,7 @@
 // Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400, // 24 Hours
+        'lifetime' => 0, // 24 Hours
         'path'     => '/',   // Root path ensures session spans all sub-folders
         'httponly' => true,
         'samesite' => 'Lax'
@@ -75,6 +75,8 @@ $canEdit = canEdit();
       const clearFilterBtn = $('#clear_filter_btn');
       const ministryForm = $('#ministryForm');
       const tableBody = $('#committeesTableBody');
+      const committeeListTitle = $('#committee-list-title');
+      const committeeNameHeader = $('#committee-name-header');
       const formTitle = $('#form-title');
       const cancelEditBtn = $('#cancel_edit_btn');
       const saveBtn = $('#save_btn');
@@ -135,6 +137,7 @@ $canEdit = canEdit();
 
       // 2. Filter Trigger
       filterSelect.on('change', function() {
+        updateCommitteeListTitle();
         if ($(this).val() !== '') {
           clearFilterBtn.show();
         } else {
@@ -146,9 +149,21 @@ $canEdit = canEdit();
       // Clear Filter
       clearFilterBtn.on('click', function() {
         filterSelect.val('');
+        updateCommitteeListTitle();
         $(this).hide();
         loadCommittees();
       });
+
+      function updateCommitteeListTitle() {
+        const selectedType = filterSelect.val();
+        const selectedTypeName = filterSelect.find('option:selected').text();
+        committeeListTitle.text(selectedType
+          ? `${selectedTypeName} List`
+          : 'Ministry/Committees/Operations List');
+        committeeNameHeader.text(selectedType
+          ? selectedTypeName
+          : 'Ministry/Committee/Operation');
+      }
 
       // 3. Load Committees Function
       function loadCommittees(filterType = '') {
@@ -377,12 +392,12 @@ $canEdit = canEdit();
 
     <!-- DATA TABLE -->
     <div class="card">
-      <h3>Ministry/Committees List</h3>
+      <h3 id="committee-list-title">Ministry/Committees/Operations List</h3>
       <table class="data-table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Committee Name</th>
+            <th id="committee-name-header">Ministry/Committee/Operation</th>
             <th>Group Type</th>
             <th>Description</th>
             <th>Status</th>
@@ -403,7 +418,7 @@ $canEdit = canEdit();
         <input type="hidden" id="min_comm_id" name="min_comm_id" value="">
         <fieldset class="form-grid-section-9 fieldset-relative">
           <legend>
-            <h2 id="form-title">Add/Update Ministry/Committee</h2>
+            <h2 id="form-title">Add/Update Ministry/Committee/Operation</h2>
           </legend>
           
           <div class="field-group" style="--colspan: 5;">

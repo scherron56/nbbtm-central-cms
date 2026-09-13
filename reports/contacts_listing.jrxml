@@ -6,10 +6,11 @@
 	<property name="ireport.y" value="0"/>
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian"/>
-	<style name="Title" fontName="Arial" fontSize="26" isBold="true"/>
+	<style name="Title" fontName="Zodiak Extrabold" fontSize="26" isBold="true"/>
 	<style name="SubTitle" forecolor="#666666" fontName="Arial" fontSize="18"/>
-	<style name="Column header" forecolor="#666666" fontName="Arial" fontSize="12" isBold="true"/>
+	<style name="Column header" forecolor="#666666" fontName="Zodiak Black" fontSize="12" isBold="true" isItalic="true"/>
 	<style name="Detail" fontName="Arial" fontSize="12"/>
+	<style name="Page Header" fontName="Zodiak Black Italic" fontSize="19" isBold="true" isItalic="true" pdfFontName="Zodiak" pdfEncoding="Identity-V (Unicode with vertical writing)" isPdfEmbedded="true"/>
 	<parameter name="p_is_active" class="java.lang.Integer">
 		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
 	</parameter>
@@ -76,7 +77,7 @@
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font fontName="Zodiak" size="19" isBold="true" isItalic="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA[($P{p_is_active} ==1 ? "Active " : "Non_Active " ) + ($P{p_is_member} == 1 ? "Members" : "Contacts")]]></textFieldExpression>
+				<textFieldExpression><![CDATA[($P{p_is_active} ==1 ? "Active " : "Non_Active " )]]></textFieldExpression>
 			</textField>
 			<image>
 				<reportElement style="Detail" positionType="Float" x="0" y="-10" width="559" height="109" uuid="af8326b0-1d46-4ceb-b8c4-3bfa46c8cde4">

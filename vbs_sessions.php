@@ -2,7 +2,7 @@
 // Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
   session_set_cookie_params([
-    'lifetime' => 86400, // 24 Hours
+    'lifetime' => 0, // 24 Hours
     'path'     => '/',   // Root path ensures session spans all sub-folders
     'httponly' => true,
     'samesite' => 'Lax'
@@ -267,6 +267,13 @@ $canEdit = canEdit();
               const showDashboard = !CAN_EDIT || isSessionCompleted;
               toggleViewMode(showDashboard);
             }
+          },
+          error: function(xhr, status, error) {
+            console.error('Failed to load session details:', xhr.responseText || error);
+            const message = status === 'parsererror'
+              ? 'The server returned invalid session data.'
+              : 'Failed to load the selected session.';
+            showStatusMessage(message, 'error');
           }
         });
       }
@@ -508,7 +515,13 @@ $canEdit = canEdit();
           },
           error: function(xhr, status, error) {
             console.error('Failed to fetch dropdown options:', xhr.responseText || error);
-            showStatusMessage('Failed to load session options from server.', 'error');
+            let message = 'Failed to load session options from server.';
+            if (status === 'parsererror') {
+              message += ' The server returned invalid JSON.';
+            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+              message += ' ' + xhr.responseJSON.message;
+            }
+            showStatusMessage(message, 'error');
           }
         });
       }
@@ -561,6 +574,13 @@ $canEdit = canEdit();
               $tr.append($actionsTd);
               tbody.append($tr);
             });
+          },
+          error: function(xhr, status, error) {
+            console.error('Failed to fetch classes:', xhr.responseText || error);
+            showStatusMessage(
+              status === 'parsererror' ? 'The server returned invalid class data.' : 'Failed to load classes for this session.',
+              'error'
+            );
           }
         });
       }

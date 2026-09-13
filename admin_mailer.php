@@ -1,7 +1,8 @@
 <?php
 // admin_mailer.php
 require_once __DIR__ . '/include/auth.php';
-
+// admin_mailer.php
+require_once __DIR__ . '/include/db.php'; // <-- Add your DB connection file here
 // Security check: Block anyone who is not an authenticated Admin
 if (!isAdmin()) {
     header('Location: ./index.php');
@@ -351,6 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
 // Initialize TinyMCE Editor
+// Replace your existing tinymce.init block with this:
 tinymce.init({
   selector: '#body_template',
   height: 320,
@@ -360,7 +362,8 @@ tinymce.init({
   fontsize_formats: '10px 12px 14px 16px 18px 20px 24px 28px 32px',
   content_style: 'body { font-family: Arial, sans-serif; font-size: 15px; color: #334155; line-height: 1.6; }',
   setup: function(editor) {
-    editor.on('change', function() {
+    // Keep underlying textarea in sync in real-time
+    editor.on('change keyup NodeChange', function() {
       editor.save();
     });
   }

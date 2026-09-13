@@ -33,9 +33,16 @@ try {
             }
             $stmt->execute();
             $result = $stmt->get_result();
-            echo json_encode(['success' => true, 'categories' => $result->fetch_all(MYSQLI_ASSOC)]);
+            $categories = $result->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
-            break;
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            echo json_encode(
+                ['success' => true, 'categories' => $categories],
+                JSON_INVALID_UTF8_SUBSTITUTE
+            );
+            exit;
 
         case 'get_category':
             $id = (int)($_GET['doc_category_id'] ?? 0);

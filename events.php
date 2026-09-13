@@ -2,7 +2,7 @@
 // events.php
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400,
+        'lifetime' => 0,
         'path'     => '/',
         'httponly' => true,
         'samesite' => 'Lax'
@@ -63,7 +63,6 @@ $canEdit = canEdit();
       border-radius: 6px;
     }
     .support-min-item { display: flex; flex-direction: column; gap: 6px; }
-    .support-radio-options { margin-left: 24px; display: flex; gap: 15px; font-size: 0.85rem; }
     .auth-box {
       background: #f8fafc;
       border: 1px solid #cbd5e1;
@@ -86,9 +85,13 @@ $canEdit = canEdit();
       border-radius: 4px;
     }
     .auth-item input[type="checkbox"] { cursor: pointer; width: 18px; height: 18px; }
-    .attachment-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .attachment-table th, .attachment-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
-    .attachment-table th { background: #f1f5f9; }
+    .attachment-table, .actuals-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .attachment-table th, .attachment-table td, .actuals-table th, .actuals-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
+    .attachment-table th, .actuals-table th { background: #f1f5f9; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-card { background: #fff; border-radius: 8px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .badge-expense { background-color: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-income { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
@@ -96,7 +99,6 @@ $canEdit = canEdit();
         const CAN_EDIT = <?php echo $canEdit ? 'true' : 'false'; ?>;
         const TARGET_MIN_IDS = [5000, 5002, 5007, 5008, 5020, 5018];
         const ADMIN_SUPPORT_ID = 5000;
-        const SPECIAL_OPTION_ID = 5020;
 
         let contactsCache = [];
         let eventCategoriesCache = [];
@@ -113,7 +115,6 @@ $canEdit = canEdit();
             $('#status-message').fadeOut(200).empty();
         }
 
-        // Load Categories for Events
         function loadEventCategories() {
             $.ajax({
                 url: 'category_api.php',
@@ -124,7 +125,15 @@ $canEdit = canEdit();
                     if (res.success) {
                         eventCategoriesCache = res.categories || [];
                         populateCategoryDropdowns();
+                        if (eventCategoriesCache.length === 0) {
+                            showStatusMessage('No active event document categories are configured.', 'error');
+                        }
+                    } else {
+                        showStatusMessage('Unable to load document categories: ' + (res.error || res.message || 'Invalid response'), 'error');
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load document categories: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -141,7 +150,6 @@ $canEdit = canEdit();
             });
         }
 
-        // Add File Upload Row
         $('#btnAddFileRow').on('click', function() {
             let newRow = `
                 <div class="file-upload-row">
@@ -167,20 +175,25 @@ $canEdit = canEdit();
             rows.find('.btnRemoveFileRow').prop('disabled', rows.length <= 1);
         }
 
-        // Dynamic Schedule Dates
         $('#btnAddDate').on('click', function() {
             $('#dateTimeContainer').append(`
-                <div class="date-time-row">
-                    <div class="field-group">
-                        <label>Start Date & Time:</label>
-                        <input type="datetime-local" name="start_datetimes[]" required class="form-control">
+                <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                    <div class="field-group" style="margin-bottom: 6px;">
+                        <label>Activity Description:</label>
+                        <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
                     </div>
-                    <div class="field-group">
-                        <label>End Date & Time (Optional):</label>
-                        <input type="datetime-local" name="end_datetimes[]" class="form-control">
-                    </div>
-                    <div class="btn-remove-wrapper">
-                        <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
+                    <div style="display: flex; gap: 10px;">
+                        <div class="field-group" style="flex: 1;">
+                            <label>Start Date & Time:</label>
+                            <input type="datetime-local" name="start_datetimes[]" required class="form-control">
+                        </div>
+                        <div class="field-group" style="flex: 1;">
+                            <label>End Date & Time (Optional):</label>
+                            <input type="datetime-local" name="end_datetimes[]" class="form-control">
+                        </div>
+                        <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
+                            <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
+                        </div>
                     </div>
                 </div>`);
             toggleDateButtons();
@@ -196,7 +209,6 @@ $canEdit = canEdit();
             rows.find('.btnRemoveDate').prop('disabled', rows.length <= 1);
         }
 
-        // Dynamic Budgets
         $('#btnAddBudget').on('click', function() {
             $('#budgetContainer').append(`
                 <div class="form-row budget-row" style="margin-bottom: 8px;">
@@ -268,7 +280,6 @@ $canEdit = canEdit();
             refreshSignoffCheckboxes();
         });
 
-        // Contacts list formatted by Last Name, First Name
         function loadContactsDropdown(preselectedId = null) {
             $.ajax({
                 url: 'prg_event_api.php',
@@ -285,6 +296,9 @@ $canEdit = canEdit();
                         });
                         if (preselectedId) $cSelect.val(preselectedId).trigger('change');
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load contacts: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -323,32 +337,25 @@ $canEdit = canEdit();
 
                             if(TARGET_MIN_IDS.includes(mId)) {
                                 let isAdmin = (mId === ADMIN_SUPPORT_ID);
-                                let hasRadioOptions = (mId === SPECIAL_OPTION_ID);
 
                                 let itemHtml = `
                                     <div class="support-min-item">
                                         <label style="font-weight: 600; cursor:pointer;">
                                             <input type="checkbox" name="support_min_ids[]" value="${mId}" data-name="${escapeHtml(m.min_comm_name)}" class="chk-support-min" 
-                                                ${isAdmin ? 'checked onclick="return false;"' : ''} 
-                                                ${hasRadioOptions ? 'data-target="#optionsContainer5020"' : ''}>
+                                                ${isAdmin ? 'checked onclick="return false;"' : ''}>
                                             ${escapeHtml(m.min_comm_name)}
                                         </label>
+                                    </div>
                                 `;
                                 if(isAdmin) itemHtml += `<input type="hidden" name="support_min_ids[]" value="${mId}">`;
-                                if(hasRadioOptions) {
-                                    itemHtml += `
-                                        <div id="optionsContainer5020" class="support-radio-options" style="display:none;">
-                                            <label><input type="radio" name="support_option_${mId}" value="Option A" checked> Option A</label>
-                                            <label><input type="radio" name="support_option_${mId}" value="Option B"> Option B</label>
-                                        </div>
-                                    `;
-                                }
-                                itemHtml += `</div>`;
                                 $supportGrid.append(itemHtml);
                             }
                         });
                         refreshSignoffCheckboxes();
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load ministries: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -394,6 +401,9 @@ $canEdit = canEdit();
                         });
                         if (selectedId) $select.val(selectedId).trigger('change');
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load events: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         }
@@ -423,29 +433,20 @@ $canEdit = canEdit();
                         $('#location').val(ev.location);
                         $('#prg_evnt_purpose').val(ev.prg_evnt_purpose || '');
                         $('#goal').val(ev.goal || '');
+                        $('#audience_target').val(ev.audience_target || '');
+                        $('#attend_estimate').val(ev.attend_estimate || '');
                         $('#notes').val(ev.notes || '');
                         
-                        // Support selections
                         $('.chk-support-min').not('[onclick]').prop('checked', false);
-                        $('#optionsContainer5020').hide();
                         if(data.support_ministries) {
                             $.each(data.support_ministries, function(i, sm) {
                                 let $chk = $(`.chk-support-min[value="${sm.min_comm_id}"]`);
                                 $chk.prop('checked', true);
-                                if(sm.option) {
-                                    $(`input[name="support_option_${sm.min_comm_id}"][value="${sm.option}"]`).prop('checked', true);
-                                    if(parseInt(sm.min_comm_id) === SPECIAL_OPTION_ID) {
-                                        $('#optionsContainer5020').show();
-                                    }
-                                }
                             });
                         }
                         refreshSignoffCheckboxes();
 
-                        // Render Existing Attachments Table
                         renderAttachmentsList(data.attachments || []);
-
-                        // Reset file upload rows
                         resetUploadRows();
 
                         let reqReg = parseInt(ev.requires_registration) === 1;
@@ -464,29 +465,37 @@ $canEdit = canEdit();
                         
                         if (reqReg) {
                             $('#btnGoRegister').attr('href', 'event_registration.php?prg_evnt_id=' + ev.prg_evnt_id).show();
+                            $('#liveCheckinCard').show();
                         } else {
                             $('#btnGoRegister').hide();
+                            $('#liveCheckinCard').hide();
                         }
 
-                        // Schedules populate
                         $('#dateTimeContainer').empty();
                         if(data.schedules && data.schedules.length > 0) {
                             $.each(data.schedules, function(i, sch) {
+                                let actVal = escapeHtml(sch.activity_scheduled || '');
                                 let startVal = sch.start_datetime ? sch.start_datetime.replace(' ', 'T').substring(0,16) : '';
                                 let endVal = sch.end_datetime ? sch.end_datetime.replace(' ', 'T').substring(0,16) : '';
                                 
                                 $('#dateTimeContainer').append(`
-                                    <div class="date-time-row">
-                                        <div class="field-group">
-                                            <label>Start Date & Time:</label>
-                                            <input type="datetime-local" name="start_datetimes[]" value="${startVal}" required class="form-control">
+                                    <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                                        <div class="field-group" style="margin-bottom: 6px;">
+                                            <label>Activity Description:</label>
+                                            <input type="text" name="activity_scheduled[]" value="${actVal}" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
                                         </div>
-                                        <div class="field-group">
-                                            <label>End Date & Time (Optional):</label>
-                                            <input type="datetime-local" name="end_datetimes[]" value="${endVal}" class="form-control">
-                                        </div>
-                                        <div class="btn-remove-wrapper">
-                                            <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
+                                        <div style="display: flex; gap: 10px;">
+                                            <div class="field-group" style="flex: 1;">
+                                                <label>Start Date & Time:</label>
+                                                <input type="datetime-local" name="start_datetimes[]" value="${startVal}" required class="form-control">
+                                            </div>
+                                            <div class="field-group" style="flex: 1;">
+                                                <label>End Date & Time (Optional):</label>
+                                                <input type="datetime-local" name="end_datetimes[]" value="${endVal}" class="form-control">
+                                            </div>
+                                            <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
+                                                <button type="button" class="btn btn-danger btnRemoveDate">&times;</button>
+                                            </div>
                                         </div>
                                     </div>`);
                             });
@@ -495,7 +504,6 @@ $canEdit = canEdit();
                         }
                         toggleDateButtons();
 
-                        // Itemized budgets populate
                         $('#budgetContainer').empty();
                         if(data.budgets && data.budgets.length > 0) {
                             $.each(data.budgets, function(i, bud) {
@@ -524,12 +532,46 @@ $canEdit = canEdit();
                         toggleBudgetButtons();
                         calculateLiveBudgetSummary();
 
+                        renderActualsTable(data.actuals || []);
+
                         if ($('#btnDelete').length) $('#btnDelete').show();
-                        loadRoster(id);
+                        if (reqReg) loadRoster(id);
                     }
+                },
+                error: function(xhr, status) {
+                    showStatusMessage('Unable to load the selected event: ' + getAjaxError(xhr, status), 'error');
                 }
             });
         });
+
+        function renderActualsTable(actuals) {
+            let $tbody = $('#actualsTable tbody').empty();
+            if (actuals.length === 0) {
+                $tbody.append('<tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">No actual transactions recorded.</td></tr>');
+            } else {
+                $.each(actuals, function(i, act) {
+                    let badgeClass = act.entry_type === 'Expense' ? 'badge-expense' : 'badge-income';
+                    let linked = act.budget_item_name ? `<br><small style="color:#64748b;">Line: ${escapeHtml(act.budget_item_name)}</small>` : '';
+                    $tbody.append(`
+                        <tr>
+                            <td>${escapeHtml(act.description)}${linked}</td>
+                            <td><span class="${badgeClass}">${escapeHtml(act.entry_type)}</span></td>
+                            <td>$${parseFloat(act.amount).toFixed(2)}</td>
+                        </tr>
+                    `);
+                });
+            }
+        }
+
+        function getAjaxError(xhr, status) {
+            if (xhr.responseJSON) {
+                return xhr.responseJSON.error || xhr.responseJSON.message || ('HTTP ' + xhr.status);
+            }
+            if (status === 'parsererror' && xhr.responseText) {
+                return 'The server returned invalid JSON.';
+            }
+            return 'HTTP ' + (xhr.status || 'request failed');
+        }
 
         function renderAttachmentsList(attachments) {
             let $tbody = $('#existingAttachmentsTable tbody').empty();
@@ -541,7 +583,7 @@ $canEdit = canEdit();
                 $('#existingAttachmentsTable').show();
                 $.each(attachments, function(i, att) {
                     let sizeKb = att.document_size ? Math.round(att.document_size / 1024) + ' KB' : '-';
-                    let downloadUrl = `download_document.php?attachment_id=${att.attachment_id}`;
+                    let downloadUrl = `include/download_document.php?document_id=${att.attachment_id}`;
                     
                     $tbody.append(`
                         <tr>
@@ -561,7 +603,6 @@ $canEdit = canEdit();
         $(document).on('click', '.btnDeleteAttachment', function() {
             if (!confirm('Are you sure you want to delete this attachment?')) return;
             let attId = $(this).data('id');
-            let eventId = $('#prg_evnt_id').val();
 
             $.ajax({
                 url: 'prg_event_api.php',
@@ -571,7 +612,6 @@ $canEdit = canEdit();
                 success: function(res) {
                     if (res.success) {
                         showStatusMessage('Attachment deleted.', 'success');
-                        // Reload event details
                         $('#event_select').trigger('change');
                     } else {
                         showStatusMessage(res.error || 'Failed to delete attachment.', 'error');
@@ -593,7 +633,6 @@ $canEdit = canEdit();
             populateCategoryDropdowns();
         }
 
-        // Form Submit
         $('#eventForm').on('submit', function(e) {
             e.preventDefault();
             if (!CAN_EDIT) return;
@@ -613,11 +652,12 @@ $canEdit = canEdit();
                         showStatusMessage(res.message, 'success');
                         loadEventDropdown(res.prg_evnt_id);
                     } else {
-                        showStatusMessage("Error: " + (res.message || res.error), 'error');
+                        showStatusMessage("Error: " + (res.message || res.error || "Failed to save"), 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    showStatusMessage("Server Request Failed: " + error, 'error');
+                    let errMsg = getAjaxError(xhr, status);
+                    showStatusMessage("Server Request Failed: " + errMsg, 'error');
                 }
             });
         });
@@ -679,6 +719,44 @@ $canEdit = canEdit();
             });
         });
 
+        // Modal Handlers for Actual Transactions
+        $('#btnOpenActualModal').on('click', function() {
+            let eventId = $('#prg_evnt_id').val();
+            if (!eventId) {
+                alert('Please select or save an event first.');
+                return;
+            }
+
+            $('#actual_prg_evnt_id').val(eventId);
+
+            $.get('prg_event_api.php', { action: 'get_event_budget_items', prg_evnt_id: eventId }, function(res) {
+                if (res.success) {
+                    let $sel = $('#actual_budget_item_id').empty().append('<option value="">-- General / Unassigned --</option>');
+                    $.each(res.budget_items, function(i, item) {
+                        $sel.append(`<option value="${item.budget_item_id}">${escapeHtml(item.item_description)} (${item.item_type})</option>`);
+                    });
+                    $('#modalAddActual').fadeIn(200);
+                }
+            }, 'json');
+        });
+
+        $('#btnCloseActualModal').on('click', function() {
+            $('#modalAddActual').fadeOut(200);
+        });
+
+        $('#formAddActual').on('submit', function(e) {
+            e.preventDefault();
+            $.post('prg_event_api.php?action=save_actual', $(this).serialize(), function(res) {
+                if (res.success) {
+                    $('#modalAddActual').fadeOut(200);
+                    $('#formAddActual')[0].reset();
+                    $('#event_select').trigger('change');
+                } else {
+                    alert(res.error || 'Failed to save transaction.');
+                }
+            }, 'json');
+        });
+
         function resetForm() {
             clearStatusMessage();
             if ($('#eventForm').length) {
@@ -686,31 +764,38 @@ $canEdit = canEdit();
                 $('#prg_evnt_id').val('');
                 $('#fee_container').hide();
                 $('.chk-support-min').not('[onclick]').prop('checked', false);
-                $('#optionsContainer5020').hide();
                 $('.chk-signoff').prop('checked', false);
                 $('#signoff_contact_label').html('<strong>Signed by Primary Contact</strong>');
                 refreshSignoffCheckboxes();
                 renderAttachmentsList([]);
                 resetUploadRows();
+                renderActualsTable([]);
                 if ($('#btnDelete').length) $('#btnDelete').hide();
             }
             $('#event_select').val('');
             $('#btnGoRegister').hide();
+            $('#liveCheckinCard').hide();
             $('#rosterPlaceholder').show();
             $('#rosterContent').hide();
             
             $('#dateTimeContainer').html(`
-            <div class="date-time-row">
-                <div class="field-group">
-                    <label>Start Date & Time:</label>
-                    <input type="datetime-local" name="start_datetimes[]" required class="form-control">
+            <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                <div class="field-group" style="margin-bottom: 6px;">
+                    <label>Activity Description:</label>
+                    <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
                 </div>
-                <div class="field-group">
-                    <label>End Date & Time (Optional):</label>
-                    <input type="datetime-local" name="end_datetimes[]" class="form-control">
-                </div>
-                <div class="btn-remove-wrapper">
-                    <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
+                <div style="display: flex; gap: 10px;">
+                    <div class="field-group" style="flex: 1;">
+                        <label>Start Date & Time:</label>
+                        <input type="datetime-local" name="start_datetimes[]" required class="form-control">
+                    </div>
+                    <div class="field-group" style="flex: 1;">
+                        <label>End Date & Time (Optional):</label>
+                        <input type="datetime-local" name="end_datetimes[]" class="form-control">
+                    </div>
+                    <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
+                    </div>
                 </div>
             </div>`);
 
@@ -828,25 +913,31 @@ $canEdit = canEdit();
                         <input type="email" id="contact_email" name="contact_email" placeholder="Email address" class="form-control">
                     </div>
 
-                    <!-- DYNAMIC DATES CONTAINER -->
+                    <!-- DYNAMIC ACTIVITIES, DATES & TIMES -->
                     <div class="field-group" style="--colspan: 2;">
                         <label style="display:flex; justify-content:space-between; align-items:center;">
-                            Event Date(s) & Time(s):
-                            <button type="button" id="btnAddDate" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Date</button>
+                            Event Activities, Dates & Times:
+                            <button type="button" id="btnAddDate" class="btn btn-sm btn-success" style="padding: 2px 8px; font-size: 0.8rem;">+ Add Activity / Time</button>
                         </label>
                         
                         <div id="dateTimeContainer">
-                            <div class="date-time-row">
-                                <div class="field-group">
-                                    <label>Start Date & Time:</label>
-                                    <input type="datetime-local" name="start_datetimes[]" required class="form-control">
+                            <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                                <div class="field-group" style="margin-bottom: 6px;">
+                                    <label>Activity Description:</label>
+                                    <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
                                 </div>
-                                <div class="field-group">
-                                    <label>End Date & Time (Optional):</label>
-                                    <input type="datetime-local" name="end_datetimes[]" class="form-control">
-                                </div>
-                                <div class="btn-remove-wrapper">
-                                    <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
+                                <div style="display: flex; gap: 10px;">
+                                    <div class="field-group" style="flex: 1;">
+                                        <label>Start Date & Time:</label>
+                                        <input type="datetime-local" name="start_datetimes[]" required class="form-control">
+                                    </div>
+                                    <div class="field-group" style="flex: 1;">
+                                        <label>End Date & Time (Optional):</label>
+                                        <input type="datetime-local" name="end_datetimes[]" class="form-control">
+                                    </div>
+                                    <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
+                                        <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -898,6 +989,18 @@ $canEdit = canEdit();
                     <div class="field-group" style="--colspan: 2;">
                         <label for="goal">Key Deliverables / Goals:</label>
                         <textarea id="goal" name="goal" rows="2" class="form-control" placeholder="Target objectives and deliverables..."></textarea>
+                    </div>
+
+                    <!-- TARGET AUDIENCE -->
+                    <div class="field-group" style="--colspan: 2;">
+                        <label for="audience_target">Target Audience:</label>
+                        <textarea id="audience_target" name="audience_target" rows="2" class="form-control" placeholder="Primary target demographic or group..."></textarea>
+                    </div>
+
+                    <!-- ESTIMATED ATTENDANCE -->
+                    <div class="field-group" style="--colspan: 2;">
+                        <label for="attend_estimate">Estimated Attendance:</label>
+                        <input type="number" id="attend_estimate" name="attend_estimate" class="form-control" placeholder="Expected number of attendees">
                     </div>
 
                     <!-- MINISTRY SUPPORT & COLLABORATION -->
@@ -1007,7 +1110,7 @@ $canEdit = canEdit();
 
     <div class="card">
         <h2>Financial Projection Ledger</h2>
-        <div class="form-row" style="margin-bottom:20px; text-align:center;">
+        <div class="form-row" style="margin-bottom:20px; text-align:center; display:flex; gap:10px;">
             <div class="card" style="background:#fef2f2; border:1px solid #fee2e2; padding:10px; flex:1;">
                 <span style="font-size:0.85rem; color:#991b1b; font-weight:bold;">Total Expenses</span>
                 <h3 id="summaryExpenses" style="margin:5px 0 0 0; color:#ef4444;">$0.00</h3>
@@ -1024,17 +1127,80 @@ $canEdit = canEdit();
 
         <hr>
 
-        <h2>Live Attendance Check-In</h2>
-        <div id="rosterPlaceholder">
-            <p>Select or save a program/event on the left to manage live attendee check-ins.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <h2>Recorded Actual Transactions</h2>
+            <?php if ($canEdit): ?>
+                <button type="button" id="btnOpenActualModal" class="btn btn-sm btn-primary">+ Add Actual</button>
+            <?php endif; ?>
         </div>
+        <table class="actuals-table" id="actualsTable">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">Select an event to view transactions.</td></tr>
+            </tbody>
+        </table>
 
-        <div id="rosterContent" style="display: none;">
-            <h3>Registered Attendees Check-In Grid</h3>
-            <div id="attendanceGrid" class="kpi-grid"></div>
+        <div id="liveCheckinCard" style="display: none; margin-top: 25px;">
+            <hr>
+            <h2>Live Attendance Check-In</h2>
+            <div id="rosterPlaceholder">
+                <p style="color:#64748b;">Loading attendee check-in roster...</p>
+            </div>
+
+            <div id="rosterContent" style="display: none;">
+                <h3>Registered Attendees Check-In Grid</h3>
+                <div id="attendanceGrid" class="kpi-grid"></div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Modal: Add Actual Transaction -->
+<div id="modalAddActual" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <h3 style="margin-top:0; margin-bottom: 15px;">Add Actual Transaction</h3>
+        <form id="formAddActual">
+            <input type="hidden" id="actual_prg_evnt_id" name="prg_evnt_id">
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Budget Line Item (Optional):</label>
+                <select id="actual_budget_item_id" name="budget_item_id" class="form-control">
+                    <option value="">-- General / Unassigned --</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Type:</label>
+                <select id="actual_entry_type" name="entry_type" class="form-control" required>
+                    <option value="Expense">Expense</option>
+                    <option value="Income">Income</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Description:</label>
+                <input type="text" id="actual_description" name="description" placeholder="e.g. Catering Invoice #102" required class="form-control">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Amount ($):</label>
+                <input type="number" step="0.01" min="0.01" id="actual_amount" name="amount" placeholder="0.00" required class="form-control">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" id="btnCloseActualModal" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <?php include_once 'include/footer.php'; ?>
 </body>
 </html>

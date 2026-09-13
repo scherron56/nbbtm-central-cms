@@ -1,7 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400,
+        'lifetime' => 0,
         'path'     => '/',
         'httponly' => true,
         'samesite' => 'Lax'
@@ -70,6 +70,10 @@ $(document).ready(function() {
             }));
           });
         }
+      },
+      error: function(xhr, status, error) {
+        console.error('Failed to load VBS sessions:', xhr.responseText || error);
+        alert(status === 'parsererror' ? 'The server returned invalid session data.' : 'Failed to load VBS sessions.');
       }
     });
   }

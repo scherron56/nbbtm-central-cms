@@ -2,7 +2,7 @@
 // contact_dashboard.php
 if (session_status() === PHP_SESSION_NONE) {
   session_set_cookie_params([
-    'lifetime' => 86400, // 24 Hours
+    'lifetime' => 0, // 24 Hours
     'path'     => '/',   // Root path ensures session spans all sub-folders
     'httponly' => true,
     'samesite' => 'Lax'
@@ -11,6 +11,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/config/db.php';
+
+$contactTypesList = [];
+if (isset($db) && $db instanceof mysqli) {
+    $ctRes = $db->query("SELECT contact_type_id, contact_desc FROM contact_type ORDER BY contact_desc ASC");
+    if ($ctRes) {
+        $contactTypesList = $ctRes->fetch_all(MYSQLI_ASSOC);
+        $ctRes->free();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,7 +32,6 @@ require_once __DIR__ . '/include/auth.php';
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&f[]=bespoke-serif@300,301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-
   <style>
     .alert-box {
       padding: 12px 16px;
@@ -32,6 +41,7 @@ require_once __DIR__ . '/include/auth.php';
       font-size: 0.95rem;
       display: none;
     }
+
     .alert-error {
       background-color: #fee2e2;
       border: 1px solid #fca5a5;
@@ -119,6 +129,7 @@ require_once __DIR__ . '/include/auth.php';
       padding-left: 0;
       margin: 0;
     }
+
     .doc-list li {
       padding: 8px 0;
       border-bottom: 1px solid #e2e8f0;
@@ -126,6 +137,7 @@ require_once __DIR__ . '/include/auth.php';
       justify-content: space-between;
       align-items: center;
     }
+
     .doc-list li:last-child {
       border-bottom: none;
     }
@@ -144,7 +156,7 @@ require_once __DIR__ . '/include/auth.php';
 
       loadContactList();
 
-      $(document).on('change', 'input[name="contact_filter"], input[name="age_filter"]', function() {
+      $(document).on('change', '#contact_type_id, input[name="age_filter"]', function() {
         loadContactList();
       });
 
@@ -161,9 +173,24 @@ require_once __DIR__ . '/include/auth.php';
         $.ajax({
           url: 'getContact.php',
           type: 'POST',
-          data: { contactid: contactid },
-          dataType: 'json',
-          success: function(data) {
+          data: {
+            contactid: contactid
+          },
+          dataType: 'text',
+          success: function(responseText) {
+            let data;
+            try {
+              const jsonStart = responseText.indexOf('{');
+              const jsonEnd = responseText.lastIndexOf('}');
+              if (jsonStart < 0 || jsonEnd < jsonStart) {
+                throw new Error('No JSON object found in response.');
+              }
+              data = JSON.parse(responseText.slice(jsonStart, jsonEnd + 1));
+            } catch (parseError) {
+              console.error("getContact invalid JSON response:", responseText);
+              showOnScreenError("Error loading dashboard data. The server returned invalid data.");
+              return;
+            }
             if (data.error) {
               showOnScreenError("Error: " + data.error);
               return;
@@ -179,19 +206,33 @@ require_once __DIR__ . '/include/auth.php';
       });
 
       function loadContactList() {
-        let membersOnly = $('input[name="contact_filter"]:checked').val() || 0;
-        let ageFilter   = $('input[name="age_filter"]:checked').val() || 0;
+        let contactTypes = $('#contact_type_id').val() || [];
+        let ageFilter = $('input[name="age_filter"]:checked').val() || 0;
         let currentSelection = $('#contactID').val();
 
         $.ajax({
           url: "getLists.php",
           type: 'POST',
           data: {
-            members_only: membersOnly,
+            contact_type_id: contactTypes,
             age_filter: ageFilter
           },
-          dataType: 'json',
-          success: function(data) {
+          dataType: 'text',
+          success: function(responseText) {
+            let data;
+            try {
+              const jsonStart = responseText.indexOf('{');
+              const jsonEnd = responseText.lastIndexOf('}');
+              if (jsonStart < 0 || jsonEnd < jsonStart) {
+                throw new Error('No JSON object found in response.');
+              }
+              data = JSON.parse(responseText.slice(jsonStart, jsonEnd + 1));
+            } catch (parseError) {
+              console.error("getLists invalid JSON response:", responseText);
+              showOnScreenError("Error loading contact list. The server returned invalid data.");
+              return;
+            }
+
             if (data.status === 'error' || data.error) {
               showOnScreenError(data.message || data.error || "Failed to load contacts list.");
               return;
@@ -222,7 +263,7 @@ require_once __DIR__ . '/include/auth.php';
           },
           error: function(xhr, status, error) {
             console.error("getLists error response:", xhr.responseText);
-            showOnScreenError("Error loading contact list. Response: " + (xhr.responseText || error));
+            showOnScreenError("Error loading contact list. Please try again.");
           }
         });
       }
@@ -259,40 +300,52 @@ require_once __DIR__ . '/include/auth.php';
           $('#dash-active-badge')
             .text('Deceased')
             .attr('class', 'status-badge badge-secondary')
-            .css({'background-color': '#475569', 'color': '#ffffff'});
-            
+            .css({
+              'background-color': '#475569',
+              'color': '#ffffff'
+            });
+
           $('#deceased-group').show();
           $('#dash-deceased').text(c.date_of_death);
         } else {
           $('#dash-active-badge')
             .text(isActive ? 'Active' : 'Inactive')
             .attr('class', 'status-badge ' + (isActive ? 'badge-success' : 'badge-secondary'))
-            .css({'background-color': '', 'color': ''});
-            
+            .css({
+              'background-color': '',
+              'color': ''
+            });
+
           $('#deceased-group').hide();
         }
 
         let maritalDesc = c.marital_status_desc || '—';
-        
+
         if (c.date_of_birth) {
-            const [bYear, bMonth, bDay] = c.date_of_birth.split('-');
-            const bDate = new Date(bYear, bMonth - 1, bDay);
-            $('#dash-dob').text(bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+          const [bYear, bMonth, bDay] = c.date_of_birth.split('-');
+          const bDate = new Date(bYear, bMonth - 1, bDay);
+          $('#dash-dob').text(bDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+          }));
         } else {
-            $('#dash-dob').text('—');
+          $('#dash-dob').text('—');
         }
-        
+
         $('#dash-gender').text(c.gender === 'M' ? 'Male' : (c.gender === 'F' ? 'Female' : '—'));
         $('#dash-marital').text(maritalDesc);
         $('#dash-head').text(String(c.is_head) === "1" ? 'Yes' : 'No');
 
         if (String(maritalDesc).toLowerCase() === 'married' && c.anniv_date) {
-            const [aYear, aMonth, aDay] = c.anniv_date.split('-');
-            const aDate = new Date(aYear, aMonth - 1, aDay);
-            $('#dash-anniv').text(aDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-            $('#anniv-group').show();
+          const [aYear, aMonth, aDay] = c.anniv_date.split('-');
+          const aDate = new Date(aYear, aMonth - 1, aDay);
+          $('#dash-anniv').text(aDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+          }));
+          $('#anniv-group').show();
         } else {
-            $('#anniv-group').hide();
+          $('#anniv-group').hide();
         }
 
         let addressParts = [c.address_1, c.city, c.state, c.zipcode].filter(Boolean);
@@ -313,6 +366,7 @@ require_once __DIR__ . '/include/auth.php';
           $('#dash-emergency').text('—');
         }
 
+        $('#dash-contact-type').text(c.contact_desc || '—');
         $('#dash-joined').text(c.join_date || '—');
         $('#dash-baptized').text(String(c.is_baptized) === "1" ? (c.baptized_date ? `Yes (${c.baptized_date})` : 'Yes') : 'No');
 
@@ -338,7 +392,6 @@ require_once __DIR__ . '/include/auth.php';
               <tr>
                 <th>Name</th>
                 <th>Household Role</th>
-                <th>Membership</th>
                 <th style="text-align: right;">Action</th>
               </tr>
             </thead>
@@ -349,18 +402,20 @@ require_once __DIR__ . '/include/auth.php';
         let tbody = table.find('tbody');
         $.each(members, function(i, m) {
           let mName = `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'N/A';
-          
-          let roleTag = 'Family Member';
-          if (String(m.is_head) === "1") roleTag = 'Head of Household';
-          else if (String(m.is_child) === "1") roleTag = 'Child';
 
-          let isMem = String(m.is_member) === "1";
+          let roleTag = 'Family Member';
+          if (String(m.is_head) === "1") {
+            roleTag = 'Head of Household';
+          } else if (String(m.is_spouse) === "1") {
+            roleTag = 'Spouse';
+          } else if (String(m.is_child) === "1") {
+            roleTag = 'Child';
+          }
 
           tbody.append(`
             <tr>
               <td><strong>${mName}</strong></td>
               <td><span class="status-badge badge-secondary">${roleTag}</span></td>
-              <td><span class="status-badge ${isMem ? 'badge-success' : 'badge-secondary'}">${isMem ? 'Member' : 'Non-Member'}</span></td>
               <td style="text-align: right;">
                 <button type="button" class="btn-switch-family" data-id="${m.contact_id}">
                   View Dashboard
@@ -389,7 +444,9 @@ require_once __DIR__ . '/include/auth.php';
         }
 
         let rolesMap = {};
-        $.each(roleList, function(i, r) { rolesMap[r.role_id] = r.role_desc; });
+        $.each(roleList, function(i, r) {
+          rolesMap[r.role_id] = r.role_desc;
+        });
 
         let minDetailsMap = {};
         $.each(fullMinistryList, function(i, m) {
@@ -401,7 +458,10 @@ require_once __DIR__ . '/include/auth.php';
 
         let grouped = {};
         $.each(userMinistries, function(i, m) {
-          let detail = minDetailsMap[m.min_comm_id] || { name: `Ministry #${m.min_comm_id}`, groupType: 'General' };
+          let detail = minDetailsMap[m.min_comm_id] || {
+            name: `Ministry #${m.min_comm_id}`,
+            groupType: 'General'
+          };
           let gType = detail.groupType;
 
           if (!grouped[gType]) grouped[gType] = [];
@@ -413,7 +473,7 @@ require_once __DIR__ . '/include/auth.php';
         });
 
         $.each(grouped, function(groupName, items) {
-          container.append(`<div class="ministry-group-header">${groupName}</div>`);
+          container.append(`<div class="ministry-group-header"><strong>${groupName}</strong></div>`);
 
           let table = $(`
             <table class="data-table">
@@ -432,7 +492,7 @@ require_once __DIR__ . '/include/auth.php';
           $.each(items, function(i, item) {
             tbody.append(`
               <tr>
-                <td><strong>${item.name}</strong></td>
+                <td>${item.name}</td>
                 <td>${item.role}</td>
                 <td><span class="status-badge ${item.status === 'Active' ? 'badge-success' : 'badge-secondary'}">${item.status}</span></td>
               </tr>
@@ -451,16 +511,20 @@ require_once __DIR__ . '/include/auth.php';
         }
 
         $.each(attachments, function(i, att) {
-          let downloadUrl = `download_document.php?attachment_id=${att.attachment_id}`;
+          let readUrl = `include/document_reader.php?document_id=${att.document_id}`;
+          let downloadUrl = `include/download_document.php?document_id=${att.document_id}`;
+          let name = att.document_name || '';
+
           $list.append(`
             <li>
               <div>
-                <span class="status-badge badge-secondary" style="margin-right: 6px;">${escapeHtml(att.category_name || 'General')}</span>
-                <strong>${escapeHtml(att.document_name)}</strong>
+                <span class="status-badge badge-secondary" style="margin-right: 6px;">${escapeHtml(att.document_short_name || 'Document')}</span>
+                <strong>${escapeHtml(name)}</strong>
               </div>
-              <a href="${downloadUrl}" class="btn-switch-family" target="_blank" style="text-decoration:none; padding:3px 8px;">
-                Download
-              </a>
+              <div style="display: flex; gap: 6px;">
+                <a href="${readUrl}" class="btn-switch-family" target="_blank" rel="noopener" style="text-decoration:none; padding:3px 8px;">Read</a>
+                <a href="${downloadUrl}" class="btn-switch-family" target="_blank" style="text-decoration:none; padding:3px 8px;">Download</a>
+              </div>
             </li>
           `);
         });
@@ -487,17 +551,15 @@ require_once __DIR__ . '/include/auth.php';
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
 
-          <div>
-            <label style="font-weight: bold; color: #28089a; margin-right: 10px;">Membership:</label>
-            <label style="cursor: pointer; margin-right: 10px;">
-              <input type="radio" name="contact_filter" value="0" checked> All
-            </label>
-            <label style="cursor: pointer; margin-right: 10px;">
-              <input type="radio" name="contact_filter" value="1"> Members
-            </label>
-            <label style="cursor: pointer;">
-              <input type="radio" name="contact_filter" value="2"> Non-Members
-            </label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="contact_type_id" style="font-weight: bold; color: #28089a;">Census:</label>
+            <select id="contact_type_id" name="contact_type_id[]" multiple style="min-width: 160px; height: 75px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 4px;">
+              <?php foreach ($contactTypesList as $ct): ?>
+                <option value="<?= htmlspecialchars($ct['contact_type_id']) ?>">
+                  <?= htmlspecialchars($ct['contact_desc']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
           </div>
 
           <div>
@@ -620,12 +682,16 @@ require_once __DIR__ . '/include/auth.php';
             </div>
           </div>
 
-          <!-- MEMBERSHIP DETAILS -->
+          <!-- NBBTM CENSUS DETAILS -->
           <div class="card" style="margin-bottom: 1.5rem;">
-            <h3>Membership Details</h3>
+            <h3>NBBTM Census Details</h3>
             <div class="info-group" id="deceased-group" style="display: none; margin-bottom: 1rem;">
               <span class="info-label">Deceased</span>
               <span class="info-value" id="dash-deceased">—</span>
+            </div>
+            <div class="info-group" style="margin-bottom: 1rem;">
+              <span class="info-label">Contact Type</span>
+              <span class="info-value" id="dash-contact-type">—</span>
             </div>
             <div class="info-group" style="margin-bottom: 1rem;">
               <span class="info-label">Date Joined</span>
@@ -650,9 +716,8 @@ require_once __DIR__ . '/include/auth.php';
     </div>
 
   </div>
-  
-  <?php include_once 'include/footer.php'; ?>
 
+  <?php include_once 'include/footer.php'; ?>
 </body>
 
 </html>

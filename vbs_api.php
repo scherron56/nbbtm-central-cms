@@ -4,6 +4,16 @@ header('Content-Type: application/json; charset=utf-8');
 require_once "config/db.php";
 require_once "include/auth.php";
 
+function sendVbsJson(array $payload, int $status = 200): void
+{
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    http_response_code($status);
+    echo json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
 $action = $_REQUEST['action'] ?? '';
 
 // Enforce admin privileges on write API actions
@@ -23,8 +33,7 @@ try {
             while ($row = $result->fetch_assoc()) {
                 $sessions[] = $row;
             }
-            echo json_encode(['success' => true, 'data' => $sessions]);
-            break;
+            sendVbsJson(['success' => true, 'data' => $sessions]);
 
         // READ: Classes list
         case 'fetch_classes':
@@ -58,8 +67,7 @@ try {
             while ($row = $result->fetch_assoc()) {
                 $classes[] = $row;
             }
-            echo json_encode(['success' => true, 'data' => $classes]);
-            break;
+            sendVbsJson(['success' => true, 'data' => $classes]);
 
         // READ: Roster with Unique Students & Days Attended Count
         case 'fetch_roster':
@@ -182,8 +190,7 @@ try {
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;
             }
-            echo json_encode(['success' => true, 'data' => $data]);
-            break;
+            sendVbsJson(['success' => true, 'data' => $data]);
 
         // READ SINGLE STUDENT
         case 'get_student':

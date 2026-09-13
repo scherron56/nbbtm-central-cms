@@ -15,9 +15,11 @@ try {
         $result = $db->query("SELECT min_grp_type_id, min_grp_type_desc FROM min_group_type ORDER BY min_grp_type_desc ASC");
         $types = ($result && $result->num_rows > 0) ? $result->fetch_all(MYSQLI_ASSOC) : [];
 
-        ob_clean();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['status' => 'success', 'data' => $types]);
+        echo json_encode(['status' => 'success', 'data' => $types], JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
@@ -46,9 +48,11 @@ try {
             $committees = ($result && $result->num_rows > 0) ? $result->fetch_all(MYSQLI_ASSOC) : [];
         }
 
-        ob_clean();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['status' => 'success', 'data' => $committees]);
+        echo json_encode(['status' => 'success', 'data' => $committees], JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
@@ -98,13 +102,17 @@ try {
             $members = ($result && $result->num_rows > 0) ? $result->fetch_all(MYSQLI_ASSOC) : [];
             $stmt->close();
 
-            ob_clean();
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['status' => 'success', 'data' => $members]);
+            echo json_encode(['status' => 'success', 'data' => $members], JSON_INVALID_UTF8_SUBSTITUTE);
         } else {
-            ob_clean();
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['status' => 'error', 'message' => 'Invalid Ministry / Committee ID provided']);
+            echo json_encode(['status' => 'error', 'message' => 'Invalid Ministry / Committee ID provided'], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
     }

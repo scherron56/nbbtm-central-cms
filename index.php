@@ -7,7 +7,7 @@ error_reporting(E_ALL);
 // Enforce persistent cookie scope before session start
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 86400, // 24 Hours
+        'lifetime' => 0, // 24 Hours
         'path'     => '/',   // Root path ensures session spans all sub-folders
         'httponly' => true,
         'samesite' => 'Lax'
@@ -29,10 +29,8 @@ function formatPhoneNumber($val) {
     return $val;
 }
 
-// Database Connection (Uses relative path from current directory)
+// Require updated auth helper (which also resolves database connection)
 require_once __DIR__ . '/config/db.php';
-
-// Require auth helper
 require_once __DIR__ . '/include/auth.php';
 
 // Initialize default metric counters
