@@ -145,9 +145,9 @@ $canEdit = canEdit();
             <input type="hidden" id="actual_prg_evnt_id" name="prg_evnt_id">
 
             <div style="margin-bottom: 12px;">
-                <label style="display:block; margin-bottom: 4px; font-weight:600;">Budget Line Item (Optional):</label>
-                <select id="actual_budget_item_id" name="budget_item_id" class="form-control">
-                    <option value="">-- General / Unassigned --</option>
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Budget Line Item <span style="color:#ef4444;">*</span>:</label>
+                <select id="actual_budget_item_id" name="budget_item_id" class="form-control" required>
+                    <option value="">-- Select Budget Item --</option>
                 </select>
             </div>
 
@@ -305,13 +305,25 @@ $(document).ready(function() {
 
         $.get('prg_event_api.php', { action: 'get_event_budget_items', prg_evnt_id: eventId }, function(res) {
             if (res.success) {
-                let $sel = $('#actual_budget_item_id').empty().append('<option value="">-- General / Unassigned --</option>');
+                let $sel = $('#actual_budget_item_id').empty().append('<option value="">-- Select Budget Item --</option>');
+                if (!res.budget_items || res.budget_items.length === 0) {
+                    alert('No budget items found for this event. Please add budget items to the event before recording actual transactions.');
+                    return;
+                }
                 $.each(res.budget_items, function(i, item) {
-                    $sel.append(`<option value="${item.budget_item_id}">${escapeHtml(item.item_description)} (${item.item_type})</option>`);
+                    $sel.append(`<option value="${item.budget_item_id}" data-type="${escapeHtml(item.item_type)}">${escapeHtml(item.item_description)} (${item.item_type})</option>`);
                 });
+                $('#actual_budget_item_id').prop('required', true);
                 $('#modalAddActual').fadeIn(200);
             }
         }, 'json');
+    });
+
+    $('#actual_budget_item_id').on('change', function() {
+        let selectedType = $(this).find('option:selected').data('type');
+        if (selectedType) {
+            $('#actual_entry_type').val(selectedType);
+        }
     });
 
     $('#btnCloseActualModal').on('click', function() {
