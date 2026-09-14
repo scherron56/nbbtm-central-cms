@@ -104,6 +104,39 @@ switch ($action) {
             $actuals = $actStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $actStmt->close();
 
+            // Registration summary: pending vs. verified (paid/registered) fees. This
+            // lets the events screen and dashboard surface registration income that has
+            // not yet been committed as a manual "actual" transaction.
+            $regSumStmt = $db->prepare("
+                SELECT
+                    COUNT(*) AS registration_count,
+                    SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) AS registered_count,
+                    SUM(CASE WHEN is_completed = 0 THEN 1 ELSE 0 END) AS pending_count,
+                    SUM(CASE WHEN is_completed = 1 THEN amount_paid ELSE 0 END) AS verified_amount,
+                    SUM(CASE WHEN is_completed = 0 THEN amount_paid ELSE 0 END) AS pending_amount
+                FROM prg_evnt_registrations
+                WHERE prg_evnt_id = ?
+            ");
+            $regSumStmt->bind_param("i", $prgevntId);
+            $regSumStmt->execute();
+            $regSummary = $regSumStmt->get_result()->fetch_assoc() ?: [];
+            $regSumStmt->close();
+
+            // Individual registrations so the events screen can render a verification roster.
+            $regListStmt = $db->prepare("
+                SELECT r.registration_id, r.contact_id, r.payment_status, r.payment_method,
+                       r.amount_paid, r.is_completed,
+                       CONCAT(c.first_name, ' ', c.last_name) AS full_name
+                FROM prg_evnt_registrations r
+                JOIN contacts c ON r.contact_id = c.contact_id
+                WHERE r.prg_evnt_id = ?
+                ORDER BY r.is_completed ASC, c.last_name ASC, c.first_name ASC
+            ");
+            $regListStmt->bind_param("i", $prgevntId);
+            $regListStmt->execute();
+            $registrations = $regListStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $regListStmt->close();
+
             sendEventJson([
                 'success'            => true,
                 'prgevnt'            => $prgevnt,
@@ -111,7 +144,15 @@ switch ($action) {
                 'budgets'            => $budgets,
                 'support_ministries' => $support_ministries,
                 'attachments'        => $attachments,
-                'actuals'            => $actuals
+                'actuals'            => $actuals,
+                'registrations'      => $registrations,
+                'registration_summary' => [
+                    'registration_count' => (int)($regSummary['registration_count'] ?? 0),
+                    'registered_count'   => (int)($regSummary['registered_count'] ?? 0),
+                    'pending_count'      => (int)($regSummary['pending_count'] ?? 0),
+                    'verified_amount'    => (float)($regSummary['verified_amount'] ?? 0),
+                    'pending_amount'     => (float)($regSummary['pending_amount'] ?? 0),
+                ],
             ]);
         } else {
             // Fetch List of Events

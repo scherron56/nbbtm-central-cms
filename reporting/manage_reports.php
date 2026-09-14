@@ -3,10 +3,19 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/../include/auth.php';
 
 $message = '';
 $error = '';
+
+if (isset($_SESSION['manage_reports_message'])) {
+    $message = $_SESSION['manage_reports_message'];
+    unset($_SESSION['manage_reports_message']);
+}
+if (isset($_SESSION['manage_reports_error'])) {
+    $error = $_SESSION['manage_reports_error'];
+    unset($_SESSION['manage_reports_error']);
+}
 
 $userIsAdmin = isAdmin();
 
@@ -18,11 +27,13 @@ if ($userIsAdmin) {
             $stmt = $db->prepare("DELETE FROM app_reports WHERE id = ?");
             $stmt->bind_param('i', $reportId);
             if ($stmt->execute()) {
-                $message = "Report configuration removed.";
+                $_SESSION['manage_reports_message'] = "Report configuration removed.";
             } else {
-                $error = "Failed to delete report: " . $db->error;
+                $_SESSION['manage_reports_error'] = "Failed to delete report: " . $db->error;
             }
             $stmt->close();
+            header('Location: manage_reports.php');
+            exit;
         }
     }
 
@@ -63,23 +74,59 @@ if ($userIsAdmin) {
 
                 // Insert / Re-insert parameters
                 if (!empty($rawParams) && is_array($rawParams)) {
-                    $pStmt = $db->prepare("INSERT INTO app_report_parameters (report_id, lbl_param_name, param_name, param_type, is_required, default_value) VALUES (?, ?, ?, ?, ?, ?)");
+                    $pStmt = $db->prepare("INSERT INTO app_report_parameters (report_id, lbl_param_name, param_name, param_type, control_type, static_options, placeholder, is_required, default_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     foreach ($rawParams as $param) {
                         $pName  = trim($param['name'] ?? '');
                         if ($pName === '') continue;
 
                         $pLabel = trim($param['label'] ?? '') !== '' ? trim($param['label']) : null;
                         $pType  = in_array($param['type'] ?? '', ['string', 'int', 'float', 'bool', 'date']) ? $param['type'] : 'string';
+                        $pControl = in_array($param['control_type'] ?? '', ['auto', 'text', 'number', 'date', 'checkbox', 'single_select'], true)
+                            ? $param['control_type']
+                            : 'auto';
+                        $pControl = $pControl === 'auto' ? null : $pControl;
+                        $pOptions = trim($param['options'] ?? '');
+                        if ($pControl === 'single_select') {
+                            try {
+                                $options = json_decode($pOptions, true, 512, JSON_THROW_ON_ERROR);
+                            } catch (JsonException $e) {
+                                throw new RuntimeException("Options for '{$pName}' must be valid JSON.");
+                            }
+
+                            if (!is_array($options)) {
+                                throw new RuntimeException("Options for '{$pName}' must be a JSON array.");
+                            }
+
+                            foreach ($options as $option) {
+                                if (!is_array($option)
+                                    || !array_key_exists('value', $option)
+                                    || !array_key_exists('label', $option)
+                                    || !is_scalar($option['value'])
+                                    || !is_scalar($option['label'])) {
+                                    throw new RuntimeException("Each option for '{$pName}' must contain scalar value and label fields.");
+                                }
+                            }
+
+                            $pOptions = json_encode($options, JSON_THROW_ON_ERROR);
+                        } elseif ($pOptions !== '') {
+                            throw new RuntimeException("Static options are only supported for a single-select control ('{$pName}').");
+                        } else {
+                            $pOptions = null;
+                        }
+                        $pPlaceholder = trim($param['placeholder'] ?? '') !== '' ? trim($param['placeholder']) : null;
                         $pReq   = isset($param['required']) ? 1 : 0;
                         $pDef   = trim($param['default'] ?? '') !== '' ? trim($param['default']) : null;
 
-                        $pStmt->bind_param('isssis', $reportId, $pLabel, $pName, $pType, $pReq, $pDef);
+                        $pStmt->bind_param('issssssis', $reportId, $pLabel, $pName, $pType, $pControl, $pOptions, $pPlaceholder, $pReq, $pDef);
                         $pStmt->execute();
                     }
                     $pStmt->close();
                 }
 
                 $db->commit();
+                $_SESSION['manage_reports_message'] = $message;
+                header('Location: manage_reports.php');
+                exit;
             } catch (Exception $e) {
                 $db->rollback();
                 $error = "Error saving report: " . $e->getMessage();
@@ -133,7 +180,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Reports - Central Management</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="../css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <style>
     .form-control {
@@ -151,10 +198,22 @@ try {
     label { font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px; display: block; }
     .param-row {
       display: grid;
-      grid-template-columns: 2fr 2fr 1.2fr 0.6fr 1.2fr auto;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.5rem;
+      padding: 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+    .param-row .param-options {
+      grid-column: 1 / -1;
+      min-height: 72px;
+      resize: vertical;
+    }
+    .param-row .param-actions {
+      display: flex;
       align-items: center;
-      margin-bottom: 0.5rem;
+      gap: 0.75rem;
     }
     .del-btn {
       background: none;
@@ -178,7 +237,7 @@ try {
 </head>
 <body>
 
-<?php include_once __DIR__ . '/include/header.php'; ?>
+<?php include_once __DIR__ . '/../include/header.php'; ?>
 
 <main class="dashboard-container">
 
@@ -242,6 +301,10 @@ try {
 
           <!-- Procedure Parameters -->
           <h4 style="color: #28089a; margin: 1.5rem 0 0.5rem 0;">Procedure Parameters</h4>
+          <p style="color: #64748b; margin: 0 0 0.75rem;">
+            Use <strong>Auto</strong> to create an input from the Jasper type. For a dropdown, enter options as JSON, for example:
+            <code>[{"value":"1","label":"Music Ministry"}]</code>.
+          </p>
           <div id="param-list">
             <?php if (!empty($editParams)): ?>
               <?php foreach ($editParams as $idx => $param): ?>
@@ -255,11 +318,23 @@ try {
                     <option value="date" <?= $param['param_type'] === 'date' ? 'selected' : '' ?>>Date</option>
                     <option value="bool" <?= $param['param_type'] === 'bool' ? 'selected' : '' ?>>Boolean</option>
                   </select>
-                  <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
-                    <input type="checkbox" name="params[<?= $idx ?>][required]" value="1" <?= $param['is_required'] ? 'checked' : '' ?>> Req
-                  </label>
+                  <select name="params[<?= $idx ?>][control_type]" class="form-control">
+                    <option value="auto" <?= empty($param['control_type']) ? 'selected' : '' ?>>Auto control</option>
+                    <option value="text" <?= ($param['control_type'] ?? '') === 'text' ? 'selected' : '' ?>>Text input</option>
+                    <option value="number" <?= ($param['control_type'] ?? '') === 'number' ? 'selected' : '' ?>>Number input</option>
+                    <option value="date" <?= ($param['control_type'] ?? '') === 'date' ? 'selected' : '' ?>>Date picker</option>
+                    <option value="checkbox" <?= ($param['control_type'] ?? '') === 'checkbox' ? 'selected' : '' ?>>Checkbox</option>
+                    <option value="single_select" <?= ($param['control_type'] ?? '') === 'single_select' ? 'selected' : '' ?>>Dropdown</option>
+                  </select>
                   <input type="text" name="params[<?= $idx ?>][default]" class="form-control" value="<?= htmlspecialchars($param['default_value'] ?? '') ?>" placeholder="Default Val">
-                  <button type="button" class="del-btn" onclick="removeParamRow(this)">✕</button>
+                  <input type="text" name="params[<?= $idx ?>][placeholder]" class="form-control" value="<?= htmlspecialchars($param['placeholder'] ?? '') ?>" placeholder="Placeholder (text inputs)">
+                  <textarea name="params[<?= $idx ?>][options]" class="form-control param-options" placeholder='Dropdown options JSON, e.g. [{"value":"1","label":"Music Ministry"}]'><?= htmlspecialchars($param['static_options'] ?? '') ?></textarea>
+                  <div class="param-actions">
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
+                      <input type="checkbox" name="params[<?= $idx ?>][required]" value="1" <?= $param['is_required'] ? 'checked' : '' ?>> Required
+                    </label>
+                    <button type="button" class="del-btn" onclick="removeParamRow(this)">Remove</button>
+                  </div>
                 </div>
               <?php endforeach; ?>
             <?php else: ?>
@@ -273,11 +348,23 @@ try {
                   <option value="date">Date</option>
                   <option value="bool">Boolean</option>
                 </select>
-                <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
-                  <input type="checkbox" name="params[0][required]" value="1"> Req
-                </label>
+                <select name="params[0][control_type]" class="form-control">
+                  <option value="auto">Auto control</option>
+                  <option value="text">Text input</option>
+                  <option value="number">Number input</option>
+                  <option value="date">Date picker</option>
+                  <option value="checkbox">Checkbox</option>
+                  <option value="single_select">Dropdown</option>
+                </select>
                 <input type="text" name="params[0][default]" class="form-control" placeholder="Default Val">
-                <button type="button" class="del-btn" onclick="removeParamRow(this)">✕</button>
+                <input type="text" name="params[0][placeholder]" class="form-control" placeholder="Placeholder (text inputs)">
+                <textarea name="params[0][options]" class="form-control param-options" placeholder='Dropdown options JSON, e.g. [{"value":"1","label":"Music Ministry"}]'></textarea>
+                <div class="param-actions">
+                  <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
+                    <input type="checkbox" name="params[0][required]" value="1"> Required
+                  </label>
+                  <button type="button" class="del-btn" onclick="removeParamRow(this)">Remove</button>
+                </div>
               </div>
             <?php endif; ?>
           </div>
@@ -336,7 +423,7 @@ try {
   <?php endif; ?>
 </main>
 
-<?php include_once __DIR__ . '/include/footer.php'; ?>
+<?php include_once __DIR__ . '/../include/footer.php'; ?>
 
 <script>
 let paramCounter = <?= count($editParams) > 0 ? count($editParams) : 1 ?>;
@@ -355,11 +442,23 @@ function addParamRow() {
       <option value="date">Date</option>
       <option value="bool">Boolean</option>
     </select>
-    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
-      <input type="checkbox" name="params[${paramCounter}][required]" value="1"> Req
-    </label>
+    <select name="params[${paramCounter}][control_type]" class="form-control">
+      <option value="auto">Auto control</option>
+      <option value="text">Text input</option>
+      <option value="number">Number input</option>
+      <option value="date">Date picker</option>
+      <option value="checkbox">Checkbox</option>
+      <option value="single_select">Dropdown</option>
+    </select>
     <input type="text" name="params[${paramCounter}][default]" class="form-control" placeholder="Default Val">
-    <button type="button" class="del-btn" onclick="removeParamRow(this)">✕</button>
+    <input type="text" name="params[${paramCounter}][placeholder]" class="form-control" placeholder="Placeholder (text inputs)">
+    <textarea name="params[${paramCounter}][options]" class="form-control param-options" placeholder='Dropdown options JSON, e.g. [{"value":"1","label":"Music Ministry"}]'></textarea>
+    <div class="param-actions">
+      <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
+        <input type="checkbox" name="params[${paramCounter}][required]" value="1"> Required
+      </label>
+      <button type="button" class="del-btn" onclick="removeParamRow(this)">Remove</button>
+    </div>
   `;
   container.appendChild(row);
   paramCounter++;

@@ -6,16 +6,21 @@
  */
 function renderReportControls(controls, containerId) {
   const container = document.getElementById(containerId);
-  container.innerHTML = ''; // Clear previous elements
+  if (!container) {
+    return;
+  }
+
+  container.replaceChildren();
 
   controls.forEach(control => {
     // 1. Create Form Group Wrapper
     const group = document.createElement('div');
-    group.className = 'form-group mb-3';
+    group.className = 'field-group';
+    group.style.setProperty('--colspan', '6');
 
     // 2. Create Label
     const label = document.createElement('label');
-    label.className = 'form-label font-weight-bold';
+    label.htmlFor = control.name;
     label.textContent = control.label;
     if (control.required) {
       label.textContent += ' *';
@@ -30,6 +35,7 @@ function renderReportControls(controls, containerId) {
       case 'multi_select':
         inputElement = document.createElement('select');
         inputElement.name = control.name;
+        inputElement.id = control.name;
         inputElement.multiple = true;
         inputElement.className = 'form-control select-multi';
         populateOptions(inputElement, control);
@@ -39,6 +45,7 @@ function renderReportControls(controls, containerId) {
       case 'single_select':
         inputElement = document.createElement('select');
         inputElement.name = control.name;
+        inputElement.id = control.name;
         inputElement.className = 'form-control';
         
         // Add default "Select All" or "Choose..." option if not required
@@ -57,6 +64,7 @@ function renderReportControls(controls, containerId) {
         inputElement = document.createElement('input');
         inputElement.type = control.type === 'date' ? 'date' : 'datetime-local';
         inputElement.name = control.name;
+        inputElement.id = control.name;
         inputElement.className = 'form-control';
         if (control.default_value) {
           inputElement.value = control.default_value; // e.g. "2026-01-01"
@@ -69,9 +77,10 @@ function renderReportControls(controls, containerId) {
         inputElement = document.createElement('input');
         inputElement.type = 'checkbox';
         inputElement.name = control.name;
+        inputElement.id = control.name;
         inputElement.className = 'form-check-input';
-        inputElement.value = 'true';
-        if (control.default_value === true) {
+        inputElement.value = '1';
+        if (control.default_value === true || control.default_value === 1 || control.default_value === '1') {
           inputElement.checked = true;
         }
         
@@ -86,6 +95,7 @@ function renderReportControls(controls, containerId) {
         inputElement = document.createElement('input');
         inputElement.type = control.type === 'number' ? 'number' : 'text';
         inputElement.name = control.name;
+        inputElement.id = control.name;
         inputElement.className = 'form-control';
         if (control.placeholder) {
           inputElement.placeholder = control.placeholder;

@@ -479,7 +479,7 @@ $canEdit = canEdit();
                 <option value="Cash">Cash</option>
                 <option value="Check">Check</option>
                 <option value="Credit Card">Credit Card</option>
-                <option value="Online">Online (Givelify)</option>
+                <option value="Online">Givelify</option>
               </select>
             </div>
 

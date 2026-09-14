@@ -92,6 +92,7 @@ $canEdit = canEdit();
     .modal-card { background: #fff; border-radius: 8px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .badge-expense { background-color: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
     .badge-income { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-secondary { background-color: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
@@ -550,12 +551,31 @@ $canEdit = canEdit();
                 $tbody.append('<tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">No actual transactions recorded.</td></tr>');
             } else {
                 $.each(actuals, function(i, act) {
-                    let badgeClass = act.entry_type === 'Expense' ? 'badge-expense' : 'badge-income';
+                    let descLc = String(act.description || '').toLowerCase();
+                    let isPendingIncome = act.entry_type === 'Income' && descLc.indexOf('registration fee pending') === 0;
+                    let isVerifiedIncome = act.entry_type === 'Income' && descLc.indexOf('registration fee paid') === 0;
+
+                    let badgeClass, badgeLabel;
+                    if (isPendingIncome) {
+                        badgeClass = 'badge-secondary';
+                        badgeLabel = 'Income (Pending)';
+                    } else if (isVerifiedIncome) {
+                        badgeClass = 'badge-income';
+                        badgeLabel = 'Income (Verified)';
+                    } else if (act.entry_type === 'Expense') {
+                        badgeClass = 'badge-expense';
+                        badgeLabel = 'Expense';
+                    } else {
+                        badgeClass = 'badge-income';
+                        badgeLabel = 'Income';
+                    }
+
                     let linked = act.budget_item_name ? `<br><small style="color:#64748b;">Line: ${escapeHtml(act.budget_item_name)}</small>` : '';
+                    let rowStyle = isPendingIncome ? ' style="opacity: 0.75;"' : '';
                     $tbody.append(`
-                        <tr>
+                        <tr${rowStyle}>
                             <td>${escapeHtml(act.description)}${linked}</td>
-                            <td><span class="${badgeClass}">${escapeHtml(act.entry_type)}</span></td>
+                            <td><span class="${badgeClass}">${badgeLabel}</span></td>
                             <td>$${parseFloat(act.amount).toFixed(2)}</td>
                         </tr>
                     `);

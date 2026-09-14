@@ -1,15 +1,24 @@
 <?php
-require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/../include/auth.php';
 
 if (!isAdmin()) {
     http_response_code(403);
     exit('Access denied.');
 }
 
-$reportDirectory = __DIR__ . '/reports';
+$reportDirectory = __DIR__ . '/../reports';
 $allowedExtensions = ['jrxml', 'jasper'];
 $message = '';
 $error = '';
+
+if (isset($_SESSION['report_files_message'])) {
+    $message = $_SESSION['report_files_message'];
+    unset($_SESSION['report_files_message']);
+}
+if (isset($_SESSION['report_files_error'])) {
+    $error = $_SESSION['report_files_error'];
+    unset($_SESSION['report_files_error']);
+}
 
 if (!is_dir($reportDirectory) && !mkdir($reportDirectory, 0775, true)) {
     $error = 'The reports directory could not be created.';
@@ -24,13 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
         $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
         if (!$file || $file['error'] !== UPLOAD_ERR_OK || $file['size'] <= 0) {
-            $error = 'Select a valid report file.';
+            $_SESSION['report_files_error'] = 'Select a valid report file.';
         } elseif (!in_array($extension, $allowedExtensions, true)) {
-            $error = 'Only .jrxml and .jasper report files may be uploaded.';
+            $_SESSION['report_files_error'] = 'Only .jrxml and .jasper report files may be uploaded.';
         } elseif (!move_uploaded_file($file['tmp_name'], $reportDirectory . '/' . $fileName)) {
-            $error = 'The report file could not be saved.';
+            $_SESSION['report_files_error'] = 'The report file could not be saved.';
         } else {
-            $message = "Report file '{$fileName}' uploaded successfully.";
+            $_SESSION['report_files_message'] = "Report file '{$fileName}' uploaded successfully.";
         }
     } elseif ($action === 'delete') {
         $fileName = basename($_POST['file_name'] ?? '');
@@ -38,13 +47,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
         $filePath = $reportDirectory . '/' . $fileName;
 
         if (!in_array($extension, $allowedExtensions, true) || !is_file($filePath)) {
-            $error = 'The selected report file was not found.';
+            $_SESSION['report_files_error'] = 'The selected report file was not found.';
         } elseif (!unlink($filePath)) {
-            $error = 'The report file could not be deleted.';
+            $_SESSION['report_files_error'] = 'The report file could not be deleted.';
         } else {
-            $message = "Report file '{$fileName}' deleted.";
+            $_SESSION['report_files_message'] = "Report file '{$fileName}' deleted.";
         }
     }
+    header('Location: report_files.php');
+    exit;
 }
 
 $reportFiles = [];
@@ -61,6 +72,18 @@ if (is_dir($reportDirectory)) {
     }
 }
 usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'], $b['name']));
+
+// Map each saved template file to its configured report_key (if any), so we can
+// link directly into the Run Reports page to preview the actual rendered report.
+$reportKeysByFile = [];
+if (isset($db) && $db instanceof mysqli) {
+    $mapQuery = $db->query("SELECT report_key, file_name FROM app_reports WHERE is_active = 1");
+    if ($mapQuery) {
+        foreach ($mapQuery->fetch_all(MYSQLI_ASSOC) as $row) {
+            $reportKeysByFile[$row['file_name']] = $row['report_key'];
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -68,10 +91,10 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Saved Reports - Central Management</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-<?php include_once __DIR__ . '/include/header.php'; ?>
+<?php include_once __DIR__ . '/../include/header.php'; ?>
 <main class="dashboard-container">
   <h2>Saved Report Files</h2>
   <p>Upload, read, or delete Jasper report templates stored in the reports directory.</p>
@@ -81,7 +104,7 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
 
   <section class="card" style="margin-bottom:1.5rem;">
     <h3>Upload Report</h3>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" action="report_files.php" enctype="multipart/form-data">
       <input type="hidden" name="action" value="upload">
       <input type="file" name="report_file" accept=".jrxml,.jasper" required>
       <button type="submit" class="btn-primary">Upload Report</button>
@@ -101,8 +124,12 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
           <td><?= number_format($reportFile['size'] / 1024, 1) ?> KB</td>
           <td><?= htmlspecialchars(date('Y-m-d H:i', $reportFile['modified'])) ?></td>
           <td>
-            <a class="btn btn-sm btn-secondary" href="report_file.php?file=<?= rawurlencode($reportFile['name']) ?>" target="_blank">Read</a>
-            <form method="post" style="display:inline;" onsubmit="return confirm('Delete this report file?');">
+            <?php $mappedKey = $reportKeysByFile[$reportFile['name']] ?? null; ?>
+            <?php if ($mappedKey !== null): ?>
+              <a class="btn btn-sm btn-primary" href="admin_reports.php?report=<?= rawurlencode($mappedKey) ?>" target="_blank">Preview Report</a>
+            <?php endif; ?>
+            <a class="btn btn-sm btn-secondary" href="view_report_file.php?file=<?= rawurlencode($reportFile['name']) ?>" target="_blank">View XML</a>
+            <form method="post" action="report_files.php" style="display:inline;" onsubmit="return confirm('Delete this report file?');">
               <input type="hidden" name="action" value="delete">
               <input type="hidden" name="file_name" value="<?= htmlspecialchars($reportFile['name']) ?>">
               <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -114,6 +141,6 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
     </table>
   </section>
 </main>
-<?php include_once __DIR__ . '/include/footer.php'; ?>
+<?php include_once __DIR__ . '/../include/footer.php'; ?>
 </body>
 </html>

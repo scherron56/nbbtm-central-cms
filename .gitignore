@@ -4,3 +4,6 @@
 
 
 
+
+# Generated report PDFs (kept on disk for on-screen review, not version controlled)
+reports/output/*.pdf

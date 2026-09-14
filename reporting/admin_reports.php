@@ -5,11 +5,12 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // auth.php loads the session and automatically imports config/db.php
-require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/../include/auth.php';
 
 $userIsAdmin = isAdmin();
 $reports = [];
 $dbError = '';
+$preselectedReport = $_GET['report'] ?? '';
 
 // Only query database if user is confirmed admin
 if ($userIsAdmin) {
@@ -34,8 +35,7 @@ if ($userIsAdmin) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Run Reports - Central Management</title>
   <link href="https://api.fontshare.com/v2/css?f[]=bespoke-sans@301,400,401,500,501,700,701,800,801,1,2&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../css/style.css">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <style>
     .form-wrapper {
@@ -60,7 +60,7 @@ if ($userIsAdmin) {
 </head>
 <body>
 
-<?php include_once __DIR__ . '/include/header.php'; ?>
+<?php include_once __DIR__ . '/../include/header.php'; ?>
 
 <main class="dashboard-container">
 
@@ -82,10 +82,10 @@ if ($userIsAdmin) {
         
         <div class="field-group" style="--colspan: 12;">
           <label for="report_select">Select Report</label>
-          <select id="report_select" name="report" class="form-control" required onchange="loadReportParams(this.value)">
+          <select id="report_select" name="report" class="form-control" required onchange="loadReportParameters(this.value)">
             <option value="">-- Choose a Report --</option>
             <?php foreach ($reports as $rep): ?>
-              <option value="<?= htmlspecialchars($rep['report_key']) ?>">
+              <option value="<?= htmlspecialchars($rep['report_key']) ?>" <?= ($rep['report_key'] === $preselectedReport) ? 'selected' : '' ?>>
                 <?= htmlspecialchars($rep['report_title']) ?>
               </option>
             <?php endforeach; ?>
@@ -105,7 +105,18 @@ if ($userIsAdmin) {
 
 </main>
 
-<?php include_once __DIR__ . '/include/footer.php'; ?>
-<script src="js/admin_reports.js"></script>
+<?php include_once __DIR__ . '/../include/footer.php'; ?>
+<script src="js/paramConfig.js"></script>
+<script src="js/report-render.js"></script>
+<?php if ($preselectedReport !== ''): ?>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const select = document.getElementById('report_select');
+    if (select && select.value) {
+      loadReportParameters(select.value);
+    }
+  });
+</script>
+<?php endif; ?>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/../include/auth.php';
 
 if (!isAdmin()) {
     http_response_code(403);
@@ -8,7 +8,7 @@ if (!isAdmin()) {
 
 $fileName = basename($_GET['file'] ?? '');
 $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-$filePath = __DIR__ . '/reports/' . $fileName;
+$filePath = __DIR__ . '/../reports/' . $fileName;
 
 if (!in_array($extension, ['jrxml', 'jasper'], true) || !is_file($filePath)) {
     http_response_code(404);

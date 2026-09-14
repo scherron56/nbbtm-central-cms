@@ -41,6 +41,7 @@ $canEdit = canEdit();
     
     .badge-expense { background-color: #fee2e2; color: #991b1b; padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
     .badge-income { background-color: #dcfce7; color: #166534; padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-pending { background-color: #fef3c7; color: #b45309; padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
     .modal-card { background: #ffffff; border-radius: 8px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
   </style>
@@ -67,7 +68,7 @@ $canEdit = canEdit();
     </div>
 
     <div id="dashboardContent" style="display: none;">
-        
+
         <!-- Planned vs Actual KPI Metrics -->
         <h3>Planned vs. Actual Financial Performance</h3>
         <div class="kpi-row">
@@ -88,6 +89,10 @@ $canEdit = canEdit();
                 <div class="value" id="kpi_act_income" style="color: #166534;">$0.00</div>
             </div>
             <div class="kpi-card">
+                <div class="title">Pending Income</div>
+                <div class="value" id="kpi_pending_income" style="color: #d97706;">$0.00</div>
+            </div>
+            <div class="kpi-card">
                 <div class="title">Actual Net Balance</div>
                 <div class="value" id="kpi_act_net" style="color: #2563eb;">$0.00</div>
             </div>
@@ -95,7 +100,7 @@ $canEdit = canEdit();
 
         <!-- Side-by-Side Financial Performance Tables -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 20px;">
-            
+
             <!-- Planned Budget Table -->
             <div class="card">
                 <h3 style="margin-top:0;">Planned Budget Items</h3>
@@ -119,6 +124,7 @@ $canEdit = canEdit();
                         <tr>
                             <th>Description</th>
                             <th>Type</th>
+                            <th>Status</th>
                             <th>Amount</th>
                         </tr>
                     </thead>
@@ -137,7 +143,7 @@ $canEdit = canEdit();
         <h3 style="margin-top:0; margin-bottom: 15px;">Add Actual Transaction</h3>
         <form id="formAddActual">
             <input type="hidden" id="actual_prg_evnt_id" name="prg_evnt_id">
-            
+
             <div style="margin-bottom: 12px;">
                 <label style="display:block; margin-bottom: 4px; font-weight:600;">Budget Line Item (Optional):</label>
                 <select id="actual_budget_item_id" name="budget_item_id" class="form-control">
@@ -231,27 +237,43 @@ $(document).ready(function() {
                     $planBody.append('<tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">No budget items planned.</td></tr>');
                 }
 
-                // Calculate Actual Totals
-                let actExp = 0, actInc = 0;
+                // Calculate Actual Totals (Pending income tracked separately)
+                let actExp = 0, actInc = 0, pendInc = 0;
                 let $actBody = $('#actualsTable tbody').empty();
                 if (res.actuals && res.actuals.length > 0) {
                     $.each(res.actuals, function(i, a) {
                         let amt = parseFloat(a.amount) || 0;
-                        if (a.entry_type === 'Expense') actExp += amt;
-                        else actInc += amt;
+                        let isPending = String(a.status || '').toLowerCase() === 'pending';
+                        if (a.entry_type === 'Expense') {
+                            actExp += amt;
+                        } else if (isPending) {
+                            pendInc += amt; // pending income not counted as verified
+                        } else {
+                            actInc += amt;
+                        }
 
                         let linkedItem = a.budget_item_name ? `<br><small style="color:#64748b;">Line: ${escapeHtml(a.budget_item_name)}</small>` : '';
 
+                        let statusBadge;
+                        if (a.entry_type === 'Expense') {
+                            statusBadge = '<span class="badge-expense">N/A</span>';
+                        } else if (isPending) {
+                            statusBadge = '<span class="badge-pending">Pending</span>';
+                        } else {
+                            statusBadge = '<span class="badge-income">Verified</span>';
+                        }
+
                         $actBody.append(`
-                            <tr>
+                            <tr${isPending ? ' style="opacity: 0.75;"' : ''}>
                                 <td>${escapeHtml(a.description)}${linkedItem}</td>
                                 <td><span class="${a.entry_type === 'Expense' ? 'badge-expense' : 'badge-income'}">${escapeHtml(a.entry_type)}</span></td>
+                                <td>${statusBadge}</td>
                                 <td>$${amt.toFixed(2)}</td>
                             </tr>
                         `);
                     });
                 } else {
-                    $actBody.append('<tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">No actual transactions recorded.</td></tr>');
+                    $actBody.append('<tr><td colspan="4" style="text-align:center; color:#64748b; padding:10px;">No actual transactions recorded.</td></tr>');
                 }
 
                 // Update Dashboard KPI Values
@@ -259,8 +281,9 @@ $(document).ready(function() {
                 $('#kpi_plan_income').text('$' + planInc.toFixed(2));
                 $('#kpi_act_expense').text('$' + actExp.toFixed(2));
                 $('#kpi_act_income').text('$' + actInc.toFixed(2));
+                $('#kpi_pending_income').text('$' + pendInc.toFixed(2));
 
-                let net = actInc - actExp;
+                let net = (actInc + pendInc) - actExp;
                 $('#kpi_act_net').text((net >= 0 ? '+' : '') + '$' + net.toFixed(2))
                                  .css('color', net >= 0 ? '#16a34a' : '#dc2626');
 

@@ -10,7 +10,7 @@
 		<parameterDescription><![CDATA[Association IDs]]></parameterDescription>
 	</parameter>
 	<parameter name="IMAGE_DIR" class="java.lang.String">
-		<defaultValueExpression><![CDATA[http:/localhost/images/]]></defaultValueExpression>
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
 	</parameter>
 	<queryString>
 		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_id}, $P{p_grp_ids})]]>
@@ -92,7 +92,7 @@
 				<reportElement x="-1" y="0" width="571" height="110" uuid="701fd0d8-0105-4d6a-b28c-4fb11acaa8c5">
 					<printWhenExpression><![CDATA[$V{PAGE_NUMBER}.intValue() == 1]]></printWhenExpression>
 				</reportElement>
-				<imageExpression><![CDATA[$P(IMAGE_DIR} + "nbbtm header - no addr.png"]]></imageExpression>
+				<imageExpression><![CDATA[$P{IMAGE_DIR} + "nbbtm header - no addr.png"]]></imageExpression>
 			</image>
 			<textField>
 				<reportElement x="20" y="100" width="710" height="30" printWhenGroupChanges="Group1" uuid="ff7e4ca9-c8af-4562-b7af-d1b51d3e314b"/>
@@ -105,7 +105,7 @@
 				<reportElement x="0" y="0" width="570" height="110" uuid="376b9599-b3c7-4ab6-baad-c88772527a50">
 					<printWhenExpression><![CDATA[$V{PAGE_NUMBER} > 1]]></printWhenExpression>
 				</reportElement>
-				<imageExpression><![CDATA[$P{$IMAGE_DIR} + "nbbtm header - no addr.png"]]></imageExpression>
+				<imageExpression><![CDATA[$P{IMAGE_DIR} + "nbbtm header - no addr.png"]]></imageExpression>
 			</image>
 		</band>
 	</pageHeader>

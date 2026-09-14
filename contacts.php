@@ -397,15 +397,34 @@ $(document).ready(function() {
     $('#ministry-section').toggle(shouldShow);
   }
 
-  function getMemberContactTypeId() {
-    let memberTypeId = '';
+  function getContactTypeId(description) {
+    let contactTypeId = '';
     $('#contact_type_id option').each(function() {
-      if ($(this).text().trim().toLowerCase() === 'member') {
-        memberTypeId = $(this).val();
+      if ($(this).text().trim().toLowerCase() === description.toLowerCase()) {
+        contactTypeId = $(this).val();
         return false;
       }
     });
-    return memberTypeId;
+    return contactTypeId;
+  }
+
+  function getDefaultContactTypeId() {
+    const isChild = $('#is_child').is(':checked');
+    const isMember = $('#is_member').is(':checked');
+    const description = isChild
+      ? (isMember ? 'Youth Member' : 'Youth Participant')
+      : (isMember ? 'Member' : '');
+
+    return description ? getContactTypeId(description) : '';
+  }
+
+  function syncDefaultContactType() {
+    const defaultTypeId = getDefaultContactTypeId();
+    if (defaultTypeId) {
+      $('#contact_type_id').val(defaultTypeId);
+    } else if (!$('#is_child').is(':checked') && !$('#is_member').is(':checked')) {
+      $('#contact_type_id').val('');
+    }
   }
 
   function buildMinistryCheckboxes(ministryList, roleList, savedMinistries = []) {
@@ -489,20 +508,13 @@ $(document).ready(function() {
     if (memberSyncLock) return;
     memberSyncLock = true;
 
-    let memberTypeId = getMemberContactTypeId();
-    let $typeSelect = $('#contact_type_id');
-
-    if (isChecked) {
-      if (memberTypeId) {
-        $typeSelect.val(memberTypeId);
-      }
-    } else {
-      if (memberTypeId && String($typeSelect.val()) === String(memberTypeId)) {
-        $typeSelect.val('');
-      }
-    }
+    syncDefaultContactType();
 
     memberSyncLock = false;
+  });
+
+  $('#is_child').change(function() {
+    syncDefaultContactType();
   });
 
   $(document).on('change', '#contact_type_id', function() {
@@ -512,7 +524,7 @@ $(document).ready(function() {
     let selectedText = $(this).find('option:selected').text().trim().toLowerCase();
     let $memberCheckbox = $('#is_member');
 
-    if (selectedText === 'member') {
+    if (selectedText === 'member' || selectedText === 'youth member') {
       if (!$memberCheckbox.is(':checked')) {
         $memberCheckbox.prop('checked', true);
         toggleMemberSections(true);
@@ -640,6 +652,7 @@ $(document).ready(function() {
         if (selPhone2) $('#phone_2_type').val(selPhone2);
         if (selPhone3) $('#phone_3_type').val(selPhone3);
         if (selContactType) $('#contact_type_id').val(selContactType);
+        if (!$('#contact_id').val()) syncDefaultContactType();
 
         if (!$('#contact_id').val() && $('#checkbox-container').is(':empty')) {
           buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
@@ -794,10 +807,7 @@ $(document).ready(function() {
         $('#is_member').prop('checked', isMember);
         
         $('#contact_type_id').val(contact.contact_type_id || '');
-        if (!$('#contact_type_id').val() && isMember) {
-          let memberTypeId = getMemberContactTypeId();
-          if (memberTypeId) $('#contact_type_id').val(memberTypeId);
-        }
+        if (!$('#contact_type_id').val()) syncDefaultContactType();
 
         toggleMemberSections(isMember);
         buildMinistryCheckboxes(data.ministryList, data.roleList, data.ministries);
