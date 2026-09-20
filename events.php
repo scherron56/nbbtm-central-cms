@@ -641,8 +641,9 @@ $canEdit = canEdit();
             } else {
                 $.each(actuals, function(i, act) {
                     let descLc = String(act.description || '').toLowerCase();
-                    let isPendingIncome = act.entry_type === 'Income' && descLc.indexOf('registration fee pending') === 0;
-                    let isVerifiedIncome = act.entry_type === 'Income' && descLc.indexOf('registration fee paid') === 0;
+                    let statusVal = String(act.payment_status || act.status || '').toLowerCase();
+                    let isPendingIncome = act.entry_type === 'Income' && (statusVal === 'pending' || descLc.indexOf('registration fee pending') === 0);
+                    let isVerifiedIncome = act.entry_type === 'Income' && !isPendingIncome;
 
                     let badgeClass, badgeLabel;
                     if (isPendingIncome) {

@@ -243,7 +243,8 @@ $(document).ready(function() {
                 if (res.actuals && res.actuals.length > 0) {
                     $.each(res.actuals, function(i, a) {
                         let amt = parseFloat(a.amount) || 0;
-                        let isPending = String(a.status || '').toLowerCase() === 'pending';
+                        let statusVal = String(a.payment_status || a.status || '').toLowerCase();
+                        let isPending = statusVal === 'pending' || String(a.description || '').toLowerCase().indexOf('registration fee pending') === 0;
                         if (a.entry_type === 'Expense') {
                             actExp += amt;
                         } else if (isPending) {

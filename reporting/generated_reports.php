@@ -103,7 +103,7 @@ usort($generatedReports, static fn(array $a, array $b): int => $b['modified'] <=
           <td><?= htmlspecialchars(date('Y-m-d H:i', $report['modified'])) ?></td>
           <td>
             <a class="btn btn-sm btn-primary" href="preview_generated_report.php?file=<?= rawurlencode($report['name']) ?>" target="_blank">View</a>
-            <form method="post" action="generated_reports.php" style="display:inline;" onsubmit="return confirm('Delete this generated report?');">
+            <form method="post" action="generated_reports.php" class="inline-form" onsubmit="return confirm('Delete this generated report?');">
               <input type="hidden" name="action" value="delete">
               <input type="hidden" name="file_name" value="<?= htmlspecialchars($report['name']) ?>">
               <button type="submit" class="btn btn-sm btn-danger">Delete</button>

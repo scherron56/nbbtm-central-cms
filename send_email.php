@@ -80,6 +80,16 @@ function sendEmail($toEmail, $toName, $subject, $htmlContent, $attachments = [],
             }
         }
 
+        // Embed the organization logo inline so templates can reference it via
+        // <img src="cid:nbbtm-logo">. Only attached when actually referenced to
+        // avoid adding unnecessary weight to emails that don't use it.
+        if (strpos($htmlContent, 'cid:nbbtm-logo') !== false) {
+            $logoPath = __DIR__ . '/assets/img/nbbtm-logo-blue-web826.png';
+            if (file_exists($logoPath)) {
+                $mail->addEmbeddedImage($logoPath, 'nbbtm-logo', 'nbbtm-logo.png');
+            }
+        }
+
         // Message Content
         $mail->isHTML(true);
         $mail->Subject = $subject;

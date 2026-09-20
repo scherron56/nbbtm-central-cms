@@ -27,12 +27,68 @@ if (!file_exists(__DIR__ . '/../vendor/autoload.php')) {
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use PHPJasper\PHPJasper;
- 
 
+function buildJasperClasspath(): array
+{
+    static $classpath = null;
+
+    if ($classpath === null) {
+        $classpath = [];
+
+        // Auto-discover every font extension jar dropped into storage/fonts/ so new
+        // font families can be added without touching this classpath list.
+        $candidateJars = glob(__DIR__ . '/../storage/fonts/*.jar') ?: [];
+        $candidateJars[] = __DIR__ . '/../vendor/geekcom/phpjasper/bin/jasperstarter/lib/custom-fonts.jar';
+
+        foreach ($candidateJars as $jar) {
+            if (file_exists($jar) && !in_array($jar, $classpath, true)) {
+                $classpath[] = $jar;
+            }
+        }
+
+        $existingClasspath = getenv('CLASSPATH');
+        if ($existingClasspath !== false && $existingClasspath !== '') {
+            foreach (explode(PATH_SEPARATOR, $existingClasspath) as $jar) {
+                if ($jar !== '' && !in_array($jar, $classpath, true)) {
+                    $classpath[] = $jar;
+                }
+            }
+        }
+
+        putenv('CLASSPATH=' . implode(PATH_SEPARATOR, $classpath));
+    }
+
+    return $classpath;
+}
+
+function resolveSubreportDir(string $reportPath): ?string
+{
+    static $resolved = [];
+
+    $cacheKey = realpath($reportPath) ?: $reportPath;
+    if (!isset($resolved[$cacheKey])) {
+        $resolved[$cacheKey] = null;
+
+        $candidateDirs = [
+            __DIR__ . '/../reports/subreports',
+            __DIR__ . '/../reports',
+            dirname($reportPath) . '/subreports',
+        ];
+
+        foreach ($candidateDirs as $candidate) {
+            $realPath = realpath($candidate);
+            if ($realPath !== false && is_dir($realPath)) {
+                $resolved[$cacheKey] = rtrim($realPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                break;
+            }
+        }
+    }
+
+    return $resolved[$cacheKey];
+}
 
 // 1. Set the CLASSPATH before PHPJasper runs Java
-$fontJar =  __DIR__ . '/../vendor/geekcom/phpjasper/bin/jasperstarter/lib/custom-fonts.jar';
-putenv('CLASSPATH=' . $fontJar . PATH_SEPARATOR . getenv('CLASSPATH'));
+buildJasperClasspath();
 
 // 4. Retrieve Report Key
 $reportKey = trim($_POST['report'] ?? $_GET['report'] ?? '');
@@ -91,6 +147,13 @@ while ($param = $paramResult->fetch_assoc()) {
 }
 $stmt->close();
 
+// Provide shared Jasper parameters once so subreports and assets resolve
+// consistently regardless of the current working directory.
+$subreportDir = resolveSubreportDir($inputPath);
+if ($subreportDir !== null) {
+    $jasperParams['SUBREPORT_DIR'] = $subreportDir;
+}
+
 // Provide the shared IMAGE_DIR parameter for report templates (e.g. letterhead
 // images) that declare it; only pass it when the .jrxml actually defines this
 // parameter, since JasperStarter errors on unknown -P parameters.
@@ -120,17 +183,15 @@ if (file_exists('/opt/java8/bin/java')) {
 // 10. Database Connection Parameters
 $options = [
     'format' => ['pdf'],
-    'params' => $jasperParams, //
-    'classpath' => [
-        __DIR__ . '/../storage/fonts/custom-fonts.jar'
-    ],
+    'params' => $jasperParams,
+    'classpath' => buildJasperClasspath(),
     'db_connection' => [
-        'driver'   => 'mysql', //
-        'username' => USER,     // from config/db.php
-        'password' => PASSWORD, // from config/db.php
-        'host'     => HOST,     // from config/db.php
-        'database' => DB_NAME,  // from config/db.php
-        'port'     => '3306' //
+        'driver'   => 'mysql',
+        'username' => USER,
+        'password' => PASSWORD,
+        'host'     => HOST,
+        'database' => DB_NAME,
+        'port'     => '3306'
     ]
 ];
 

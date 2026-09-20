@@ -130,15 +130,46 @@ switch ($action) {
             $attachments = $attStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $attStmt->close();
 
-            // Fetch Actual Transactions
+            // Fetch Actual Transactions (with payment_status from prg_evnt_registrations)
             $actStmt = $db->prepare("
-                SELECT a.actual_id, a.budget_item_id, a.entry_type, a.description, a.amount, a.created_at, b.item_description AS budget_item_name
+                SELECT 
+                    a.actual_id, 
+                    a.budget_item_id, 
+                    a.entry_type, 
+                    a.description, 
+                    a.amount, 
+                    a.created_at, 
+                    b.item_description AS budget_item_name,
+                    COALESCE(
+                        r.payment_status,
+                        CASE 
+                            WHEN LOWER(a.description) LIKE 'registration fee pending%' THEN 'Pending'
+                            WHEN LOWER(a.description) LIKE 'registration fee paid%' THEN 'Paid'
+                            WHEN a.entry_type = 'Expense' THEN 'N/A'
+                            ELSE 'Paid'
+                        END
+                    ) AS payment_status,
+                    COALESCE(
+                        r.payment_status,
+                        CASE 
+                            WHEN LOWER(a.description) LIKE 'registration fee pending%' THEN 'Pending'
+                            WHEN LOWER(a.description) LIKE 'registration fee paid%' THEN 'Paid'
+                            WHEN a.entry_type = 'Expense' THEN 'N/A'
+                            ELSE 'Paid'
+                        END
+                    ) AS status
                 FROM prg_evnt_budget_actuals a
                 LEFT JOIN prg_evnt_budget_items b ON a.budget_item_id = b.budget_item_id
+                LEFT JOIN (
+                    SELECT r.prg_evnt_id, r.payment_status, CONCAT(c.first_name, ' ', c.last_name) AS full_name
+                    FROM prg_evnt_registrations r
+                    JOIN contacts c ON r.contact_id = c.contact_id
+                    WHERE r.prg_evnt_id = ?
+                ) r ON a.prg_evnt_id = r.prg_evnt_id AND a.description LIKE CONCAT('%', r.full_name, '%')
                 WHERE a.prg_evnt_id = ?
                 ORDER BY a.created_at DESC
             ");
-            $actStmt->bind_param("i", $prgevntId);
+            $actStmt->bind_param("ii", $prgevntId, $prgevntId);
             $actStmt->execute();
             $actuals = $actStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $actStmt->close();

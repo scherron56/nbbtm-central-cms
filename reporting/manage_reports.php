@@ -80,12 +80,28 @@ if ($userIsAdmin) {
                         if ($pName === '') continue;
 
                         $pLabel = trim($param['label'] ?? '') !== '' ? trim($param['label']) : null;
+                        if (strtolower($pName) === 'sel_opt' && ($pLabel === null || $pLabel === '')) {
+                            $pLabel = 'Print Group';
+                        }
                         $pType  = in_array($param['type'] ?? '', ['string', 'int', 'float', 'bool', 'date']) ? $param['type'] : 'string';
                         $pControl = in_array($param['control_type'] ?? '', ['auto', 'text', 'number', 'date', 'checkbox', 'single_select'], true)
                             ? $param['control_type']
                             : 'auto';
                         $pControl = $pControl === 'auto' ? null : $pControl;
                         $pOptions = trim($param['options'] ?? '');
+
+                        if (strtolower($pName) === 'sel_opt') {
+                            $pType = 'string';
+                            $pControl = 'single_select';
+                            if ($pOptions === '') {
+                                $pOptions = json_encode([
+                                    ['value' => '', 'label' => 'Everyone'],
+                                    ['value' => 'Y', 'label' => 'Youth'],
+                                    ['value' => 'A', 'label' => 'Adults'],
+                                ], JSON_THROW_ON_ERROR);
+                            }
+                        }
+
                         if ($pControl === 'single_select') {
                             try {
                                 $options = json_decode($pOptions, true, 512, JSON_THROW_ON_ERROR);
@@ -116,6 +132,9 @@ if ($userIsAdmin) {
                         $pPlaceholder = trim($param['placeholder'] ?? '') !== '' ? trim($param['placeholder']) : null;
                         $pReq   = isset($param['required']) ? 1 : 0;
                         $pDef   = trim($param['default'] ?? '') !== '' ? trim($param['default']) : null;
+                        if (strtolower($pName) === 'sel_opt' && ($pDef === null || $pDef === '')) {
+                            $pDef = '';
+                        }
 
                         $pStmt->bind_param('issssssis', $reportId, $pLabel, $pName, $pType, $pControl, $pOptions, $pPlaceholder, $pReq, $pDef);
                         $pStmt->execute();
@@ -276,6 +295,11 @@ try {
               <a href="manage_reports.php" style="color: #64748b; font-size: 0.85rem; text-decoration: none;">+ Add New Instead</a>
             <?php endif; ?>
           </div>
+
+          <p style="color: #64748b; margin: 0 0 1rem;">
+            Need to build the JSON for a dropdown parameter's options?
+            Use the <a href="option_builder.php">Dropdown Option Builder</a>.
+          </p>
           
           <div class="form-grid-section-12">
             <div class="field-group" style="--colspan: 6;">
@@ -428,6 +452,37 @@ try {
 <script>
 let paramCounter = <?= count($editParams) > 0 ? count($editParams) : 1 ?>;
 
+function applyDefaultPresetForSelOpt(row) {
+  const nameInput = row.querySelector('input[name$="[name]"]');
+  if (!nameInput) return;
+
+  const applyPreset = () => {
+    const paramName = (nameInput.value || '').trim().toLowerCase();
+    if (paramName !== 'sel_opt') return;
+
+  const labelInput = row.querySelector('input[name$="[label]"]');
+  const typeSelect = row.querySelector('select[name$="[type]"]');
+  const controlSelect = row.querySelector('select[name$="[control_type]"]');
+  const defaultInput = row.querySelector('input[name$="[default]"]');
+  const optionsInput = row.querySelector('textarea[name$="[options]"]');
+
+  if (labelInput && !labelInput.value.trim()) labelInput.value = 'Print Group';
+  if (typeSelect) typeSelect.value = 'string';
+  if (controlSelect) controlSelect.value = 'single_select';
+  if (defaultInput && !defaultInput.value.trim()) defaultInput.value = '';
+  if (optionsInput && !optionsInput.value.trim()) {
+    optionsInput.value = JSON.stringify([
+      { value: '', label: 'Everyone' },
+      { value: 'Y', label: 'Youth' },
+      { value: 'A', label: 'Adults' }
+    ], null, 2);
+  }
+  };
+
+  nameInput.addEventListener('input', applyPreset);
+  applyPreset();
+}
+
 function addParamRow() {
   const container = document.getElementById('param-list');
   const row = document.createElement('div');
@@ -461,12 +516,19 @@ function addParamRow() {
     </div>
   `;
   container.appendChild(row);
+  applyDefaultPresetForSelOpt(row);
   paramCounter++;
 }
 
 function removeParamRow(btn) {
   btn.closest('.param-row').remove();
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.param-row').forEach(function(row) {
+    applyDefaultPresetForSelOpt(row);
+  });
+});
 </script>
 </body>
 </html>

@@ -129,7 +129,7 @@ if (isset($db) && $db instanceof mysqli) {
               <a class="btn btn-sm btn-primary" href="admin_reports.php?report=<?= rawurlencode($mappedKey) ?>" target="_blank">Preview Report</a>
             <?php endif; ?>
             <a class="btn btn-sm btn-secondary" href="view_report_file.php?file=<?= rawurlencode($reportFile['name']) ?>" target="_blank">View XML</a>
-            <form method="post" action="report_files.php" style="display:inline;" onsubmit="return confirm('Delete this report file?');">
+            <form method="post" action="report_files.php" class="inline-form" onsubmit="return confirm('Delete this report file?');">
               <input type="hidden" name="action" value="delete">
               <input type="hidden" name="file_name" value="<?= htmlspecialchars($reportFile['name']) ?>">
               <button type="submit" class="btn btn-sm btn-danger">Delete</button>

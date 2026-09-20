@@ -75,7 +75,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
 
           <!-- Admin / Full Control Menu Dropdown -->
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
+            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'admin_sms.php', 'ministry_sms.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
               Admin &#9662;
             </a>
             <ul class="submenu">
@@ -86,6 +86,16 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
                 <ul class="submenu-nested">
                   <li><a href="/admin_mailer.php" class="<?= ($currentPage === 'admin_mailer.php') ? 'active' : '' ?>">Send Email(s) - Contacts</a></li>
                   <li><a href="/ministry_mailer.php" class="<?= ($currentPage === 'ministry_mailer.php') ? 'active' : '' ?>">Send Email(s) - Ministries & Committees</a></li>
+                </ul>
+              </li>
+
+              <li class="dropdown-nested">
+                <a href="#" class="<?= in_array($currentPage, ['admin_sms.php', 'ministry_sms.php']) ? 'active' : '' ?>">
+                  SMS &#9656;
+                </a>
+                <ul class="submenu-nested">
+                  <li><a href="/admin_sms.php" class="<?= ($currentPage === 'admin_sms.php') ? 'active' : '' ?>">Send SMS - Contacts</a></li>
+                  <li><a href="/ministry_sms.php" class="<?= ($currentPage === 'ministry_sms.php') ? 'active' : '' ?>">Send SMS - Ministries & Committees</a></li>
                 </ul>
               </li>
 
