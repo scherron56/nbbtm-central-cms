@@ -26,43 +26,120 @@ if (!file_exists(__DIR__ . '/../vendor/autoload.php')) {
 }
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// 3b. Load .env Configuration (Jasper report paths)
+require_once __DIR__ . '/../config/env.php';
+
 use PHPJasper\PHPJasper;
 
-function buildJasperClasspath(): array
+// Resolve the Jasper report directories from .env, falling back to the
+// historical defaults so the page keeps working if a path is not set.
+$reportsTemplatePath = __DIR__ . '/../' . ($_ENV['REPORTS_TEMPLATE_PATH'] ?? 'reports');
+$reportsSubreportPath = __DIR__ . '/../' . ($_ENV['REPORTS_SUBREPORT_PATH'] ?? 'reports/subreports');
+$reportsOutputPath = __DIR__ . '/../' . ($_ENV['REPORTS_OUTPUT_PATH'] ?? 'reports/output');
+$reportsFontsPath = __DIR__ . '/../' . ($_ENV['REPORTS_FONTS_PATH'] ?? 'storage/fonts');
+$reportsStylePath = __DIR__ . '/../' . ($_ENV['REPORTS_STYLE_PATH'] ?? 'reports/styles');
+
+// PHPJasper/JasperStarter cannot load extension jars via the CLASSPATH
+// environment variable: the jasperstarter wrapper launches Java with
+// `java -jar jasperstarter.jar`, and the JVM silently ignores CLASSPATH
+// whenever -jar is used. PHPJasper also never wires a "classpath" option
+// through to the CLI. The only supported way to add extra font jars is
+// JasperStarter's own `-r <resource>` flag (PHPJasper's "resources"
+// option), which accepts a single directory or jar file. Since Jaspersoft
+// Studio exports one font-extension jar per family into storage/fonts/,
+// this merges all of them into one directory once (re-merging only when
+// the jar files change) so they can all be supplied through that single
+// -r argument.
+function buildJasperFontResourceDir(): ?string
 {
-    static $classpath = null;
+    global $reportsFontsPath;
 
-    if ($classpath === null) {
-        $classpath = [];
+    static $resourceDir = null;
+    static $resolved = false;
 
-        // Auto-discover every font extension jar dropped into storage/fonts/ so new
-        // font families can be added without touching this classpath list.
-        $candidateJars = glob(__DIR__ . '/../storage/fonts/*.jar') ?: [];
-        $candidateJars[] = __DIR__ . '/../vendor/geekcom/phpjasper/bin/jasperstarter/lib/custom-fonts.jar';
+    if ($resolved) {
+        return $resourceDir;
+    }
+    $resolved = true;
 
-        foreach ($candidateJars as $jar) {
-            if (file_exists($jar) && !in_array($jar, $classpath, true)) {
-                $classpath[] = $jar;
-            }
-        }
-
-        $existingClasspath = getenv('CLASSPATH');
-        if ($existingClasspath !== false && $existingClasspath !== '') {
-            foreach (explode(PATH_SEPARATOR, $existingClasspath) as $jar) {
-                if ($jar !== '' && !in_array($jar, $classpath, true)) {
-                    $classpath[] = $jar;
-                }
-            }
-        }
-
-        putenv('CLASSPATH=' . implode(PATH_SEPARATOR, $classpath));
+    $fontJars = glob($reportsFontsPath . '/*.jar') ?: [];
+    if (empty($fontJars)) {
+        return null;
     }
 
-    return $classpath;
+    // Build a signature from each jar's name/size/mtime so the merged
+    // directory is only rebuilt when a font jar is added, removed, or
+    // replaced.
+    $signatureParts = [];
+    foreach ($fontJars as $jar) {
+        $signatureParts[] = basename($jar) . ':' . filemtime($jar) . ':' . filesize($jar);
+    }
+    sort($signatureParts);
+    $signature = md5(implode('|', $signatureParts));
+
+    $mergedDir = rtrim($reportsFontsPath, '/\\') . '/_merged';
+    $signatureFile = $mergedDir . '/.signature';
+
+    $needsRebuild = true;
+    if (is_dir($mergedDir) && file_exists($signatureFile)) {
+        $needsRebuild = trim(file_get_contents($signatureFile)) !== $signature;
+    }
+
+    if ($needsRebuild) {
+        // Wipe out any previous merge before rebuilding it.
+        if (is_dir($mergedDir)) {
+            $items = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($mergedDir, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::CHILD_FIRST
+            );
+            foreach ($items as $item) {
+                $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+            }
+        } else {
+            mkdir($mergedDir, 0775, true);
+        }
+
+        $propertyLines = [];
+        foreach ($fontJars as $jar) {
+            $zip = new ZipArchive();
+            if ($zip->open($jar) !== true) {
+                continue;
+            }
+
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = $zip->getNameIndex($i);
+                // The extension properties files are merged separately below;
+                // everything else (fonts/<family>/...) is extracted as-is.
+                if ($name === 'jasperreports_extension.properties' || str_starts_with($name, 'META-INF/')) {
+                    if ($name === 'jasperreports_extension.properties') {
+                        $contents = $zip->getFromIndex($i);
+                        foreach (preg_split('/\r\n|\r|\n/', (string) $contents) as $line) {
+                            $line = trim($line);
+                            if ($line !== '' && !in_array($line, $propertyLines, true)) {
+                                $propertyLines[] = $line;
+                            }
+                        }
+                    }
+                    continue;
+                }
+                $zip->extractTo($mergedDir, $name);
+            }
+            $zip->close();
+        }
+
+        file_put_contents($mergedDir . '/jasperreports_extension.properties', implode("\n", $propertyLines) . "\n");
+        file_put_contents($signatureFile, $signature);
+    }
+
+    $resourceDir = $mergedDir;
+
+    return $resourceDir;
 }
 
 function resolveSubreportDir(string $reportPath): ?string
 {
+    global $reportsSubreportPath, $reportsTemplatePath;
+
     static $resolved = [];
 
     $cacheKey = realpath($reportPath) ?: $reportPath;
@@ -70,8 +147,8 @@ function resolveSubreportDir(string $reportPath): ?string
         $resolved[$cacheKey] = null;
 
         $candidateDirs = [
-            __DIR__ . '/../reports/subreports',
-            __DIR__ . '/../reports',
+            $reportsSubreportPath,
+            $reportsTemplatePath,
             dirname($reportPath) . '/subreports',
         ];
 
@@ -86,9 +163,6 @@ function resolveSubreportDir(string $reportPath): ?string
 
     return $resolved[$cacheKey];
 }
-
-// 1. Set the CLASSPATH before PHPJasper runs Java
-buildJasperClasspath();
 
 // 4. Retrieve Report Key
 $reportKey = trim($_POST['report'] ?? $_GET['report'] ?? '');
@@ -110,10 +184,10 @@ if (!$report || (int)$report['is_active'] !== 1) {
 }
 
 // 6. Verify Template File Exists
-$inputPath = __DIR__ . '/../reports/' . $report['file_name'];
+$inputPath = $reportsTemplatePath . '/' . $report['file_name'];
 if (!file_exists($inputPath)) {
     http_response_code(404);
-    die("Error: Compiled report template '{$report['file_name']}' not found in " . __DIR__ . '/../reports/');
+    die("Error: Compiled report template '{$report['file_name']}' not found in " . $reportsTemplatePath . '/');
 }
 
 // 7. Fetch Parameters
@@ -161,8 +235,17 @@ if (preg_match('/<parameter\s+name="IMAGE_DIR"/', file_get_contents($inputPath))
     $jasperParams['IMAGE_DIR'] = realpath(__DIR__ . '/../images') . '/';
 }
 
+// Provide the shared "path" parameter used by report style templates
+// (e.g. <template>$P{path} + "styles.jrtx"</template>) so .jrtx files resolve
+// against the dedicated reports/styles directory. This always overrides any
+// request-supplied value so the resolved path stays consistent regardless of
+// the current working directory.
+if (preg_match('/<parameter\s+name="path"/', file_get_contents($inputPath))) {
+    $jasperParams['path'] = rtrim(realpath($reportsStylePath), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+}
+
 // 8. Prepare Output Directory
-$outputDir = __DIR__ . '/../reports/output';
+$outputDir = $reportsOutputPath;
 if (!is_dir($outputDir)) {
     mkdir($outputDir, 0775, true);
 }
@@ -184,7 +267,7 @@ if (file_exists('/opt/java8/bin/java')) {
 $options = [
     'format' => ['pdf'],
     'params' => $jasperParams,
-    'classpath' => buildJasperClasspath(),
+    'resources' => buildJasperFontResourceDir(),
     'db_connection' => [
         'driver'   => 'mysql',
         'username' => USER,
