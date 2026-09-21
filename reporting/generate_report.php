@@ -228,10 +228,18 @@ if ($subreportDir !== null) {
     $jasperParams['SUBREPORT_DIR'] = $subreportDir;
 }
 
+// Detect declared parameters from the report's .jrxml *source*, not the
+// compiled .jasper file. Compiled .jasper files are serialized Java objects
+// (binary), so a text regex against them never matches, which silently
+// dropped IMAGE_DIR/path even when the .jrxml declared them. The .jrxml
+// source always sits alongside the compiled report with the same base name.
+$jrxmlPath = preg_replace('/\.jasper$/', '.jrxml', $inputPath);
+$reportSource = file_exists($jrxmlPath) ? file_get_contents($jrxmlPath) : file_get_contents($inputPath);
+
 // Provide the shared IMAGE_DIR parameter for report templates (e.g. letterhead
 // images) that declare it; only pass it when the .jrxml actually defines this
 // parameter, since JasperStarter errors on unknown -P parameters.
-if (preg_match('/<parameter\s+name="IMAGE_DIR"/', file_get_contents($inputPath))) {
+if (preg_match('/<parameter\s+name="IMAGE_DIR"/', $reportSource)) {
     $jasperParams['IMAGE_DIR'] = realpath(__DIR__ . '/../images') . '/';
 }
 
@@ -240,7 +248,7 @@ if (preg_match('/<parameter\s+name="IMAGE_DIR"/', file_get_contents($inputPath))
 // against the dedicated reports/styles directory. This always overrides any
 // request-supplied value so the resolved path stays consistent regardless of
 // the current working directory.
-if (preg_match('/<parameter\s+name="path"/', file_get_contents($inputPath))) {
+if (preg_match('/<parameter\s+name="path"/', $reportSource)) {
     $jasperParams['path'] = rtrim(realpath($reportsStylePath), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 }
 

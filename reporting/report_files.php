@@ -1,12 +1,14 @@
 <?php
 require_once __DIR__ . '/../include/auth.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/env.php';
 
 if (!isAdmin()) {
     http_response_code(403);
     exit('Access denied.');
 }
 
-$reportDirectory = __DIR__ . '/../reports';
+$reportDirectory = __DIR__ . '/../' . ($_ENV['REPORTS_TEMPLATE_PATH'] ?? 'reports');
 $allowedExtensions = ['jrxml', 'jasper'];
 $message = '';
 $error = '';

@@ -3,9 +3,10 @@
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="event_actuals" pageWidth="612" pageHeight="792" whenNoDataType="AllSectionsNoDetail" columnWidth="612" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="dd8d84b5-a4a2-4345-a063-864b47b4231f">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
-	<template><![CDATA["base_serif_styles.jrtx"]]></template>
-	<style name="Balance Style" forecolor="#0A238A" pattern="#,##0.###;(#,##0.###)"/>
+	<template><![CDATA[$P{path} + "central_admin_style1.jrtx"]]></template>
+	<style name="Balance Style" forecolor="#0A238A" pattern="#,##0.###;(#,##0.###)" isPdfEmbedded="true"/>
 	<parameter name="p_event_id" class="java.lang.Integer"/>
+	<parameter name="path" class="java.lang.String"/>
 	<queryString>
 		<![CDATA[call eventFinancials($P{p_event_id})]]>
 	</queryString>
@@ -70,7 +71,7 @@
 		<groupHeader>
 			<band height="22">
 				<textField pattern="($#,##0.00)" isBlankWhenNull="true">
-					<reportElement style="Details" x="290" y="3" width="108" height="16" uuid="37e4ee2f-b790-4db4-9fe8-3928db0ebdc0">
+					<reportElement x="290" y="3" width="108" height="16" uuid="37e4ee2f-b790-4db4-9fe8-3928db0ebdc0">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					</reportElement>
 					<textElement textAlignment="Right">
@@ -79,7 +80,7 @@
 					<textFieldExpression><![CDATA[$F{item_type} != null && $F{item_type}.equalsIgnoreCase("Expense") ? $F{budget_amount} : BigDecimal.ZERO]]></textFieldExpression>
 				</textField>
 				<textField>
-					<reportElement style="Details" x="0" y="3" width="170" height="16" uuid="1a5eb853-5ae3-41f5-88ff-4ba32c3671ae">
+					<reportElement x="0" y="3" width="170" height="16" uuid="1a5eb853-5ae3-41f5-88ff-4ba32c3671ae">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					</reportElement>
 					<textElement>
@@ -88,7 +89,7 @@
 					<textFieldExpression><![CDATA[$F{item_description}]]></textFieldExpression>
 				</textField>
 				<textField pattern="$#,##0.00" isBlankWhenNull="true">
-					<reportElement style="Details" x="180" y="3" width="100" height="16" uuid="8a4fcf67-e8ea-403a-a080-f61028c2291f">
+					<reportElement x="180" y="3" width="100" height="16" uuid="8a4fcf67-e8ea-403a-a080-f61028c2291f">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					</reportElement>
 					<textElement textAlignment="Right">
@@ -133,7 +134,7 @@
 			<staticText>
 				<reportElement x="0" y="0" width="570" height="20" uuid="3d43cff3-4b93-4514-9226-e63fc59ce834"/>
 				<textElement textAlignment="Center">
-					<font size="14"/>
+					<font size="14" isBold="true" isItalic="true"/>
 				</textElement>
 				<text><![CDATA[Budget/Actuals]]></text>
 			</staticText>
@@ -148,7 +149,7 @@
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
 				<textElement textAlignment="Right">
-					<font size="12"/>
+					<font size="12" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Income]]></text>
 			</staticText>
@@ -164,7 +165,7 @@
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
 				<textElement textAlignment="Right">
-					<font size="12"/>
+					<font size="12" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Expense]]></text>
 			</staticText>
@@ -179,7 +180,7 @@
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
 				<textElement textAlignment="Left">
-					<font size="12"/>
+					<font size="12" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Description]]></text>
 			</staticText>
@@ -195,7 +196,7 @@
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
 				<textElement textAlignment="Right">
-					<font size="12"/>
+					<font size="12" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Balance]]></text>
 			</staticText>
@@ -204,7 +205,7 @@
 	<detail>
 		<band height="23" splitType="Stretch">
 			<textField>
-				<reportElement style="Group Header" x="20" y="0" width="160" height="16" uuid="834c3d18-6e6c-4baf-8466-cee6b3827ba5">
+				<reportElement x="20" y="0" width="160" height="23" uuid="834c3d18-6e6c-4baf-8466-cee6b3827ba5">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="9603ea4b-41a4-49ef-a8b2-0d2a1a81020f"/>
 				</reportElement>
 				<textElement>
@@ -213,14 +214,14 @@
 				<textFieldExpression><![CDATA[$F{actual_description} == null ? "" : $F{actual_description}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="true">
-				<reportElement x="180" y="0" width="100" height="16" uuid="2109cfe0-2174-489f-b4b1-6c7d3329fd0b"/>
+				<reportElement x="180" y="0" width="100" height="23" uuid="2109cfe0-2174-489f-b4b1-6c7d3329fd0b"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="12" isBold="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$V{a_income}]]></textFieldExpression>
 			</textField>
 			<textField pattern="(#,##0.00)" isBlankWhenNull="true">
-				<reportElement x="290" y="0" width="108" height="16" uuid="650fa1b4-74fc-4780-9bcb-c74ab08a0686"/>
+				<reportElement x="290" y="7" width="108" height="16" uuid="650fa1b4-74fc-4780-9bcb-c74ab08a0686"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="12" isBold="false"/>
 				</textElement>
@@ -253,7 +254,7 @@
 				<textFieldExpression><![CDATA[$V{actual_budget_item_sum}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement style="Details" x="330" y="2" width="90" height="17" uuid="f89da101-0542-496b-8ac9-141c1104fe80"/>
+				<reportElement style="Balance Style" x="330" y="2" width="90" height="17" uuid="f89da101-0542-496b-8ac9-141c1104fe80"/>
 				<textElement textAlignment="Right">
 					<font isBold="true"/>
 				</textElement>

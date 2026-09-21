@@ -4,9 +4,11 @@
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
 	<property name="com.jaspersoft.studio.report.description" value=""/>
-	<style name="Group  1" isDefault="true" fontName="NBBTM Serif" isBold="true" isItalic="true"/>
+	<style name="Group  1" isDefault="true" fontName="Serif" isBold="true" isItalic="true"/>
 	<parameter name="contact_type_ids" class="java.lang.String"/>
-	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["/home/clarice/Repository/nbbtm-central/reports/subreports/"]]></defaultValueExpression>
+	</parameter>
 	<queryString language="SQL">
 		<![CDATA[call contactsListing($P{contact_type_ids})]]>
 	</queryString>
@@ -58,35 +60,35 @@
 				<textField>
 					<reportElement x="134" y="16" width="305" height="30" uuid="da42f7bb-dfaf-446d-9384-e8368798c6cf"/>
 					<textElement textAlignment="Center" verticalAlignment="Middle">
-						<font fontName="NBBTM Serif" size="16" isBold="true" isItalic="false"/>
+						<font fontName="Serif Black" size="16" isItalic="false"/>
 					</textElement>
 					<textFieldExpression><![CDATA[$F{contact_desc} +"s"]]></textFieldExpression>
 				</textField>
 				<staticText>
 					<reportElement x="0" y="60" width="180" height="17" uuid="939e2d40-bc5d-4c48-9fcb-b04fabd947d1"/>
 					<textElement verticalAlignment="Middle">
-						<font fontName="NBBTM Serif" size="12" isBold="true" isItalic="true"/>
+						<font fontName="Serif BlackItalic" size="12" isItalic="true"/>
 					</textElement>
 					<text><![CDATA[Contact Name]]></text>
 				</staticText>
 				<staticText>
 					<reportElement x="190" y="59" width="100" height="18" uuid="2617f97f-499f-4b69-8b11-ea47bb4575fd"/>
 					<textElement textAlignment="Center" verticalAlignment="Middle">
-						<font fontName="NBBTM Serif" size="12" isBold="true"/>
+						<font fontName="Serif Black" size="12"/>
 					</textElement>
 					<text><![CDATA[Gender]]></text>
 				</staticText>
 				<staticText>
 					<reportElement x="300" y="60" width="105" height="17" uuid="6988fd29-df40-4ad7-a1ba-05d6aac2b30b"/>
 					<textElement textAlignment="Left" verticalAlignment="Middle">
-						<font fontName="NBBTM Serif" size="12" isBold="true"/>
+						<font fontName="Serif Black" size="12"/>
 					</textElement>
 					<text><![CDATA[Phone Number]]></text>
 				</staticText>
 				<staticText>
 					<reportElement x="420" y="60" width="150" height="17" uuid="8803e56d-72e0-471d-95ab-f5d00ae48712"/>
 					<textElement textAlignment="Left" verticalAlignment="Middle">
-						<font fontName="NBBTM Serif" size="12" isBold="true"/>
+						<font fontName="Serif Black" size="12"/>
 					</textElement>
 					<text><![CDATA[E-mail Address]]></text>
 				</staticText>
@@ -97,7 +99,7 @@
 				<textField>
 					<reportElement x="0" y="0" width="230" height="19" uuid="f1f6dd39-06aa-4343-b1e3-327d2c629414"/>
 					<textElement verticalAlignment="Middle">
-						<font fontName="NBBTM Serif" isBold="true"/>
+						<font fontName="Serif Black"/>
 					</textElement>
 					<textFieldExpression><![CDATA["Total " + ($F{contact_desc} != null ? $F{contact_desc} : "Contact") + "s: " + $V{Contact Type_COUNT}]]></textFieldExpression>
 				</textField>
@@ -122,21 +124,21 @@
 			<textField>
 				<reportElement x="0" y="4" width="180" height="16" uuid="f73f8215-2057-4deb-993f-10c6d2562fa7"/>
 				<textElement>
-					<font fontName="NBBTM Serif" size="11" isBold="false" isItalic="false"/>
+					<font fontName="Serif" size="11" isBold="false" isItalic="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[TRIM( CONCATENATE($F{titleabr}," ",$F{first_name}," ",$F{last_name}," ",$F{n_sufix}))]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="190" y="5" width="100" height="15" uuid="f14b61b0-23c1-4ab8-a017-1abedc5744a5"/>
 				<textElement textAlignment="Center">
-					<font fontName="NBBTM Serif" size="11" isBold="false" isItalic="false"/>
+					<font fontName="Serif" size="11" isBold="false" isItalic="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{gender}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="300" y="5" width="105" height="14" uuid="dd5801a2-62a8-43cd-9894-dbfcc28530c9"/>
 				<textElement>
-					<font fontName="NBBTM Serif" size="11" isBold="false" isItalic="false"/>
+					<font fontName="Serif" size="11" isBold="false" isItalic="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{phone_1} != null && $F{phone_1}.replaceAll("\\D", "").length() == 10
 ? $F{phone_1}.replaceAll("\\D", "").replaceFirst("(\\d{3})(\\d{3})(\\d{4})", "($1) $2-$3")
@@ -145,7 +147,7 @@
 			<textField>
 				<reportElement x="418" y="2" width="152" height="18" uuid="a5b42993-8dea-4741-8a13-5dc77ff56c01"/>
 				<textElement>
-					<font fontName="NBBTM Serif" size="11" isBold="false" isItalic="false"/>
+					<font fontName="Serif" size="11" isBold="false" isItalic="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{c_email}]]></textFieldExpression>
 			</textField>
@@ -159,14 +161,14 @@
 			<textField>
 				<reportElement x="-4" y="17" width="134" height="15" uuid="d1215dcb-cd96-4162-9757-2caf0bcb2c88"/>
 				<textElement>
-					<font fontName="NBBTM Serif" size="9" isBold="false" isItalic="false"/>
+					<font fontName="Serif" size="9" isBold="false" isItalic="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA["Report Date: " +TODAY( )]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="435" y="17" width="135" height="15" uuid="c9416683-fedd-4438-95f2-b211788c9014"/>
 				<textElement>
-					<font fontName="NBBTM Serif" size="9" isBold="false" isItalic="false"/>
+					<font fontName="Serif" size="9" isBold="false" isItalic="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>

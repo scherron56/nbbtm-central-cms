@@ -12,9 +12,11 @@
 	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
 	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
 	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<template><![CDATA[$P{path} + "central_admin_style1.jrtx"]]></template>
 	<parameter name="p_event_id" class="java.lang.Integer">
 		<defaultValueExpression><![CDATA[$P{p_event_id}]]></defaultValueExpression>
 	</parameter>
+	<parameter name="path" class="java.lang.String"/>
 	<queryString language="SQL">
 		<![CDATA[call getEventSched($P{p_event_id})]]>
 	</queryString>
@@ -58,26 +60,34 @@
 				<reportElement x="220" y="0" width="100" height="18" uuid="3c4600ae-f557-4f9e-97a3-affab5f98b2e">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="e778d41e-7c5a-47d3-b44b-48234c59d248"/>
 				</reportElement>
-				<textElement textAlignment="Center"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
 				<text><![CDATA[Date]]></text>
 			</staticText>
 			<staticText>
 				<reportElement x="40" y="0" width="180" height="18" uuid="418aa0d8-f762-4f4f-94be-563cd6ecc8f1"/>
-				<textElement textAlignment="Left"/>
+				<textElement textAlignment="Left">
+					<font size="12" isBold="true"/>
+				</textElement>
 				<text><![CDATA[Scheduled Activity]]></text>
 			</staticText>
 			<staticText>
 				<reportElement x="350" y="0" width="100" height="18" uuid="7b51dcb2-332c-42f7-a535-543ce26324a5">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="87b35d38-ab4f-46fc-a00a-e587933a80bd"/>
 				</reportElement>
-				<textElement textAlignment="Center"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
 				<text><![CDATA[From]]></text>
 			</staticText>
 			<staticText>
 				<reportElement x="470" y="0" width="90" height="18" uuid="7499d567-917b-4ad2-aa8f-18ba968f00e7">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="a82173a9-9a5c-4045-968b-2ab8e2555968"/>
 				</reportElement>
-				<textElement textAlignment="Center"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
 				<text><![CDATA[To]]></text>
 			</staticText>
 		</band>
