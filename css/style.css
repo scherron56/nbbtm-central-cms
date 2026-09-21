@@ -596,6 +596,15 @@ form.inline-form {
   background-color: #0f766e;
 }
 
+/* Smaller variant for action buttons (e.g. table row "View"/"Delete"
+   buttons). Applied alongside a color modifier, e.g. "btn btn-sm btn-primary".
+   Declared last so its reduced padding/font-size take precedence over the
+   color modifier rules above. */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
