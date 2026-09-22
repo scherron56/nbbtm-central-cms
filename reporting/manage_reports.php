@@ -4,6 +4,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../include/auth.php';
+/** @var mysqli $db Provided globally by include/auth.php -> config/db.php */
 
 $message = '';
 $error = '';
@@ -17,7 +18,7 @@ if (isset($_SESSION['manage_reports_error'])) {
     unset($_SESSION['manage_reports_error']);
 }
 
-$userIsAdmin = isAdmin();
+$userIsAdmin = isDeveloper();
 
 if ($userIsAdmin) {
     // 1. Handle Report Deletion
@@ -262,7 +263,7 @@ try {
 
   <?php if (!$userIsAdmin): ?>
     <div style="background-color: #fee2e2; color: #991b1b; padding: 1.5rem; border-radius: 8px; font-weight: 600;">
-      Access Denied: You must be signed in with an Administrator account to configure reports.
+      Access Denied: You must be signed in with a Developer account to configure reports.
     </div>
   <?php else: ?>
 

@@ -54,11 +54,11 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
           </li>
 
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_dashboard.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
+            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_financials.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
             <ul class="submenu">
               <li><a href="/events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
               <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
-              <li><a href="/event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
+              <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
               <li><a href="/event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
               <li><a href="/event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
             </ul>
@@ -75,7 +75,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
 
           <!-- Admin / Full Control Menu Dropdown -->
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'admin_sms.php', 'ministry_sms.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
+            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'admin_sms.php', 'ministry_sms.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php', 'compile_report_form.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
               Admin &#9662;
             </a>
             <ul class="submenu">
@@ -100,14 +100,17 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
               </li>
 
               <li class="dropdown-nested">
-                <a href="#" class="<?= in_array($currentPage, ['admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php']) ? 'active' : '' ?>">
+                <a href="#" class="<?= in_array($currentPage, ['admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php', 'compile_report_form.php']) ? 'active' : '' ?>">
                   Reports &#9656;
                 </a>
                 <ul class="submenu-nested">
                   <li><a href="/reporting/admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
-                  <li><a href="/reporting/generated_reports.php" class="<?= ($currentPage === 'generated_reports.php') ? 'active' : '' ?>">Generated Reports</a></li>
+                  <li><a href="/reporting/generated_reports.php" class="<?= ($currentPage === 'generated_reports.php') ? 'active' : '' ?>">View Generated Reports</a></li>
+                  <?php if (isDeveloper()): ?>
                   <li><a href="/reporting/manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
                   <li><a href="/reporting/report_files.php" class="<?= ($currentPage === 'report_files.php') ? 'active' : '' ?>">Saved Reports</a></li>
+                  <li><a href="/reporting/compile_report_form.php" class="<?= ($currentPage === 'compile_report_form.php') ? 'active' : '' ?>">Compile Report</a></li>
+                  <?php endif; ?>
                 </ul>
               </li>
               <li><a href="/self_register.php" class="<?= ($currentPage === 'self_register.php') ? 'active' : '' ?>">Self Registration</a></li>
@@ -135,11 +138,11 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
           </li>
 
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_dashboard.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
+            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_financials.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
             <ul class="submenu">
               <li><a href="/events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
               <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
-              <li><a href="/event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
+              <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
               <li><a href="/event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
               <li><a href="/event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
             </ul>
@@ -161,7 +164,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
           <li><a href="/ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
           <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
 
-          <li><a href="/event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
+          <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
           <li><a href="/vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
           <li><a href="/vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
         <?php endif; ?>

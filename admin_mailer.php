@@ -15,6 +15,7 @@ if (file_exists(__DIR__ . '/send_email.php')) {
 }
 
 // Fetch all valid contacts with their membership, age categories, and separate names
+/** @var mysqli $db Provided globally by include/auth.php -> config/db.php */
 $contactsList = [];
 try {
     $resContacts = $db->query("

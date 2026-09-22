@@ -3,9 +3,9 @@ require_once __DIR__ . '/../include/auth.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/env.php';
 
-if (!isAdmin()) {
+if (!isDeveloper()) {
     http_response_code(403);
-    exit('Access denied.');
+    exit('Access denied. Developer privileges required.');
 }
 
 $reportDirectory = __DIR__ . '/../' . ($_ENV['REPORTS_TEMPLATE_PATH'] ?? 'reports');

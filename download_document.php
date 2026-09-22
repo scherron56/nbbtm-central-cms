@@ -47,6 +47,7 @@ if ($stmt->num_rows === 0) {
     exit('Requested document was not found in the database.');
 }
 
+$docName = $docMime = $docSize = $docData = null;
 $stmt->bind_result($docName, $docMime, $docSize, $docData);
 $stmt->fetch();
 $stmt->close();

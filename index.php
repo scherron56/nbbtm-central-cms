@@ -246,7 +246,7 @@ try {
             </tbody>
           </table>
           <br>
-          <a href="<?= canEdit() ? 'events.php' : 'event_dashboard.php' ?>" class="link-btn"><?= canEdit() ? 'View Event Manager &rarr;' : 'View Event Dashboard &rarr;' ?></a>
+          <a href="<?= canEdit() ? 'events.php' : 'event_dashboard_main.php' ?>" class="link-btn"><?= canEdit() ? 'View Event Manager &rarr;' : 'View Event Dashboard &rarr;' ?></a>
         </div>
 
         <!-- Recently Added Contacts Widget -->

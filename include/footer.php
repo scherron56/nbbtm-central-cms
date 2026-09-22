@@ -40,7 +40,7 @@ $currentYear = date('Y');
               <li><a href="/ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
               <li><a href="/events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
               <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
-              <li><a href="/event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
+              <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
               <li><a href="/event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
               <li><a href="/event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
             </ul>
@@ -95,7 +95,7 @@ $currentYear = date('Y');
               <li><a href="/ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
               <li><a href="/events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
               <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
-              <li><a href="/event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
+              <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
               <li><a href="/event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
               <li><a href="/event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
             </ul>
@@ -118,7 +118,7 @@ $currentYear = date('Y');
               <li><a href="/index.php" class="<?= in_array($currentPage, ['index.php', 'index1.php']) ? 'active' : '' ?>">Home</a></li>
               <li><a href="/contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contacts Dashboard</a></li>
               <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
-              <li><a href="/event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
+              <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
             </ul>
           </div>
 
