@@ -10,6 +10,17 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/config/db.php';
+
+$contactTypesList = [];
+if (isset($db) && $db instanceof mysqli) {
+    $ctRes = $db->query("SELECT contact_type_id, contact_desc FROM contact_type ORDER BY contact_desc ASC");
+    if ($ctRes) {
+        $contactTypesList = $ctRes->fetch_all(MYSQLI_ASSOC);
+        $ctRes->free();
+    }
+}
+
 $canEdit = canEdit();
 ?>
 <!DOCTYPE html>
@@ -158,7 +169,6 @@ $(document).ready(function() {
     $('#status-message').fadeOut(200).empty();
   }
 
-  // Toggle Visibility for Deceased Date
   function toggleDeceasedField() {
     if ($('#is_deceased').is(':checked')) {
       $('#date_of_death_wrap').show();
@@ -168,7 +178,6 @@ $(document).ready(function() {
     }
   }
 
-  // Toggle Visibility for Dedicated Date & Baptized Date
   function toggleCensusConditionalFields() {
     if ($('#is_dedicated').is(':checked')) {
       $('#dedication_date_wrap').show();
@@ -209,7 +218,6 @@ $(document).ready(function() {
     this.setSelectionRange(cursorPosition, cursorPosition);
   });
 
-  // Dynamic File Upload Row Addition
   $('#btnAddFileRow').on('click', function() {
     let newRow = `
       <div class="file-upload-row">
@@ -224,7 +232,6 @@ $(document).ready(function() {
     toggleFileRowButtons();
   });
 
-  // Auto-fill date input when a file is selected
   $(document).on('change', 'input[type="file"][name="attach_files[]"]', function() {
     const file = this.files[0];
     const $row = $(this).closest('.file-upload-row');
@@ -397,15 +404,34 @@ $(document).ready(function() {
     $('#ministry-section').toggle(shouldShow);
   }
 
-  function getMemberContactTypeId() {
-    let memberTypeId = '';
+  function getContactTypeId(description) {
+    let contactTypeId = '';
     $('#contact_type_id option').each(function() {
-      if ($(this).text().trim().toLowerCase() === 'member') {
-        memberTypeId = $(this).val();
+      if ($(this).text().trim().toLowerCase() === description.toLowerCase()) {
+        contactTypeId = $(this).val();
         return false;
       }
     });
-    return memberTypeId;
+    return contactTypeId;
+  }
+
+  function getDefaultContactTypeId() {
+    const isChild = $('#is_child').is(':checked');
+    const isMember = $('#is_member').is(':checked');
+    const description = isChild
+      ? (isMember ? 'Youth Member' : 'Youth Participant')
+      : (isMember ? 'Member' : '');
+
+    return description ? getContactTypeId(description) : '';
+  }
+
+  function syncDefaultContactType() {
+    const defaultTypeId = getDefaultContactTypeId();
+    if (defaultTypeId) {
+      $('#contact_type_id').val(defaultTypeId);
+    } else if (!$('#is_child').is(':checked') && !$('#is_member').is(':checked')) {
+      $('#contact_type_id').val('');
+    }
   }
 
   function buildMinistryCheckboxes(ministryList, roleList, savedMinistries = []) {
@@ -414,17 +440,21 @@ $(document).ready(function() {
     if (ministryList && ministryList.length > 0) {
       let groupedMinistries = {};
 
-      ministryList.sort((a, b) => a.min_comm_name.localeCompare(b.min_comm_name));
+      ministryList.sort((a, b) => (a.min_comm_name || a.name || '').localeCompare(b.min_comm_name || b.name || ''));
 
       $.each(ministryList, function(index, item) {
-        let typeId = item.min_comm_type_id || 0;
+        let minId = item.min_comm_id || item.ministry_id || item.id;
+        let minName = item.min_comm_name || item.ministry_name || item.name;
+        let typeId = item.min_comm_type_id || item.group_type_id || 0;
+        let typeDesc = item.min_grp_type_desc || item.group_desc || 'General Associations';
+
         if (!groupedMinistries[typeId]) {
           groupedMinistries[typeId] = {
-            typeDesc: item.min_grp_type_desc || 'General Associations',
+            typeDesc: typeDesc,
             items: []
           };
         }
-        groupedMinistries[typeId].items.push(item);
+        groupedMinistries[typeId].items.push({ id: minId, name: minName });
       });
 
       $.each(groupedMinistries, function(typeId, groupData) {
@@ -433,21 +463,22 @@ $(document).ready(function() {
 
         $.each(groupData.items, function(index, item) {
           let savedAlliance = (savedMinistries && Array.isArray(savedMinistries)) ? savedMinistries.find(function(minObj) {
-            return String(minObj.min_comm_id) === String(item.min_comm_id);
+            let sId = minObj.min_comm_id || minObj.ministry_id || minObj.id;
+            return String(sId) === String(item.id);
           }) : null;
           
           let isChecked = !!savedAlliance;
-          let allianceRoleId = savedAlliance ? savedAlliance.role_id : ''; 
+          let allianceRoleId = savedAlliance ? (savedAlliance.role_id || savedAlliance.ministry_role_id) : ''; 
 
-          const checkboxId = 'ministry_id' + item.min_comm_id;
+          const checkboxId = 'ministry_id_' + item.id;
           const checkbox = $('<input>').attr({
             type: 'checkbox',
             id: checkboxId,
             name: 'ministries[]',
-            value: item.min_comm_id
+            value: item.id
           }).prop('checked', isChecked);
           
-          const label = $('<label>').attr('for', checkboxId).text(item.min_comm_name);
+          const label = $('<label>').attr('for', checkboxId).text(item.name);
           const rowDiv = $('<div>').addClass('ministry-card');
           
           let leftWrapper = $('<div>').css({ 'display': 'flex', 'align-items': 'center', 'gap': '8px', 'flex': '1' });
@@ -455,16 +486,18 @@ $(document).ready(function() {
           rowDiv.append(leftWrapper);
 
           const roleSelect = $('<select>').attr({
-            id: 'role_id_' + item.min_comm_id, 
-            name: 'roles[' + item.min_comm_id + ']'
+            id: 'role_id_' + item.id, 
+            name: 'roles[' + item.id + ']'
           }).addClass('form-control');
           
           roleSelect.append($('<option>').val('').text('--Select Role--'));
 
           if (roleList) {
             $.each(roleList, function(rIndex, roleOption) {
-              const option = $('<option>').attr('value', roleOption.role_id).text(roleOption.role_desc);
-              if (savedAlliance && String(roleOption.role_id) === String(allianceRoleId)) {
+              let rId = roleOption.role_id || roleOption.id;
+              let rDesc = roleOption.role_desc || roleOption.role_name || roleOption.name;
+              const option = $('<option>').attr('value', rId).text(rDesc);
+              if (savedAlliance && String(rId) === String(allianceRoleId)) {
                 option.attr('selected', 'selected');
               }
               roleSelect.append(option);
@@ -489,20 +522,13 @@ $(document).ready(function() {
     if (memberSyncLock) return;
     memberSyncLock = true;
 
-    let memberTypeId = getMemberContactTypeId();
-    let $typeSelect = $('#contact_type_id');
-
-    if (isChecked) {
-      if (memberTypeId) {
-        $typeSelect.val(memberTypeId);
-      }
-    } else {
-      if (memberTypeId && String($typeSelect.val()) === String(memberTypeId)) {
-        $typeSelect.val('');
-      }
-    }
+    syncDefaultContactType();
 
     memberSyncLock = false;
+  });
+
+  $('#is_child').change(function() {
+    syncDefaultContactType();
   });
 
   $(document).on('change', '#contact_type_id', function() {
@@ -512,7 +538,7 @@ $(document).ready(function() {
     let selectedText = $(this).find('option:selected').text().trim().toLowerCase();
     let $memberCheckbox = $('#is_member');
 
-    if (selectedText === 'member') {
+    if (selectedText === 'member' || selectedText === 'youth member') {
       if (!$memberCheckbox.is(':checked')) {
         $memberCheckbox.prop('checked', true);
         toggleMemberSections(true);
@@ -537,31 +563,33 @@ $(document).ready(function() {
   });
 
   function updateContactList() {
-    let membersOnly = $('input[name="contact_filter"]:checked').val();
+    let contactTypeId = $('#contact_filter_type_id').val() || '';
     let currentContactId = $('#contactID').val();
 
     $.ajax({
       url: "getLists.php",
       type: 'POST',
-      data: { members_only: membersOnly },
+      data: { contact_type_id: contactTypeId },
       dataType: 'json',
       success: function(data) {
         $('#contactID').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.contacts && Array.isArray(data.contacts)) {
           $.each(data.contacts, function(index, item) {
-            $('#contactID').append($('<option>', { value: item.contact_id, text: item.fullname }));
+            let cId = item.contact_id || item.id;
+            let cName = item.fullname || (item.first_name + ' ' + item.last_name);
+            $('#contactID').append($('<option>', { value: cId, text: cName }));
           });
         }
         $('#contactID').val(currentContactId);
       },
-      error: function(xhr, status, error) {
+      error: function() {
         showStatusMessage("Error loading contact list.", 'error');
       }
     });
   }
 
   function updateFormLists(callback) {
-    let membersOnly = $('input[name="contact_filter"]:checked').val();
+    let contactTypeId = $('#contact_filter_type_id').val() || '';
 
     let selContact     = $('#contactID').val();
     let selFamily      = $('#family_id').val();
@@ -575,23 +603,27 @@ $(document).ready(function() {
     $.ajax({
       url: "getLists.php",
       type: 'POST',
-      data: { members_only: membersOnly },
+      data: { contact_type_id: contactTypeId },
       dataType: 'json',
       success: function(data) {
-        globalMinistryList = data.ministryList || [];
-        globalRoleList = data.roleList || [];
+        globalMinistryList = data.ministryList || data.ministries || [];
+        globalRoleList = data.roleList || data.roles || [];
 
         $('#contactID').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.contacts && Array.isArray(data.contacts)) {
           $.each(data.contacts, function(index, item) {
-            $('#contactID').append($('<option>', { value: item.contact_id, text: item.fullname }));
+            let cId = item.contact_id || item.id;
+            let cName = item.fullname || (item.first_name + ' ' + item.last_name);
+            $('#contactID').append($('<option>', { value: cId, text: cName }));
           });
         }
 
         $('#family_id').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.heads && Array.isArray(data.heads)) {
           $.each(data.heads, function(index, item) {
-            $('#family_id').append($('<option>', { value: item.contact_id, text: item.fullname }));
+            let hId = item.contact_id || item.id;
+            let hName = item.fullname || (item.first_name + ' ' + item.last_name);
+            $('#family_id').append($('<option>', { value: hId, text: hName }));
           });
         }
 
@@ -607,15 +639,18 @@ $(document).ready(function() {
         $('#marital_status').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.marital && Array.isArray(data.marital)) {
           $.each(data.marital, function(index, item) {
-            let mId = item.marital_id || item.maritial_id || item.marital_id;
-            $('#marital_status').append($('<option>', { value: mId, text: item.marital_status }));
+            let mId = item.marital_id || item.maritial_id || item.id || item.marital_status;
+            let mText = item.marital_status || item.marital_desc || item.name;
+            $('#marital_status').append($('<option>', { value: mId, text: mText }));
           });
         }
 
         $('#phone_1_type, #phone_2_type, #phone_3_type').empty().append($('<option>', { value: '', text: '--Select--' }));
         if (data.phonetype && Array.isArray(data.phonetype)) {
           $.each(data.phonetype, function(index, item) {
-            let opt = $('<option>', { value: item.phone_type_id, text: item.phone_type_desc });
+            let pId = item.phone_type_id || item.id;
+            let pDesc = item.phone_type_desc || item.phone_type || item.description;
+            let opt = $('<option>', { value: pId, text: pDesc });
             $('#phone_1_type').append(opt.clone());
             $('#phone_2_type').append(opt.clone());
             $('#phone_3_type').append(opt.clone());
@@ -640,6 +675,7 @@ $(document).ready(function() {
         if (selPhone2) $('#phone_2_type').val(selPhone2);
         if (selPhone3) $('#phone_3_type').val(selPhone3);
         if (selContactType) $('#contact_type_id').val(selContactType);
+        if (!$('#contact_id').val()) syncDefaultContactType();
 
         if (!$('#contact_id').val() && $('#checkbox-container').is(':empty')) {
           buildMinistryCheckboxes(globalMinistryList, globalRoleList, []);
@@ -647,13 +683,13 @@ $(document).ready(function() {
 
         if (typeof callback === 'function') callback();
       },
-      error: function(xhr, status, error) {
+      error: function() {
         showStatusMessage("Error loading dropdown data.", 'error');
       }
     });
   }
 
-  $(document).on('change', 'input[name="contact_filter"]', function() {
+  $(document).on('change', '#contact_filter_type_id', function() {
     updateContactList();
   });
 
@@ -754,7 +790,7 @@ $(document).ready(function() {
         toggleDeceasedField();
 
         $('#gender').val(contact.gender || '');
-        $('#marital_status').val(contact.marital_status || '');
+        $('#marital_status').val(contact.marital_status || contact.marital_id || '');
         $('#anniv_date').val(contact.anniv_date || '');
         $('#phone_1').val(formatPhoneNumber(contact.phone_1 || ''));
         $('#phone_2').val(formatPhoneNumber(contact.phone_2 || ''));
@@ -765,8 +801,8 @@ $(document).ready(function() {
         $('#phone_3_type').val(contact.phone_3_type || '');
         $('#c_email').val(contact.c_email || '');
         
-        // Census information values
-        $('#join_date').val(contact.join_date || '');
+        // Census information values (maps backend membership_date or join_date)
+        $('#join_date').val(contact.membership_date || contact.join_date || '');
         $('#baptized_date').val(contact.baptized_date || '');
         $('#dedication_date').val(contact.dedication_date || '');
         
@@ -787,20 +823,17 @@ $(document).ready(function() {
         if (isHead) {
           $('#family_id').val(contactid);
         } else {
-          $('#family_id').val(data.family_id || '');
+          $('#family_id').val(data.family_id || contact.family_id || '');
         }
 
         let isMember = String(contact.is_member) === "1" || contact.is_member === true;
         $('#is_member').prop('checked', isMember);
         
         $('#contact_type_id').val(contact.contact_type_id || '');
-        if (!$('#contact_type_id').val() && isMember) {
-          let memberTypeId = getMemberContactTypeId();
-          if (memberTypeId) $('#contact_type_id').val(memberTypeId);
-        }
+        if (!$('#contact_type_id').val()) syncDefaultContactType();
 
         toggleMemberSections(isMember);
-        buildMinistryCheckboxes(data.ministryList, data.roleList, data.ministries);
+        buildMinistryCheckboxes(data.ministryList || globalMinistryList, data.roleList || globalRoleList, data.ministries || []);
         
         renderAttachmentsList(data.attachments || []);
         resetUploadRows();
@@ -810,7 +843,7 @@ $(document).ready(function() {
           $('#resetBtn').show();
         }
       },
-      error: function(xhr, status, error) {
+      error: function() {
         showStatusMessage("Error fetching contact details.", 'error');
       }
     });
@@ -846,7 +879,7 @@ $(document).ready(function() {
           showStatusMessage(response.message || "Failed to save contact.", 'error');
         }
       },
-      error: function(xhr, status, error) {
+      error: function(xhr) {
         let response = xhr.responseJSON || {};
         if (response.errors) {
           showStatusMessage(response.errors, 'error');
@@ -886,7 +919,7 @@ $(document).ready(function() {
             showStatusMessage(response.message || "Failed to delete contact.", 'error');
           }
         },
-        error: function(xhr, status, error) {
+        error: function() {
           showStatusMessage("An error occurred while attempting to delete the contact.", 'error');
         }
       });
@@ -911,38 +944,34 @@ $(document).ready(function() {
 
   <div id="status-message" class="alert-box"></div>
 
-  <fieldset id="contact-select" class="form-grid-section-short" style="width: 80%;">
-    <div class="field-group" style="--colspan: 2;">
-      <label><h3 style="color: blue; margin-bottom: 5px;">View Option</h3></label>
-      <div style="display: flex; gap: 10px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
-        <label for="filter_all" style="font-weight: normal; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
-          <input type="radio" id="filter_all" name="contact_filter" value="0" checked>
-          All Contacts
-        </label>
-        <label for="filter_members" style="font-weight: normal; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
-          <input type="radio" id="filter_members" name="contact_filter" value="1">
-          Members
-        </label>
-        <label for="filter_non_members" style="font-weight: normal; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
-          <input type="radio" id="filter_non_members" name="contact_filter" value="2">
-          Non-Members
-        </label>
+  <div id="contact-select" class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+        <div>
+          <label for="contact_filter_type_id" style="font-weight: bold; color: #28089a; margin-right: 10px;">Contact Type:</label>
+          <select id="contact_filter_type_id" name="contact_filter_type_id" style="height: 38px; min-width: 180px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 10px;">
+            <option value="">-- All Contact Types --</option>
+            <?php foreach ($contactTypesList as $contactType): ?>
+              <option value="<?= htmlspecialchars($contactType['contact_type_id']) ?>">
+                <?= htmlspecialchars($contactType['contact_desc']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <?php if ($canEdit): ?>
+          <button type="button" id="addNewContact" class="btn-pulse nbtn">Add Contact</button>
+        <?php endif; ?>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center; flex-grow: 1; max-width: 400px;">
+        <label for="contactID" style="font-weight: bold; color: #28089a; white-space: nowrap;">Contact:</label>
+        <select name="contactID" id="contactID" style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 10px;">
+          <option value="">--Select--</option>
+        </select>
       </div>
     </div>
-
-    <div class="field-group" style="--colspan: 2;">
-      <label for="contactID"><h3 style="color: blue;">Select Member/Contact</h3></label>
-      <select name="contactID" id="contactID">
-        <option value="">--Select--</option>
-      </select>
-    </div>
-
-    <?php if ($canEdit): ?>
-      <div class="field-group" style="--colspan: 2; display: flex; justify-content: center; align-items: center;">
-        <button type="button" id="addNewContact" class="btn-pulse nbtn">Add Contact</button>
-      </div>
-    <?php endif; ?>
-  </fieldset>
+  </div>
 
   <?php if ($canEdit): ?>
     <form id="contact-form" name="contact-form" enctype="multipart/form-data">

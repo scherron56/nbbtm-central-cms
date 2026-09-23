@@ -9,9 +9,6 @@
 	<parameter name="p_grp_ids" class="java.lang.String">
 		<parameterDescription><![CDATA[Association IDs]]></parameterDescription>
 	</parameter>
-	<parameter name="IMAGE_DIR" class="java.lang.String">
-		<defaultValueExpression><![CDATA[http:/localhost/images/]]></defaultValueExpression>
-	</parameter>
 	<queryString>
 		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_ids}, $P{p_grp_ids})]]>
 	</queryString>
@@ -92,12 +89,12 @@
 				<reportElement x="-1" y="0" width="571" height="110" uuid="701fd0d8-0105-4d6a-b28c-4fb11acaa8c5">
 					<printWhenExpression><![CDATA[$V{PAGE_NUMBER}.intValue() == 1]]></printWhenExpression>
 				</reportElement>
-				<imageExpression><![CDATA[$P(IMAGE_DIR} + "nbbtm header - no addr.png"]]></imageExpression>
+				<imageExpression><![CDATA["/var/www/html/images/nbbtm header - with addr.png"]]></imageExpression>
 			</image>
 			<textField>
 				<reportElement x="20" y="100" width="710" height="30" printWhenGroupChanges="Group1" uuid="ff7e4ca9-c8af-4562-b7af-d1b51d3e314b"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Cabinet Grotesk Black"/>
+					<font fontName="Lora" size="16"/>
 				</textElement>
 				<textFieldExpression><![CDATA[IF($V{PAGE_NUMBER}.intValue() == 1,"Ministries/Committees/Operations",  "Ministries/Committees/Operations cont...")]]></textFieldExpression>
 			</textField>
@@ -105,7 +102,7 @@
 				<reportElement x="0" y="0" width="570" height="110" uuid="376b9599-b3c7-4ab6-baad-c88772527a50">
 					<printWhenExpression><![CDATA[$V{PAGE_NUMBER} > 1]]></printWhenExpression>
 				</reportElement>
-				<imageExpression><![CDATA[$P{$IMAGE_DIR} + "nbbtm header - no addr.png"]]></imageExpression>
+				<imageExpression><![CDATA["/var/www/html/images/nbbtm header - no addr.png"]]></imageExpression>
 			</image>
 		</band>
 	</pageHeader>
@@ -125,21 +122,21 @@
 			<textField evaluationTime="Report">
 				<reportElement x="630" y="1" width="40" height="20" uuid="657a88ba-e420-4261-b14b-3c48d7782e0f"/>
 				<textElement>
-					<font fontName="Zodiak" size="10" isBold="false"/>
+					<font fontName="Nimbus Roman" size="10" isBold="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="550" y="0" width="80" height="20" uuid="d96e4cb9-5b9e-45a8-b329-bab61a51330d"/>
 				<textElement textAlignment="Right">
-					<font fontName="Lora" size="10" isBold="false"/>
+					<font fontName="Nimbus Roman" size="10" isBold="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
 			</textField>
 			<textField pattern="EEEEE dd MMMMM yyyy">
 				<reportElement x="0" y="0" width="197" height="20" uuid="8f0138d2-e648-4ef9-801d-41399f829d7b"/>
 				<textElement>
-					<font fontName="Lora" size="10" isBold="false"/>
+					<font fontName="DejaVu Sans Condensed" size="10" isBold="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
 			</textField>
