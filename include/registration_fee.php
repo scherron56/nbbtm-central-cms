@@ -8,14 +8,21 @@
  */
 
 /**
- * Sync a "Registration Fee Paid" income actual for a contact's registration.
- * - Paid/completed  -> actual is inserted (once per contact/event)
- * - Not paid        -> any existing fee actual for that contact is removed
+ * Sync the registration-fee actual line(s) for a contact's registration.
+ *
+ * Two distinct rows may exist per contact/event so the Actuals ledger reflects
+ * the real cash position:
+ *   - "Registration Fee Pending - <name>" : logged while money is unverified
+ *   - "Registration Fee Paid - <name>"    : logged once the admin verifies payment
+ *
+ * When a registration is verified the pending row is removed and the paid row
+ * is created/updated. When a registration is removed or reverted to pending the
+ * paid row is removed and a pending row is written instead.
  */
 if (!function_exists('logRegistrationFeeActual')) {
     function logRegistrationFeeActual($db, int $prgevntId, int $contactId, float $amountPaid, int $isCompleted, string $paymentStatus): void
     {
-        if ($amountPaid <= 0) {
+        if ($amountPaid < 0) {
             $amountPaid = 0.0;
         }
 
@@ -25,33 +32,65 @@ if (!function_exists('logRegistrationFeeActual')) {
         $crow = $descContactStmt->get_result()->fetch_assoc();
         $descContactStmt->close();
         $fullName = $crow['full_name'] ?? ('Contact #' . $contactId);
-        $description = 'Registration Fee Paid - ' . $fullName;
+        $paidDescription = 'Registration Fee Paid - ' . $fullName;
+        $pendingDescription = 'Registration Fee Pending - ' . $fullName;
+
+        // Clear any prior rows for this contact/event before writing the current state.
+        $del = $db->prepare("DELETE FROM prg_evnt_budget_actuals WHERE prg_evnt_id = ? AND entry_type = 'Income' AND description IN (?, ?)");
+        $del->bind_param("iss", $prgevntId, $paidDescription, $pendingDescription);
+        $del->execute();
+        $del->close();
+
+        if ($amountPaid <= 0) {
+            // Nothing owed / nothing paid -> no ledger line required.
+            return;
+        }
+
+        // Find or auto-create the "Registration Fee" budget item for this event
+        $budgetItemId = null;
+        $bStmt = $db->prepare("
+            SELECT budget_item_id FROM prg_evnt_budget_items 
+            WHERE prg_evnt_id = ? AND LOWER(TRIM(item_description)) IN ('registration fee', 'registration fees')
+            ORDER BY budget_item_id ASC LIMIT 1
+        ");
+        $bStmt->bind_param("i", $prgevntId);
+        $bStmt->execute();
+        $bRow = $bStmt->get_result()->fetch_assoc();
+        $bStmt->close();
+
+        if ($bRow) {
+            $budgetItemId = (int)$bRow['budget_item_id'];
+        } else {
+            // Check event fee details for initial estimated amount
+            $evStmt = $db->prepare("SELECT registration_fee, attend_estimate FROM programs_events WHERE prg_evnt_id = ?");
+            $evStmt->bind_param("i", $prgevntId);
+            $evStmt->execute();
+            $evRow = $evStmt->get_result()->fetch_assoc();
+            $evStmt->close();
+
+            $fee = (float)($evRow['registration_fee'] ?? 0);
+            $est = (int)($evRow['attend_estimate'] ?? 0);
+            $initialAmt = ($est > 0 && $fee > 0) ? ($est * $fee) : $fee;
+
+            $insB = $db->prepare("INSERT INTO prg_evnt_budget_items (prg_evnt_id, item_description, item_type, amount) VALUES (?, 'Registration Fee', 'Income', ?)");
+            $insB->bind_param("id", $prgevntId, $initialAmt);
+            $insB->execute();
+            $budgetItemId = (int)$insB->insert_id;
+            $insB->close();
+        }
 
         if ($isCompleted === 1) {
-            // Upsert: one fee actual per contact/event
-            $chk = $db->prepare("SELECT actual_id FROM prg_evnt_budget_actuals WHERE prg_evnt_id = ? AND entry_type = 'Income' AND description = ?");
-            $chk->bind_param("is", $prgevntId, $description);
-            $chk->execute();
-            $existing = $chk->get_result()->fetch_assoc();
-            $chk->close();
-
-            if ($existing) {
-                $up = $db->prepare("UPDATE prg_evnt_budget_actuals SET amount = ? WHERE actual_id = ?");
-                $up->bind_param("di", $amountPaid, $existing['actual_id']);
-                $up->execute();
-                $up->close();
-            } else {
-                $ins = $db->prepare("INSERT INTO prg_evnt_budget_actuals (prg_evnt_id, entry_type, description, amount) VALUES (?, 'Income', ?, ?)");
-                $ins->bind_param("isd", $prgevntId, $description, $amountPaid);
-                $ins->execute();
-                $ins->close();
-            }
+            $ins = $db->prepare("INSERT INTO prg_evnt_budget_actuals (prg_evnt_id, budget_item_id, entry_type, description, amount) VALUES (?, ?, 'Income', ?, ?)");
+            $ins->bind_param("iisd", $prgevntId, $budgetItemId, $paidDescription, $amountPaid);
+            $ins->execute();
+            $ins->close();
         } else {
-            // Not paid anymore -> remove the fee actual if it exists
-            $del = $db->prepare("DELETE FROM prg_evnt_budget_actuals WHERE prg_evnt_id = ? AND entry_type = 'Income' AND description = ?");
-            $del->bind_param("is", $prgevntId, $description);
-            $del->execute();
-            $del->close();
+            // Still pending: show a provisional line so it is visible, but it is
+            // distinct from verified income (pending label in the description).
+            $ins = $db->prepare("INSERT INTO prg_evnt_budget_actuals (prg_evnt_id, budget_item_id, entry_type, description, amount) VALUES (?, ?, 'Income', ?, ?)");
+            $ins->bind_param("iisd", $prgevntId, $budgetItemId, $pendingDescription, $amountPaid);
+            $ins->execute();
+            $ins->close();
         }
     }
 }

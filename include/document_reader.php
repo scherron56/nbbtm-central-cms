@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
+/** @var mysqli $db Provided globally by include/auth.php -> config/db.php */
 require_once __DIR__ . '/document_binary.php';
 requireDocumentAccess();
 

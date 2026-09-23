@@ -92,6 +92,7 @@ $canEdit = canEdit();
     .modal-card { background: #fff; border-radius: 8px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .badge-expense { background-color: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
     .badge-income { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-secondary { background-color: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
@@ -212,6 +213,7 @@ $canEdit = canEdit();
         $('#btnAddBudget').on('click', function() {
             $('#budgetContainer').append(`
                 <div class="form-row budget-row" style="margin-bottom: 8px;">
+                    <input type="hidden" name="budget_item_id[]" value="">
                     <div class="form-group" style="flex:2;">
                         <input type="text" name="budget_desc[]" placeholder="Description" required class="form-control budget-calc-trigger">
                     </div>
@@ -266,9 +268,93 @@ $canEdit = canEdit();
             else $bc.css({'background': '#f8fafc', 'border-color': '#e2e8f0', 'color': '#334155'});
         }
 
+        function ensureRegistrationFeeBudgetRow() {
+            let hasRegFee = false;
+            $('.budget-row').each(function() {
+                let desc = $(this).find('input[name="budget_desc[]"]').val().trim().toLowerCase();
+                if (desc === 'registration fee' || desc === 'registration fees') {
+                    hasRegFee = true;
+                    return false;
+                }
+            });
+
+            if (!hasRegFee) {
+                let estCount = parseInt($('#attend_estimate').val()) || 0;
+                let fee = parseFloat($('#registration_fee').val()) || 0;
+                let estTotal = (estCount > 0 && fee > 0) ? (estCount * fee).toFixed(2) : (fee > 0 ? fee.toFixed(2) : '0.00');
+
+                // If there's only 1 row and it's empty, reuse it
+                let rows = $('.budget-row');
+                if (rows.length === 1) {
+                    let firstDesc = rows.first().find('input[name="budget_desc[]"]').val().trim();
+                    let firstAmt = parseFloat(rows.first().find('input[name="budget_amount[]"]').val()) || 0;
+                    if (!firstDesc && firstAmt === 0) {
+                        rows.first().find('input[name="budget_desc[]"]').val('Registration Fee');
+                        rows.first().find('select[name="budget_type[]"]').val('Income');
+                        rows.first().find('input[name="budget_amount[]"]').val(estTotal);
+                        toggleBudgetButtons();
+                        calculateLiveBudgetSummary();
+                        return;
+                    }
+                }
+
+                $('#budgetContainer').append(`
+                    <div class="form-row budget-row" style="margin-bottom: 8px;">
+                        <input type="hidden" name="budget_item_id[]" value="">
+                        <div class="form-group" style="flex:2;">
+                            <input type="text" name="budget_desc[]" value="Registration Fee" required class="form-control budget-calc-trigger">
+                        </div>
+                        <div class="form-group">
+                            <select name="budget_type[]" class="form-control budget-calc-trigger">
+                                <option value="Expense">Expense</option>
+                                <option value="Income" selected>Income</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="number" step="0.01" name="budget_amount[]" placeholder="0.00" value="${estTotal}" required class="form-control budget-calc-trigger">
+                        </div>
+                        <div style="display:flex; align-items:flex-end; margin-bottom:15px;">
+                            <button type="button" class="btn btn-danger btnRemoveBudget" style="padding:6px 10px;">&times;</button>
+                        </div>
+                    </div>`);
+                toggleBudgetButtons();
+                calculateLiveBudgetSummary();
+            }
+        }
+
+        function updateRegistrationFeeBudgetRowAmount() {
+            let estCount = parseInt($('#attend_estimate').val()) || 0;
+            let fee = parseFloat($('#registration_fee').val()) || 0;
+            let estTotal = (estCount > 0 && fee > 0) ? (estCount * fee).toFixed(2) : (fee > 0 ? fee.toFixed(2) : '0.00');
+
+            $('.budget-row').each(function() {
+                let desc = $(this).find('input[name="budget_desc[]"]').val().trim().toLowerCase();
+                if (desc === 'registration fee' || desc === 'registration fees') {
+                    let currVal = parseFloat($(this).find('input[name="budget_amount[]"]').val()) || 0;
+                    if (currVal === 0 || currVal === fee || $(this).data('auto-calc')) {
+                        $(this).find('input[name="budget_amount[]"]').val(estTotal);
+                        $(this).data('auto-calc', true);
+                    }
+                    return false;
+                }
+            });
+            calculateLiveBudgetSummary();
+        }
+
         $(document.body).on('change', '#requires_fee', function() {
-            if (this.checked) $('#fee_container').slideDown();
-            else { $('#fee_container').slideUp(); $('#registration_fee').val('0.00'); }
+            if (this.checked) {
+                $('#fee_container').slideDown();
+                ensureRegistrationFeeBudgetRow();
+            } else {
+                $('#fee_container').slideUp();
+                $('#registration_fee').val('0.00');
+            }
+        });
+
+        $(document.body).on('input change', '#registration_fee, #attend_estimate', function() {
+            if ($('#requires_fee').is(':checked')) {
+                updateRegistrationFeeBudgetRowAmount();
+            }
         });
 
         $(document).on('change', '.chk-support-min', function() {
@@ -509,6 +595,7 @@ $canEdit = canEdit();
                             $.each(data.budgets, function(i, bud) {
                                 $('#budgetContainer').append(`
                                     <div class="form-row budget-row" style="margin-bottom: 8px;">
+                                        <input type="hidden" name="budget_item_id[]" value="${bud.budget_item_id}">
                                         <div class="form-group" style="flex:2;">
                                             <input type="text" name="budget_desc[]" value="${escapeHtml(bud.item_description)}" required class="form-control budget-calc-trigger">
                                         </div>
@@ -528,6 +615,9 @@ $canEdit = canEdit();
                             });
                         } else {
                             $('#btnAddBudget').trigger('click');
+                        }
+                        if (reqFee) {
+                            ensureRegistrationFeeBudgetRow();
                         }
                         toggleBudgetButtons();
                         calculateLiveBudgetSummary();
@@ -550,12 +640,32 @@ $canEdit = canEdit();
                 $tbody.append('<tr><td colspan="3" style="text-align:center; color:#64748b; padding:10px;">No actual transactions recorded.</td></tr>');
             } else {
                 $.each(actuals, function(i, act) {
-                    let badgeClass = act.entry_type === 'Expense' ? 'badge-expense' : 'badge-income';
+                    let descLc = String(act.description || '').toLowerCase();
+                    let statusVal = String(act.payment_status || act.status || '').toLowerCase();
+                    let isPendingIncome = act.entry_type === 'Income' && (statusVal === 'pending' || descLc.indexOf('registration fee pending') === 0);
+                    let isVerifiedIncome = act.entry_type === 'Income' && !isPendingIncome;
+
+                    let badgeClass, badgeLabel;
+                    if (isPendingIncome) {
+                        badgeClass = 'badge-secondary';
+                        badgeLabel = 'Income (Pending)';
+                    } else if (isVerifiedIncome) {
+                        badgeClass = 'badge-income';
+                        badgeLabel = 'Income (Verified)';
+                    } else if (act.entry_type === 'Expense') {
+                        badgeClass = 'badge-expense';
+                        badgeLabel = 'Expense';
+                    } else {
+                        badgeClass = 'badge-income';
+                        badgeLabel = 'Income';
+                    }
+
                     let linked = act.budget_item_name ? `<br><small style="color:#64748b;">Line: ${escapeHtml(act.budget_item_name)}</small>` : '';
+                    let rowStyle = isPendingIncome ? ' style="opacity: 0.75;"' : '';
                     $tbody.append(`
-                        <tr>
+                        <tr${rowStyle}>
                             <td>${escapeHtml(act.description)}${linked}</td>
-                            <td><span class="${badgeClass}">${escapeHtml(act.entry_type)}</span></td>
+                            <td><span class="${badgeClass}">${badgeLabel}</span></td>
                             <td>$${parseFloat(act.amount).toFixed(2)}</td>
                         </tr>
                     `);
@@ -731,13 +841,25 @@ $canEdit = canEdit();
 
             $.get('prg_event_api.php', { action: 'get_event_budget_items', prg_evnt_id: eventId }, function(res) {
                 if (res.success) {
-                    let $sel = $('#actual_budget_item_id').empty().append('<option value="">-- General / Unassigned --</option>');
+                    let $sel = $('#actual_budget_item_id').empty().append('<option value="">-- Select Budget Item --</option>');
+                    if (!res.budget_items || res.budget_items.length === 0) {
+                        alert('No budget items found for this event. Please add budget items to the event before recording actual transactions.');
+                        return;
+                    }
                     $.each(res.budget_items, function(i, item) {
-                        $sel.append(`<option value="${item.budget_item_id}">${escapeHtml(item.item_description)} (${item.item_type})</option>`);
+                        $sel.append(`<option value="${item.budget_item_id}" data-type="${escapeHtml(item.item_type)}">${escapeHtml(item.item_description)} (${item.item_type})</option>`);
                     });
+                    $('#actual_budget_item_id').prop('required', true);
                     $('#modalAddActual').fadeIn(200);
                 }
             }, 'json');
+        });
+
+        $('#actual_budget_item_id').on('change', function() {
+            let selectedType = $(this).find('option:selected').data('type');
+            if (selectedType) {
+                $('#actual_entry_type').val(selectedType);
+            }
         });
 
         $('#btnCloseActualModal').on('click', function() {
@@ -801,6 +923,7 @@ $canEdit = canEdit();
 
             $('#budgetContainer').html(`
                 <div class="form-row budget-row" style="margin-bottom: 8px;">
+                    <input type="hidden" name="budget_item_id[]" value="">
                     <div class="form-group" style="flex:2;">
                         <input type="text" name="budget_desc[]" placeholder="Description" required class="form-control budget-calc-trigger">
                     </div>
@@ -951,6 +1074,7 @@ $canEdit = canEdit();
                         </label>
                         <div id="budgetContainer">
                             <div class="form-row budget-row" style="margin-bottom: 8px;">
+                                <input type="hidden" name="budget_item_id[]" value="">
                                 <div class="form-group" style="flex:2;">
                                     <label>Description:</label>   
                                     <input type="text" name="budget_desc[]" placeholder="e.g., Facility Rental / Ticket Sales" required class="form-control budget-calc-trigger">
@@ -1169,9 +1293,9 @@ $canEdit = canEdit();
             <input type="hidden" id="actual_prg_evnt_id" name="prg_evnt_id">
             
             <div style="margin-bottom: 12px;">
-                <label style="display:block; margin-bottom: 4px; font-weight:600;">Budget Line Item (Optional):</label>
-                <select id="actual_budget_item_id" name="budget_item_id" class="form-control">
-                    <option value="">-- General / Unassigned --</option>
+                <label style="display:block; margin-bottom: 4px; font-weight:600;">Budget Line Item <span style="color:#ef4444;">*</span>:</label>
+                <select id="actual_budget_item_id" name="budget_item_id" class="form-control" required>
+                    <option value="">-- Select Budget Item --</option>
                 </select>
             </div>
 

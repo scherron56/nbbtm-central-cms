@@ -156,7 +156,7 @@ if (isset($db) && $db instanceof mysqli) {
 
       loadContactList();
 
-      $(document).on('change', '#contact_type_id, input[name="age_filter"]', function() {
+      $(document).on('change', '#contact_type_id', function() {
         loadContactList();
       });
 
@@ -206,16 +206,14 @@ if (isset($db) && $db instanceof mysqli) {
       });
 
       function loadContactList() {
-        let contactTypes = $('#contact_type_id').val() || [];
-        let ageFilter = $('input[name="age_filter"]:checked').val() || 0;
+        let contactTypeId = $('#contact_type_id').val() || '';
         let currentSelection = $('#contactID').val();
 
         $.ajax({
           url: "getLists.php",
           type: 'POST',
           data: {
-            contact_type_id: contactTypes,
-            age_filter: ageFilter
+            contact_type_id: contactTypeId
           },
           dataType: 'text',
           success: function(responseText) {
@@ -553,26 +551,14 @@ if (isset($db) && $db instanceof mysqli) {
 
           <div style="display: flex; align-items: center; gap: 8px;">
             <label for="contact_type_id" style="font-weight: bold; color: #28089a;">Census:</label>
-            <select id="contact_type_id" name="contact_type_id[]" multiple style="min-width: 160px; height: 75px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 4px;">
+            <select id="contact_type_id" name="contact_type_id" style="min-width: 180px; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 10px;">
+              <option value="">-- All Census Types --</option>
               <?php foreach ($contactTypesList as $ct): ?>
                 <option value="<?= htmlspecialchars($ct['contact_type_id']) ?>">
                   <?= htmlspecialchars($ct['contact_desc']) ?>
                 </option>
               <?php endforeach; ?>
             </select>
-          </div>
-
-          <div>
-            <label style="font-weight: bold; color: #28089a; margin-right: 10px;">Age Group:</label>
-            <label style="cursor: pointer; margin-right: 10px;">
-              <input type="radio" name="age_filter" value="0" checked> All
-            </label>
-            <label style="cursor: pointer; margin-right: 10px;">
-              <input type="radio" name="age_filter" value="1"> Adults
-            </label>
-            <label style="cursor: pointer;">
-              <input type="radio" name="age_filter" value="2"> Children
-            </label>
           </div>
 
         </div>

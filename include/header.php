@@ -20,7 +20,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
 <header class="site-header">
   <div class="header-content">
     <div class="logo-container">
-      <img src="assets/img/nbbtm-logo-white-web826.png" alt="NBBTM Logo" class="scaled-svg">
+      <img src="/assets/img/nbbtm-logo-white-web826.png" alt="NBBTM Logo" class="scaled-svg">
     </div>
 
     <h1>New Beginnings Baptist Tabernacle Ministries</h1>
@@ -30,52 +30,52 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
   <?php if (empty($hide_menu)): ?>
     <nav class="navbar">
       <ul class="nav-links">
-        <li><a href="index.php" class="<?= in_array($currentPage, ['index.php', 'index1.php']) ? 'active' : '' ?>">Home</a></li>
+        <li><a href="/index.php" class="<?= in_array($currentPage, ['index.php', 'index1.php']) ? 'active' : '' ?>">Home</a></li>
 
         <?php if ($isLoggedIn && isMember()): ?>
-          <li><a href="member_documents.php" class="<?= ($currentPage === 'member_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
+          <li><a href="/member_documents.php" class="<?= ($currentPage === 'member_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
 
         <?php elseif ($isLoggedIn && (isAdmin() || isDeveloper())): ?>
           <!-- Full Admin & Developer Navigation -->
           <li class="dropdown">
             <a href="#" class="<?= in_array($currentPage, ['contacts.php', 'contact_dashboard.php']) ? 'active' : '' ?>">Contacts</a>
             <ul class="submenu">
-              <li><a href="contacts.php" class="<?= ($currentPage === 'contacts.php') ? 'active' : '' ?>">New/Update Contacts</a></li>
-              <li><a href="contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contact Dashboard</a></li>
+              <li><a href="/contacts.php" class="<?= ($currentPage === 'contacts.php') ? 'active' : '' ?>">New/Update Contacts</a></li>
+              <li><a href="/contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contact Dashboard</a></li>
             </ul>
           </li>
 
           <li class="dropdown">
             <a href="#" class="<?= in_array($currentPage, ['ministry_manager.php', 'ministry_members.php']) ? 'active' : '' ?>">Ministries</a>
             <ul class="submenu">
-              <li><a href="ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
-              <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
+              <li><a href="/ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
+              <li><a href="/ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
             </ul>
           </li>
 
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_dashboard.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
+            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_financials.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
             <ul class="submenu">
-              <li><a href="events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
-              <li><a href="event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
-              <li><a href="event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
-              <li><a href="event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
-              <li><a href="event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
+              <li><a href="/events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
+              <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
+              <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
+              <li><a href="/event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
+              <li><a href="/event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
             </ul>
           </li>
 
           <li class="dropdown">
             <a href="#" class="<?= in_array($currentPage, ['vbs_sessions.php', 'vbs_manager.php', 'vbs_attendance.php', 'vbs_registration.php']) ? 'active' : '' ?>">VBS</a>
             <ul class="submenu">
-              <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-              <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
-              <li><a href="vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
+              <li><a href="/vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
+              <li><a href="/vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
+              <li><a href="/vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
             </ul>
           </li>
 
           <!-- Admin / Full Control Menu Dropdown -->
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
+            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'admin_sms.php', 'ministry_sms.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php', 'compile_report_form.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
               Admin &#9662;
             </a>
             <ul class="submenu">
@@ -84,24 +84,38 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
                   Emails &#9656;
                 </a>
                 <ul class="submenu-nested">
-                  <li><a href="admin_mailer.php" class="<?= ($currentPage === 'admin_mailer.php') ? 'active' : '' ?>">Send Email(s) - Contacts</a></li>
-                  <li><a href="ministry_mailer.php" class="<?= ($currentPage === 'ministry_mailer.php') ? 'active' : '' ?>">Send Email(s) - Ministries & Committees</a></li>
+                  <li><a href="/admin_mailer.php" class="<?= ($currentPage === 'admin_mailer.php') ? 'active' : '' ?>">Send Email(s) - Contacts</a></li>
+                  <li><a href="/ministry_mailer.php" class="<?= ($currentPage === 'ministry_mailer.php') ? 'active' : '' ?>">Send Email(s) - Ministries & Committees</a></li>
                 </ul>
               </li>
 
               <li class="dropdown-nested">
-                <a href="#" class="<?= in_array($currentPage, ['admin_reports.php', 'manage_reports.php', 'report_files.php']) ? 'active' : '' ?>">
+                <a href="#" class="<?= in_array($currentPage, ['admin_sms.php', 'ministry_sms.php']) ? 'active' : '' ?>">
+                  SMS &#9656;
+                </a>
+                <ul class="submenu-nested">
+                  <li><a href="/admin_sms.php" class="<?= ($currentPage === 'admin_sms.php') ? 'active' : '' ?>">Send SMS - Contacts</a></li>
+                  <li><a href="/ministry_sms.php" class="<?= ($currentPage === 'ministry_sms.php') ? 'active' : '' ?>">Send SMS - Ministries & Committees</a></li>
+                </ul>
+              </li>
+
+              <li class="dropdown-nested">
+                <a href="#" class="<?= in_array($currentPage, ['admin_reports.php', 'manage_reports.php', 'report_files.php', 'generated_reports.php', 'compile_report_form.php']) ? 'active' : '' ?>">
                   Reports &#9656;
                 </a>
                 <ul class="submenu-nested">
-                  <li><a href="admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
-                  <li><a href="manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
-                  <li><a href="report_files.php" class="<?= ($currentPage === 'report_files.php') ? 'active' : '' ?>">Saved Reports</a></li>
+                  <li><a href="/reporting/admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
+                  <li><a href="/reporting/generated_reports.php" class="<?= ($currentPage === 'generated_reports.php') ? 'active' : '' ?>">View Generated Reports</a></li>
+                  <?php if (isDeveloper()): ?>
+                  <li><a href="/reporting/manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
+                  <li><a href="/reporting/report_files.php" class="<?= ($currentPage === 'report_files.php') ? 'active' : '' ?>">Saved Reports</a></li>
+                  <li><a href="/reporting/compile_report_form.php" class="<?= ($currentPage === 'compile_report_form.php') ? 'active' : '' ?>">Compile Report</a></li>
+                  <?php endif; ?>
                 </ul>
               </li>
-              <li><a href="self_register.php" class="<?= ($currentPage === 'self_register.php') ? 'active' : '' ?>">Self Registration</a></li>
-              <li><a href="user_management.php" class="<?= ($currentPage === 'user_management.php') ? 'active' : '' ?>">👥 User Management</a></li>
-              <li><a href="admin_documents.php" class="<?= ($currentPage === 'admin_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
+              <li><a href="/self_register.php" class="<?= ($currentPage === 'self_register.php') ? 'active' : '' ?>">Self Registration</a></li>
+              <li><a href="/user_management.php" class="<?= ($currentPage === 'user_management.php') ? 'active' : '' ?>">👥 User Management</a></li>
+              <li><a href="/admin_documents.php" class="<?= ($currentPage === 'admin_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
             </ul>
           </li>
 
@@ -110,49 +124,49 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
           <li class="dropdown">
             <a href="#" class="<?= in_array($currentPage, ['contacts.php', 'contact_dashboard.php']) ? 'active' : '' ?>">Contacts</a>
             <ul class="submenu">
-              <li><a href="contacts.php" class="<?= ($currentPage === 'contacts.php') ? 'active' : '' ?>">New/Update Contacts</a></li>
-              <li><a href="contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contact Dashboard</a></li>
+              <li><a href="/contacts.php" class="<?= ($currentPage === 'contacts.php') ? 'active' : '' ?>">New/Update Contacts</a></li>
+              <li><a href="/contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contact Dashboard</a></li>
             </ul>
           </li>
 
           <li class="dropdown">
             <a href="#" class="<?= in_array($currentPage, ['ministry_manager.php', 'ministry_members.php']) ? 'active' : '' ?>">Ministries</a>
             <ul class="submenu">
-              <li><a href="ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
-              <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
+              <li><a href="/ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
+              <li><a href="/ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
             </ul>
           </li>
 
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_dashboard.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
+            <a href="#" class="<?= in_array($currentPage, ['events.php', 'event_dashboard_main.php', 'event_financials.php', 'event_registration.php', 'event_checkin.php']) ? 'active' : '' ?>">Programs / Events</a>
             <ul class="submenu">
-              <li><a href="events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
-              <li><a href="event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
-              <li><a href="event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
-              <li><a href="event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
-              <li><a href="event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
+              <li><a href="/events.php" class="<?= ($currentPage === 'events.php') ? 'active' : '' ?>">Program / Event Updates</a></li>
+              <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
+              <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
+              <li><a href="/event_registration.php" class="<?= ($currentPage === 'event_registration.php') ? 'active' : '' ?>">Event Registration</a></li>
+              <li><a href="/event_checkin.php" class="<?= ($currentPage === 'event_checkin.php') ? 'active' : '' ?>">Event Check-in</a></li>
             </ul>
           </li>
 
           <li class="dropdown">
             <a href="#" class="<?= in_array($currentPage, ['vbs_sessions.php', 'vbs_manager.php', 'vbs_attendance.php', 'vbs_registration.php']) ? 'active' : '' ?>">VBS</a>
             <ul class="submenu">
-              <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-              <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
-              <li><a href="vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
+              <li><a href="/vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
+              <li><a href="/vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
+              <li><a href="/vbs_attendance.php" class="<?= ($currentPage === 'vbs_attendance.php') ? 'active' : '' ?>">Attendance</a></li>
             </ul>
           </li>
 
         <?php elseif ($isLoggedIn): ?>
           <!-- Browser / View Role Navigation -->
-          <li><a href="contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contacts Dashboard</a></li>
-          <li><a href="ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
-          <li><a href="ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
-          <li><a href="event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
+          <li><a href="/contact_dashboard.php" class="<?= ($currentPage === 'contact_dashboard.php') ? 'active' : '' ?>">Contacts Dashboard</a></li>
+          <li><a href="/ministry_manager.php" class="<?= ($currentPage === 'ministry_manager.php') ? 'active' : '' ?>">Ministries</a></li>
+          <li><a href="/ministry_members.php" class="<?= ($currentPage === 'ministry_members.php') ? 'active' : '' ?>">Ministry Participants</a></li>
+          <li><a href="/event_dashboard_main.php" class="<?= ($currentPage === 'event_dashboard_main.php') ? 'active' : '' ?>">Event Information</a></li>
 
-          <li><a href="event_dashboard.php" class="<?= ($currentPage === 'event_dashboard.php') ? 'active' : '' ?>">Event Financials</a></li>
-          <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
-          <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
+          <li><a href="/event_financials.php" class="<?= ($currentPage === 'event_financials.php') ? 'active' : '' ?>">Event Financials</a></li>
+          <li><a href="/vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
+          <li><a href="/vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
         <?php endif; ?>
 
         <!-- Authentication Action Buttons -->
@@ -428,7 +442,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
         const formData = new FormData(loginForm);
 
         try {
-          const res = await fetch('./include/auth.php?action=login', {
+          const res = await fetch('/include/auth.php?action=login', {
             method: 'POST',
             body: formData
           });
@@ -481,7 +495,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
         const formData = new FormData(changePwdForm);
 
         try {
-          const res = await fetch('./include/auth.php?action=change_password', {
+          const res = await fetch('/include/auth.php?action=change_password', {
             method: 'POST',
             body: formData
           });
@@ -521,7 +535,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
       logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         // Use a normal navigation so the server's logout redirect is followed.
-        window.location.href = './include/auth.php?action=logout';
+        window.location.href = '/include/auth.php?action=logout';
       });
     }
   });

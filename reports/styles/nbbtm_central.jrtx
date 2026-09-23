@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperTemplate xmlns="http://jasperreports.sourceforge.net/jasperreports/template" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/template http://jasperreports.sourceforge.net/xsd/jaspertemplate.xsd">
+	<style name="Group Header" isDefault="true" forecolor="#0C2AB0" vTextAlign="Middle" markup="none" fontName="DejaVu Serif" fontSize="20" isBold="true"/>
+	<style name="Column Header" style="Group Header" radius="0" fontName="DejaVu Serif" fontSize="12" isBold="true"/>
+	<style name="Details" style="Group Header" fontSize="11" isBold="false"/>
+	<style name="Group Header - Italic" style="Group Header" isBold="true" isItalic="true"/>
+	<style name="Details - Italic" style="Group Header" isBlankWhenNull="false" fontName="DejaVu Serif" fontSize="11" isBold="false" isItalic="true"/>
+	<style name="Page Footer " style="Group Header" fontName="DejaVu Serif" fontSize="9"/>
+</jasperTemplate>

@@ -438,7 +438,7 @@ $canEdit = canEdit();
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #e2e8f0; padding-bottom:0.5rem;">
         <h2 style="margin:0; color:#28089a;">Event Registration & Check-In</h2>
-        <a href="event_dashboard.php" class="btn" style="text-decoration:none; background:#e2e8f0; color:#334155; padding:6px 12px; border-radius:4px; font-weight:600;">&larr; Back to Dashboard</a>
+        <a href="event_financials.php" class="btn" style="text-decoration:none; background:#e2e8f0; color:#334155; padding:6px 12px; border-radius:4px; font-weight:600;">&larr; Back to Dashboard</a>
       </div>
 
       <div class="form-group" style="max-width: 500px; margin-top: 20px;">
@@ -479,7 +479,7 @@ $canEdit = canEdit();
                 <option value="Cash">Cash</option>
                 <option value="Check">Check</option>
                 <option value="Credit Card">Credit Card</option>
-                <option value="Online">Online (Givelify)</option>
+                <option value="Online">Givelify</option>
               </select>
             </div>
 

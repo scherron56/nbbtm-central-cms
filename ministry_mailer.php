@@ -110,6 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $htmlEmail = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;'>
+                <!-- Organization Logo -->
+                <div style='text-align: center; margin-bottom: 15px;'>
+                    <img src='cid:nbbtm-logo' alt='New Beginnings Baptist Tabernacle Ministries' style='max-width: 180px; height: auto;'>
+                </div>
+
                 <!-- Subject Header -->
                 <div style='text-align: center; margin-bottom: 20px;'>
                     <h2 style='color: #043b8f; margin: 0;'>" . htmlspecialchars($subject) . "</h2>

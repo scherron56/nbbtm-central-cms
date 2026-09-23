@@ -239,6 +239,20 @@ form {
   box-sizing: border-box;
 }
 
+/* Small inline forms (e.g. a single "Delete" button next to other action
+   buttons/links in a table row) must not inherit the block-form styling
+   above, otherwise the padded/shadowed white box overlaps neighboring
+   buttons. */
+form.inline-form {
+  display: inline;
+  width: auto;
+  max-width: none;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 /* Base Grid Section Elements */
 .form-grid-section-8 {
   display: grid;
@@ -580,6 +594,15 @@ form {
 
 .btn-accent:hover {
   background-color: #0f766e;
+}
+
+/* Smaller variant for action buttons (e.g. table row "View"/"Delete"
+   buttons). Applied alongside a color modifier, e.g. "btn btn-sm btn-primary".
+   Declared last so its reduced padding/font-size take precedence over the
+   color modifier rules above. */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 .data-table {

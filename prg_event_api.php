@@ -67,6 +67,45 @@ switch ($action) {
             $budgets = $budStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $budStmt->close();
 
+            // If event requires fee, ensure Registration Fee budget item exists
+            if ((int)($prgevnt['requires_fee'] ?? 0) === 1) {
+                $hasRf = false;
+                $rfId = null;
+                foreach ($budgets as $b) {
+                    $bDescLc = strtolower(trim($b['item_description'] ?? ''));
+                    if ($bDescLc === 'registration fee' || $bDescLc === 'registration fees') {
+                        $hasRf = true;
+                        $rfId = (int)$b['budget_item_id'];
+                        break;
+                    }
+                }
+                if (!$hasRf) {
+                    $fee = (float)($prgevnt['registration_fee'] ?? 0);
+                    $est = (int)($prgevnt['attend_estimate'] ?? 0);
+                    $initialAmt = ($est > 0 && $fee > 0) ? ($est * $fee) : $fee;
+                    $insItem = $db->prepare("INSERT INTO prg_evnt_budget_items (prg_evnt_id, item_description, item_type, amount) VALUES (?, 'Registration Fee', 'Income', ?)");
+                    $insItem->bind_param("id", $prgevntId, $initialAmt);
+                    $insItem->execute();
+                    $rfId = (int)$insItem->insert_id;
+                    $insItem->close();
+
+                    // Reload Budgets
+                    $budStmt = $db->prepare("SELECT * FROM prg_evnt_budget_items WHERE prg_evnt_id = ? ORDER BY budget_item_id ASC");
+                    $budStmt->bind_param("i", $prgevntId);
+                    $budStmt->execute();
+                    $budgets = $budStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $budStmt->close();
+                }
+
+                // Relink any registration fee actuals that might have NULL budget_item_id
+                if ($rfId > 0) {
+                    $updAct = $db->prepare("UPDATE prg_evnt_budget_actuals SET budget_item_id = ? WHERE prg_evnt_id = ? AND (budget_item_id IS NULL OR budget_item_id = 0) AND entry_type = 'Income' AND LOWER(description) LIKE 'registration fee%'");
+                    $updAct->bind_param("ii", $rfId, $prgevntId);
+                    $updAct->execute();
+                    $updAct->close();
+                }
+            }
+
             // Fetch Support Ministries
             $supStmt = $db->prepare("
                 SELECT sm.min_comm_id, m.min_comm_name
@@ -91,18 +130,82 @@ switch ($action) {
             $attachments = $attStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $attStmt->close();
 
-            // Fetch Actual Transactions
+            // Fetch Actual Transactions (with payment_status from prg_evnt_registrations)
             $actStmt = $db->prepare("
-                SELECT a.actual_id, a.budget_item_id, a.entry_type, a.description, a.amount, a.created_at, b.item_description AS budget_item_name
+                SELECT 
+                    a.actual_id, 
+                    a.budget_item_id, 
+                    a.entry_type, 
+                    a.description, 
+                    a.amount, 
+                    a.created_at, 
+                    b.item_description AS budget_item_name,
+                    COALESCE(
+                        r.payment_status,
+                        CASE 
+                            WHEN LOWER(a.description) LIKE 'registration fee pending%' THEN 'Pending'
+                            WHEN LOWER(a.description) LIKE 'registration fee paid%' THEN 'Paid'
+                            WHEN a.entry_type = 'Expense' THEN 'N/A'
+                            ELSE 'Paid'
+                        END
+                    ) AS payment_status,
+                    COALESCE(
+                        r.payment_status,
+                        CASE 
+                            WHEN LOWER(a.description) LIKE 'registration fee pending%' THEN 'Pending'
+                            WHEN LOWER(a.description) LIKE 'registration fee paid%' THEN 'Paid'
+                            WHEN a.entry_type = 'Expense' THEN 'N/A'
+                            ELSE 'Paid'
+                        END
+                    ) AS status
                 FROM prg_evnt_budget_actuals a
                 LEFT JOIN prg_evnt_budget_items b ON a.budget_item_id = b.budget_item_id
+                LEFT JOIN (
+                    SELECT r.prg_evnt_id, r.payment_status, CONCAT(c.first_name, ' ', c.last_name) AS full_name
+                    FROM prg_evnt_registrations r
+                    JOIN contacts c ON r.contact_id = c.contact_id
+                    WHERE r.prg_evnt_id = ?
+                ) r ON a.prg_evnt_id = r.prg_evnt_id AND a.description LIKE CONCAT('%', r.full_name, '%')
                 WHERE a.prg_evnt_id = ?
                 ORDER BY a.created_at DESC
             ");
-            $actStmt->bind_param("i", $prgevntId);
+            $actStmt->bind_param("ii", $prgevntId, $prgevntId);
             $actStmt->execute();
             $actuals = $actStmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $actStmt->close();
+
+            // Registration summary: pending vs. verified (paid/registered) fees. This
+            // lets the events screen and dashboard surface registration income that has
+            // not yet been committed as a manual "actual" transaction.
+            $regSumStmt = $db->prepare("
+                SELECT
+                    COUNT(*) AS registration_count,
+                    SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) AS registered_count,
+                    SUM(CASE WHEN is_completed = 0 THEN 1 ELSE 0 END) AS pending_count,
+                    SUM(CASE WHEN is_completed = 1 THEN amount_paid ELSE 0 END) AS verified_amount,
+                    SUM(CASE WHEN is_completed = 0 THEN amount_paid ELSE 0 END) AS pending_amount
+                FROM prg_evnt_registrations
+                WHERE prg_evnt_id = ?
+            ");
+            $regSumStmt->bind_param("i", $prgevntId);
+            $regSumStmt->execute();
+            $regSummary = $regSumStmt->get_result()->fetch_assoc() ?: [];
+            $regSumStmt->close();
+
+            // Individual registrations so the events screen can render a verification roster.
+            $regListStmt = $db->prepare("
+                SELECT r.registration_id, r.contact_id, r.payment_status, r.payment_method,
+                       r.amount_paid, r.is_completed,
+                       CONCAT(c.first_name, ' ', c.last_name) AS full_name
+                FROM prg_evnt_registrations r
+                JOIN contacts c ON r.contact_id = c.contact_id
+                WHERE r.prg_evnt_id = ?
+                ORDER BY r.is_completed ASC, c.last_name ASC, c.first_name ASC
+            ");
+            $regListStmt->bind_param("i", $prgevntId);
+            $regListStmt->execute();
+            $registrations = $regListStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $regListStmt->close();
 
             sendEventJson([
                 'success'            => true,
@@ -111,7 +214,15 @@ switch ($action) {
                 'budgets'            => $budgets,
                 'support_ministries' => $support_ministries,
                 'attachments'        => $attachments,
-                'actuals'            => $actuals
+                'actuals'            => $actuals,
+                'registrations'      => $registrations,
+                'registration_summary' => [
+                    'registration_count' => (int)($regSummary['registration_count'] ?? 0),
+                    'registered_count'   => (int)($regSummary['registered_count'] ?? 0),
+                    'pending_count'      => (int)($regSummary['pending_count'] ?? 0),
+                    'verified_amount'    => (float)($regSummary['verified_amount'] ?? 0),
+                    'pending_amount'     => (float)($regSummary['pending_amount'] ?? 0),
+                ],
             ]);
         } else {
             // Fetch List of Events
@@ -219,19 +330,85 @@ switch ($action) {
                 $schStmt->close();
             }
 
-            // Sync Budgets
-            $db->query("DELETE FROM prg_evnt_budget_items WHERE prg_evnt_id = $prgevntId");
+            // Sync Budgets: update existing, insert new, delete removed, and ensure Registration Fee exists if requires_fee is set.
+            $submittedBudgetIds = [];
+            $hasRegFeeItem = false;
+
             if (!empty($_POST['budget_desc']) && is_array($_POST['budget_desc'])) {
-                $budStmt = $db->prepare("INSERT INTO prg_evnt_budget_items (prg_evnt_id, item_description, item_type, amount) VALUES (?, ?, ?, ?)");
+                $updStmt = $db->prepare("UPDATE prg_evnt_budget_items SET item_description = ?, item_type = ?, amount = ? WHERE budget_item_id = ? AND prg_evnt_id = ?");
+                $insStmt = $db->prepare("INSERT INTO prg_evnt_budget_items (prg_evnt_id, item_description, item_type, amount) VALUES (?, ?, ?, ?)");
+
                 foreach ($_POST['budget_desc'] as $idx => $bDesc) {
                     $bDesc = trim($bDesc);
                     if (empty($bDesc)) continue;
+                    $bItemId = !empty($_POST['budget_item_id'][$idx]) ? (int)$_POST['budget_item_id'][$idx] : 0;
                     $bType = $_POST['budget_type'][$idx] ?? 'Expense';
                     $bAmt = floatval($_POST['budget_amount'][$idx] ?? 0);
-                    $budStmt->bind_param("issd", $prgevntId, $bDesc, $bType, $bAmt);
-                    $budStmt->execute();
+
+                    $bDescLc = strtolower($bDesc);
+                    if ($bDescLc === 'registration fee' || $bDescLc === 'registration fees') {
+                        $hasRegFeeItem = true;
+                    }
+
+                    if ($bItemId > 0) {
+                        $updStmt->bind_param("ssdii", $bDesc, $bType, $bAmt, $bItemId, $prgevntId);
+                        $updStmt->execute();
+                        $submittedBudgetIds[] = $bItemId;
+                    } else {
+                        $insStmt->bind_param("issd", $prgevntId, $bDesc, $bType, $bAmt);
+                        $insStmt->execute();
+                        $newId = (int)$insStmt->insert_id;
+                        if ($newId > 0) {
+                            $submittedBudgetIds[] = $newId;
+                        }
+                    }
                 }
-                $budStmt->close();
+                $updStmt->close();
+                $insStmt->close();
+            }
+
+            // If requires_fee is checked and no registration fee item was included, automatically insert one
+            if ($reqFee === 1 && !$hasRegFeeItem) {
+                // Check if one already exists in DB that wasn't in the form
+                $rfChk = $db->prepare("SELECT budget_item_id FROM prg_evnt_budget_items WHERE prg_evnt_id = ? AND LOWER(TRIM(item_description)) IN ('registration fee', 'registration fees') LIMIT 1");
+                $rfChk->bind_param("i", $prgevntId);
+                $rfChk->execute();
+                $rfRow = $rfChk->get_result()->fetch_assoc();
+                $rfChk->close();
+
+                if ($rfRow) {
+                    $submittedBudgetIds[] = (int)$rfRow['budget_item_id'];
+                } else {
+                    $estRegAmt = ($attendEst !== null && $attendEst > 0 && $regFee > 0) ? ($attendEst * $regFee) : $regFee;
+                    $rfIns = $db->prepare("INSERT INTO prg_evnt_budget_items (prg_evnt_id, item_description, item_type, amount) VALUES (?, 'Registration Fee', 'Income', ?)");
+                    $rfIns->bind_param("id", $prgevntId, $estRegAmt);
+                    $rfIns->execute();
+                    $submittedBudgetIds[] = (int)$rfIns->insert_id;
+                    $rfIns->close();
+                }
+            }
+
+            // Remove budget items that were deleted by the user (excluding those still submitted or needed)
+            if (!empty($submittedBudgetIds)) {
+                $idList = implode(',', array_map('intval', $submittedBudgetIds));
+                $db->query("DELETE FROM prg_evnt_budget_items WHERE prg_evnt_id = $prgevntId AND budget_item_id NOT IN ($idList)");
+            } else {
+                $db->query("DELETE FROM prg_evnt_budget_items WHERE prg_evnt_id = $prgevntId");
+            }
+
+            // Re-link any existing registration fee actuals that might have NULL or 0 budget_item_id
+            $rfFind = $db->prepare("SELECT budget_item_id FROM prg_evnt_budget_items WHERE prg_evnt_id = ? AND LOWER(TRIM(item_description)) IN ('registration fee', 'registration fees') ORDER BY budget_item_id ASC LIMIT 1");
+            $rfFind->bind_param("i", $prgevntId);
+            $rfFind->execute();
+            $rfItemRow = $rfFind->get_result()->fetch_assoc();
+            $rfFind->close();
+
+            if ($rfItemRow) {
+                $rfId = (int)$rfItemRow['budget_item_id'];
+                $updAct = $db->prepare("UPDATE prg_evnt_budget_actuals SET budget_item_id = ? WHERE prg_evnt_id = ? AND (budget_item_id IS NULL OR budget_item_id = 0) AND entry_type = 'Income' AND LOWER(description) LIKE 'registration fee%'");
+                $updAct->bind_param("ii", $rfId, $prgevntId);
+                $updAct->execute();
+                $updAct->close();
             }
 
             // Sync Support Ministries
@@ -350,7 +527,32 @@ switch ($action) {
             sendEventJson(['success' => false, 'error' => 'Invalid Event ID.'], 400);
         }
 
-        $stmt = $db->prepare("SELECT budget_item_id, item_description, item_type FROM prg_evnt_budget_items WHERE prg_evnt_id = ? ORDER BY item_description ASC");
+        // Check if event requires fee and ensure Registration Fee budget item exists
+        $evChk = $db->prepare("SELECT requires_fee, registration_fee, attend_estimate FROM programs_events WHERE prg_evnt_id = ?");
+        $evChk->bind_param("i", $prgevntId);
+        $evChk->execute();
+        $evData = $evChk->get_result()->fetch_assoc();
+        $evChk->close();
+
+        if ($evData && (int)$evData['requires_fee'] === 1) {
+            $chkItem = $db->prepare("SELECT budget_item_id FROM prg_evnt_budget_items WHERE prg_evnt_id = ? AND LOWER(TRIM(item_description)) IN ('registration fee', 'registration fees') LIMIT 1");
+            $chkItem->bind_param("i", $prgevntId);
+            $chkItem->execute();
+            $hasItem = $chkItem->get_result()->fetch_assoc();
+            $chkItem->close();
+
+            if (!$hasItem) {
+                $fee = (float)($evData['registration_fee'] ?? 0);
+                $est = (int)($evData['attend_estimate'] ?? 0);
+                $initialAmt = ($est > 0 && $fee > 0) ? ($est * $fee) : $fee;
+                $insItem = $db->prepare("INSERT INTO prg_evnt_budget_items (prg_evnt_id, item_description, item_type, amount) VALUES (?, 'Registration Fee', 'Income', ?)");
+                $insItem->bind_param("id", $prgevntId, $initialAmt);
+                $insItem->execute();
+                $insItem->close();
+            }
+        }
+
+        $stmt = $db->prepare("SELECT budget_item_id, item_description, item_type, amount FROM prg_evnt_budget_items WHERE prg_evnt_id = ? ORDER BY item_description ASC");
         $stmt->bind_param("i", $prgevntId);
         $stmt->execute();
         $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -365,13 +567,28 @@ switch ($action) {
     case 'save_actual':
         requireAdmin();
         $prgevntId    = (int)($_POST['prg_evnt_id'] ?? 0);
-        $budgetItemId = !empty($_POST['budget_item_id']) ? (int)$_POST['budget_item_id'] : null;
+        $budgetItemId = !empty($_POST['budget_item_id']) ? (int)$_POST['budget_item_id'] : 0;
         $entryType    = $_POST['entry_type'] ?? 'Expense';
         $desc         = trim($_POST['description'] ?? '');
         $amount       = floatval($_POST['amount'] ?? 0);
 
         if ($prgevntId <= 0 || empty($desc) || $amount <= 0) {
             sendEventJson(['success' => false, 'error' => 'Please provide a valid description and positive amount.'], 400);
+        }
+
+        if ($budgetItemId <= 0) {
+            sendEventJson(['success' => false, 'error' => 'Actual amounts must be linked to a budget item. Please select a budget item.'], 400);
+        }
+
+        // Validate that the budget item belongs to this event
+        $chkStmt = $db->prepare("SELECT budget_item_id, item_type FROM prg_evnt_budget_items WHERE budget_item_id = ? AND prg_evnt_id = ?");
+        $chkStmt->bind_param("ii", $budgetItemId, $prgevntId);
+        $chkStmt->execute();
+        $budgetItem = $chkStmt->get_result()->fetch_assoc();
+        $chkStmt->close();
+
+        if (!$budgetItem) {
+            sendEventJson(['success' => false, 'error' => 'Selected budget item is invalid for this event.'], 400);
         }
 
         $stmt = $db->prepare("INSERT INTO prg_evnt_budget_actuals (prg_evnt_id, budget_item_id, entry_type, description, amount) VALUES (?, ?, ?, ?, ?)");

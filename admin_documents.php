@@ -160,7 +160,7 @@ if ($result) {
             <td class="document-actions">
               <a class="btn btn-sm btn-secondary" href="include/document_reader.php?document_id=<?= (int)$document['document_id'] ?>" target="_blank">Read</a>
               <a class="btn btn-sm btn-primary" href="include/download_document.php?document_id=<?= (int)$document['document_id'] ?>">Download</a>
-              <form method="post" style="display:inline;">
+              <form method="post" class="inline-form">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="document_id" value="<?= (int)$document['document_id'] ?>">
                 <button class="btn btn-sm btn-danger" type="submit">Delete</button>

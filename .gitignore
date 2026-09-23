@@ -1,6 +1,13 @@
 *.history
 .history
+.env
 
 
 
 
+
+# Generated report PDFs (kept on disk for on-screen review, not version controlled)
+reports/output/*.pdf
+
+# Auto-generated merge of storage/fonts/*.jar, rebuilt on demand by generate_report.php
+storage/fonts/_merged/
