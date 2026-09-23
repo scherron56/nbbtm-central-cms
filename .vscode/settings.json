@@ -1,7 +1,7 @@
 {
       "phpserver.phpPath": "/usr/bin/php",
     "phpserver.port": 3001,
-    "phpserver.router": "/home/clarice/Repository/nbbtm-central/.vscode/router.php",
+    "phpserver.router": "/home/clarice/nbbtm-central-cms/.vscode/router.php",
     "phpserver.openBrowser": true,
     "livePreview.defaultPreviewPath": "/index.html",
     "sqltools.connections": [
