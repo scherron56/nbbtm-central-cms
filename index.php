@@ -302,7 +302,7 @@ try {
             This Week <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(Week of <?= date('M j', strtotime($this_sunday)) ?>)</span>
           </h4>
 
-          <?php if (!empty($clearthis_week_celebrations)): ?>
+          <?php if (!empty($this_week_celebrations)): ?>
             <table class="data-table" style="margin-top: 0.25rem; margin-bottom: 1rem;">
               <thead>
                 <tr>

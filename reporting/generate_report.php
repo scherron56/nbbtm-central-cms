@@ -185,6 +185,13 @@ if (!$report || (int)$report['is_active'] !== 1) {
 
 // 6. Verify Template File Exists
 $inputPath = $reportsTemplatePath . '/' . $report['file_name'];
+if (strtolower(pathinfo($inputPath, PATHINFO_EXTENSION)) === 'jrxml') {
+    $compiledPath = preg_replace('/\.jrxml$/i', '.jasper', $inputPath);
+    if ($compiledPath !== null && file_exists($compiledPath)) {
+        $inputPath = $compiledPath;
+    }
+}
+
 if (!file_exists($inputPath)) {
     http_response_code(404);
     die("Error: Compiled report template '{$report['file_name']}' not found in " . $reportsTemplatePath . '/');
@@ -265,11 +272,16 @@ $safeReportKey = preg_replace('/[^A-Za-z0-9_-]/', '_', $reportKey);
 $outputName = $safeReportKey . '_' . date('Ymd_His');
 $outputPath = $outputDir . '/' . $outputName;
 
-// 9. Force Execution with Java 8
-if (file_exists('/opt/java8/bin/java')) {
-    putenv("JAVA_HOME=/opt/java8");
-    putenv("PATH=/opt/java8/bin:" . getenv('PATH'));
+// 9. JasperStarter 3.4 requires Java 8 because newer JVMs no longer expose
+// the application class loader as a URLClassLoader.
+$jasperJavaHome = trim((string) ($_ENV['JASPER_JAVA_HOME'] ?? getenv('JASPER_JAVA_HOME') ?: '/opt/java8'));
+$jasperJavaPath = rtrim($jasperJavaHome, '/\\') . '/bin/java';
+if (!is_executable($jasperJavaPath)) {
+    http_response_code(500);
+    die('JasperReports requires a Java 8 runtime. Set JASPER_JAVA_HOME to its installation directory.');
 }
+putenv('JAVA_HOME=' . $jasperJavaHome);
+putenv('PATH=' . rtrim($jasperJavaHome, '/\\') . '/bin:' . getenv('PATH'));
 
 // 10. Database Connection Parameters
 $options = [

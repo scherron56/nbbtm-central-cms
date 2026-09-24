@@ -1,11 +1,14 @@
 <?php
-define('HOST', 'localhost');
-define('DB_NAME', 'nbbtm_central');
-define('USER', 'centadmin'); // Change to 'root' if your local DB uses root without passwords
-define('PASSWORD', 'cuhqsUsj80');
+require_once __DIR__ . '/env.php';
+
+define('HOST', $_ENV['DB_HOST'] ?? 'localhost');
+define('DB_PORT', (int) ($_ENV['DB_PORT'] ?? 3306));
+define('DB_NAME', $_ENV['DB_NAME'] ?? 'nbbtm_central');
+define('USER', trim((string) ($_ENV['DB_USER'] ?? '')) ?: 'admincentral');
+define('PASSWORD', $_ENV['DB_PASSWORD'] ?? '');
 
 $host = HOST;
-$port = 3306;
+$port = DB_PORT;
 $dbname = DB_NAME;
 $user = USER;
 $pswd = PASSWORD;

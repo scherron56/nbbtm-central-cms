@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 6.10.0  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="event_program_summary" pageWidth="612" pageHeight="792" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="d3cbfa6c-d037-4833-ba25-646ef866909c">
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 7.0.8-6f896111  -->
+<jasperReport name="event_program_summary" language="java" pageWidth="612" pageHeight="792" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="d3cbfa6c-d037-4833-ba25-646ef866909c">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<template><![CDATA[$P{path} + "central_admin_style1.jrtx"]]></template>
@@ -9,9 +8,7 @@
 		<defaultValueExpression><![CDATA["/home/clarice/Repository/nbbtm-central/reports/subreports/"]]></defaultValueExpression>
 	</parameter>
 	<parameter name="path" class="java.lang.String" evaluationTime="Early"/>
-	<queryString>
-		<![CDATA[call getEventInfo($P{p_event_id})]]>
-	</queryString>
+	<query language="sql"><![CDATA[call getEventInfo($P{p_event_id})]]></query>
 	<field name="prg_evnt_id" class="java.lang.Integer">
 		<property name="com.jaspersoft.studio.field.name" value="prg_evnt_id"/>
 		<property name="com.jaspersoft.studio.field.label" value="prg_evnt_id"/>
@@ -143,202 +140,112 @@
 		<property name="com.jaspersoft.studio.field.tree.path" value="ministry_committee"/>
 	</field>
 	<variable name="total_pages" class="java.lang.Integer">
-		<variableExpression><![CDATA[$V{PAGE_NUMBER}]]></variableExpression>
+		<expression><![CDATA[$V{PAGE_NUMBER}]]></expression>
 	</variable>
 	<group name="Event Group">
-		<groupExpression><![CDATA[$F{prg_evnt_id}]]></groupExpression>
+		<expression><![CDATA[$F{prg_evnt_id}]]></expression>
 		<groupHeader>
 			<band height="390">
-				<textField>
-					<reportElement x="170" y="1" width="194" height="20" forecolor="#041D55" uuid="cb0c921f-45e1-466a-8ac1-12aa45e57b2b"/>
-					<textElement textAlignment="Center" verticalAlignment="Middle">
-						<font fontName="Liberation Serif" size="11" isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA["Phone Number:  "  + $F{contact_phone}]]></textFieldExpression>
-				</textField>
-				<textField>
-					<reportElement x="0" y="1" width="166" height="20" uuid="8891b398-7ede-415b-a499-4dfcb85ad1ee"/>
-					<textElement textAlignment="Left" verticalAlignment="Middle">
-						<font size="11" isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA["Contact:  "  + $F{contact_name}]]></textFieldExpression>
-				</textField>
-				<textField>
-					<reportElement x="368" y="1" width="191" height="20" forecolor="#031C55" uuid="af44bfc0-c248-4e5a-a131-5c6634151db4"/>
-					<textElement verticalAlignment="Middle">
-						<font size="11" isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA["E-mail:  " + $F{contact_email}]]></textFieldExpression>
-				</textField>
-				<subreport>
-					<reportElement positionType="Float" x="0" y="30" width="570" height="30" uuid="ec343cbc-1432-49ee-ac40-0684694b75f7"/>
-					<subreportParameter name="p_event_id">
-						<subreportParameterExpression><![CDATA[$P{p_event_id}]]></subreportParameterExpression>
-					</subreportParameter>
-					<subreportParameter name="path">
-						<subreportParameterExpression><![CDATA[$P{path}]]></subreportParameterExpression>
-					</subreportParameter>
+				<element kind="textField" uuid="cb0c921f-45e1-466a-8ac1-12aa45e57b2b" x="170" y="1" width="194" height="20" forecolor="#041D55" fontName="Liberation Serif" fontSize="11.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+					<expression><![CDATA["Phone Number:  "  + $F{contact_phone}]]></expression>
+				</element>
+				<element kind="textField" uuid="8891b398-7ede-415b-a499-4dfcb85ad1ee" x="0" y="1" width="166" height="20" fontSize="11.0" bold="true" hTextAlign="Left" vTextAlign="Middle">
+					<expression><![CDATA["Contact:  "  + $F{contact_name}]]></expression>
+				</element>
+				<element kind="textField" uuid="af44bfc0-c248-4e5a-a131-5c6634151db4" x="368" y="1" width="191" height="20" forecolor="#031C55" fontSize="11.0" bold="true" vTextAlign="Middle">
+					<expression><![CDATA["E-mail:  " + $F{contact_email}]]></expression>
+				</element>
+				<element kind="subreport" uuid="ec343cbc-1432-49ee-ac40-0684694b75f7" x="0" y="30" width="570" height="30" positionType="Float">
+					<parameter name="p_event_id">
+						<expression><![CDATA[$P{p_event_id}]]></expression>
+					</parameter>
+					<parameter name="path">
+						<expression><![CDATA[$P{path}]]></expression>
+					</parameter>
 					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
-					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_schedule.jasper"]]></subreportExpression>
-				</subreport>
-				<textField>
-					<reportElement positionType="Float" x="120" y="70" width="330" height="23" uuid="0a027acb-bb0c-49be-a94a-6379478e0fba"/>
-					<textElement>
-						<font size="12" isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA[$F{audience_target}]]></textFieldExpression>
-				</textField>
-				<staticText>
-					<reportElement positionType="Float" x="1" y="69" width="119" height="24" uuid="637857e6-4a9d-4098-86ee-7d1c5f4840fe"/>
-					<textElement>
-						<font size="12" isBold="true"/>
-					</textElement>
+					<expression><![CDATA[$P{SUBREPORT_DIR} + "event_schedule.jasper"]]></expression>
+				</element>
+				<element kind="textField" uuid="0a027acb-bb0c-49be-a94a-6379478e0fba" x="120" y="70" width="330" height="23" positionType="Float" fontSize="12.0" bold="true">
+					<expression><![CDATA[$F{audience_target}]]></expression>
+				</element>
+				<element kind="staticText" uuid="637857e6-4a9d-4098-86ee-7d1c5f4840fe" x="1" y="69" width="119" height="24" positionType="Float" fontSize="12.0" bold="true">
 					<text><![CDATA[Target Audience:]]></text>
-				</staticText>
-				<staticText>
-					<reportElement positionType="Float" x="220" y="93" width="197" height="22" uuid="719565dc-b497-407c-86e5-5870400bc48e">
-						<printWhenExpression><![CDATA[$F{requires_fee} != null && $F{requires_fee}]]></printWhenExpression>
-					</reportElement>
-					<textElement>
-						<font size="11" isBold="true"/>
-					</textElement>
+				</element>
+				<element kind="staticText" uuid="719565dc-b497-407c-86e5-5870400bc48e" x="220" y="93" width="197" height="22" positionType="Float" fontSize="11.0" bold="true">
+					<printWhenExpression><![CDATA[$F{requires_fee} != null && $F{requires_fee}]]></printWhenExpression>
 					<text><![CDATA[Donation/Registration Amount:]]></text>
-				</staticText>
-				<textField pattern="$###.##" isBlankWhenNull="true">
-					<reportElement positionType="Float" x="420" y="93" width="100" height="22" uuid="76bfe72c-4db7-4169-92b4-52ff02138036">
-						<printWhenExpression><![CDATA[$F{requires_fee} != null && $F{requires_fee}]]></printWhenExpression>
-					</reportElement>
-					<textElement>
-						<font isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA[$F{registration_fee}]]></textFieldExpression>
-				</textField>
-				<textField>
-					<reportElement positionType="Float" x="0" y="93" width="220" height="22" uuid="c59233d4-e7c4-4c4d-8714-383a5a2b6cf0"/>
-					<textElement markup="html">
-						<font size="12" isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA["Estimated Attendance:  "  + $F{attend_estimate}]]></textFieldExpression>
-				</textField>
-				<staticText>
-					<reportElement positionType="Float" x="1" y="120" width="572" height="21" uuid="194a1bca-635e-47c2-b7a3-ad5788009d43"/>
-					<textElement textAlignment="Center">
-						<font size="14" isBold="true" isItalic="true" isUnderline="true"/>
-					</textElement>
+				</element>
+				<element kind="textField" uuid="76bfe72c-4db7-4169-92b4-52ff02138036" x="420" y="93" width="100" height="22" positionType="Float" pattern="$###.##" bold="true" blankWhenNull="true">
+					<printWhenExpression><![CDATA[$F{requires_fee} != null && $F{requires_fee}]]></printWhenExpression>
+					<expression><![CDATA[$F{registration_fee}]]></expression>
+				</element>
+				<element kind="textField" uuid="c59233d4-e7c4-4c4d-8714-383a5a2b6cf0" x="0" y="93" width="220" height="22" positionType="Float" markup="html" fontSize="12.0" bold="true">
+					<expression><![CDATA["Estimated Attendance:  "  + $F{attend_estimate}]]></expression>
+				</element>
+				<element kind="staticText" uuid="194a1bca-635e-47c2-b7a3-ad5788009d43" x="1" y="120" width="572" height="21" positionType="Float" fontSize="14.0" bold="true" italic="true" underline="true" hTextAlign="Center">
 					<text><![CDATA[Core Purpose & Objectives]]></text>
-				</staticText>
-				<staticText>
-					<reportElement positionType="Float" x="3" y="140" width="95" height="20" uuid="c9748402-ea01-4abf-a5ea-e587ddc1bec8"/>
-					<textElement>
-						<font isBold="true"/>
-					</textElement>
+				</element>
+				<element kind="staticText" uuid="c9748402-ea01-4abf-a5ea-e587ddc1bec8" x="3" y="140" width="95" height="20" positionType="Float" bold="true">
 					<text><![CDATA[Event Purpose]]></text>
-				</staticText>
-				<textField isStretchWithOverflow="true">
-					<reportElement positionType="Float" x="2" y="160" width="571" height="20" uuid="53b5aef0-15af-4e75-842b-6b2b71f73794"/>
-					<textElement>
-						<font size="11" isBold="false"/>
-					</textElement>
-					<textFieldExpression><![CDATA[$F{prg_evnt_purpose}]]></textFieldExpression>
-				</textField>
-				<staticText>
-					<reportElement positionType="Float" x="3" y="189" width="570" height="21" uuid="f0834604-58c5-48f7-a91a-2f1d568a170c"/>
-					<textElement>
-						<font size="11" isBold="true"/>
-					</textElement>
+				</element>
+				<element kind="textField" uuid="53b5aef0-15af-4e75-842b-6b2b71f73794" x="2" y="160" width="571" height="20" positionType="Float" fontSize="11.0" textAdjust="StretchHeight" bold="false">
+					<expression><![CDATA[$F{prg_evnt_purpose}]]></expression>
+				</element>
+				<element kind="staticText" uuid="f0834604-58c5-48f7-a91a-2f1d568a170c" x="3" y="189" width="570" height="21" positionType="Float" fontSize="11.0" bold="true">
 					<text><![CDATA[Key Deliverables / Goals]]></text>
-				</staticText>
-				<textField isStretchWithOverflow="true">
-					<reportElement positionType="Float" x="3" y="210" width="570" height="20" uuid="c3e13565-761a-42a0-bc81-ab52e6d271ad"/>
-					<textElement>
-						<font size="11"/>
-					</textElement>
-					<textFieldExpression><![CDATA[$F{goal}]]></textFieldExpression>
-				</textField>
-				<subreport>
-					<reportElement positionType="Float" x="-1" y="250" width="572" height="28" uuid="908a74c4-ffea-44b1-895b-5d5cca9844e0"/>
-					<subreportParameter name="p_event_id">
-						<subreportParameterExpression><![CDATA[$P{p_event_id}]]></subreportParameterExpression>
-					</subreportParameter>
-					<subreportParameter name="path">
-						<subreportParameterExpression><![CDATA[$P{path}]]></subreportParameterExpression>
-					</subreportParameter>
+				</element>
+				<element kind="textField" uuid="c3e13565-761a-42a0-bc81-ab52e6d271ad" x="3" y="210" width="570" height="20" positionType="Float" fontSize="11.0" textAdjust="StretchHeight">
+					<expression><![CDATA[$F{goal}]]></expression>
+				</element>
+				<element kind="subreport" uuid="908a74c4-ffea-44b1-895b-5d5cca9844e0" x="-1" y="250" width="572" height="28" positionType="Float">
+					<parameter name="p_event_id">
+						<expression><![CDATA[$P{p_event_id}]]></expression>
+					</parameter>
+					<parameter name="path">
+						<expression><![CDATA[$P{path}]]></expression>
+					</parameter>
 					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
-					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_actuals.2.jasper"]]></subreportExpression>
-				</subreport>
-				<textField>
-					<reportElement positionType="Float" x="-1" y="300" width="572" height="20" forecolor="#0F137D" uuid="bb6a243b-d805-4cd3-b027-d4b8175619e3"/>
-					<textElement>
-						<font size="11" isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA["The following Ministries / Operations will give support during this event: "]]></textFieldExpression>
-				</textField>
-				<subreport>
-					<reportElement positionType="Float" x="3" y="320" width="517" height="30" uuid="fc352c4a-9b8b-4b64-897b-8964d68fdbb6"/>
-					<subreportParameter name="p_event_id">
-						<subreportParameterExpression><![CDATA[$P{p_event_id}]]></subreportParameterExpression>
-					</subreportParameter>
-					<subreportParameter name="path">
-						<subreportParameterExpression><![CDATA[$P{path}]]></subreportParameterExpression>
-					</subreportParameter>
+					<expression><![CDATA[$P{SUBREPORT_DIR} + "event_actuals.2.jasper"]]></expression>
+				</element>
+				<element kind="textField" uuid="bb6a243b-d805-4cd3-b027-d4b8175619e3" x="-1" y="300" width="572" height="20" forecolor="#0F137D" positionType="Float" fontSize="11.0" bold="true">
+					<expression><![CDATA["The following Ministries / Operations will give support during this event: "]]></expression>
+				</element>
+				<element kind="subreport" uuid="fc352c4a-9b8b-4b64-897b-8964d68fdbb6" x="3" y="320" width="517" height="30" positionType="Float">
+					<parameter name="p_event_id">
+						<expression><![CDATA[$P{p_event_id}]]></expression>
+					</parameter>
+					<parameter name="path">
+						<expression><![CDATA[$P{path}]]></expression>
+					</parameter>
 					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
-					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_support.jasper"]]></subreportExpression>
-				</subreport>
-				<textField>
-					<reportElement positionType="Float" x="-1" y="350" width="302" height="20" uuid="e5aac6a7-a16b-4958-8987-98fd989a45e8"/>
-					<textElement>
-						<font size="11" isBold="true"/>
-					</textElement>
-					<textFieldExpression><![CDATA["Special Requests & Specific Support Notes"]]></textFieldExpression>
-				</textField>
-				<textField isStretchWithOverflow="true">
-					<reportElement positionType="Float" x="-2" y="372" width="572" height="18" uuid="8076d830-647d-41b2-97eb-299262ab1ae3"/>
-					<textElement>
-						<font size="11"/>
-					</textElement>
-					<textFieldExpression><![CDATA[$F{notes}]]></textFieldExpression>
-				</textField>
+					<expression><![CDATA[$P{SUBREPORT_DIR} + "event_support.jasper"]]></expression>
+				</element>
+				<element kind="textField" uuid="e5aac6a7-a16b-4958-8987-98fd989a45e8" x="-1" y="350" width="302" height="20" positionType="Float" fontSize="11.0" bold="true">
+					<expression><![CDATA["Special Requests & Specific Support Notes"]]></expression>
+				</element>
+				<element kind="textField" uuid="8076d830-647d-41b2-97eb-299262ab1ae3" x="-2" y="372" width="572" height="18" positionType="Float" fontSize="11.0" textAdjust="StretchHeight">
+					<expression><![CDATA[$F{notes}]]></expression>
+				</element>
 			</band>
 		</groupHeader>
 	</group>
-	<background>
-		<band splitType="Stretch"/>
-	</background>
-	<pageHeader>
-		<band height="101" splitType="Stretch">
-			<image>
-				<reportElement stretchType="ContainerHeight" x="1" y="0" width="569" height="101" uuid="a46f6d05-36b2-4401-aa07-0c1451c442af"/>
-				<imageExpression><![CDATA["/var/www/html/images/nbbtm header - with addr.png"]]></imageExpression>
-			</image>
-		</band>
+	<background splitType="Stretch"/>
+	<pageHeader height="101" splitType="Stretch">
+		<element kind="image" uuid="a46f6d05-36b2-4401-aa07-0c1451c442af" x="1" y="0" width="569" height="101" stretchType="ContainerHeight">
+			<expression><![CDATA["/var/www/html/images/nbbtm header - with addr.png"]]></expression>
+		</element>
 	</pageHeader>
-	<columnHeader>
-		<band height="35" splitType="Stretch">
-			<textField>
-				<reportElement x="10" y="0" width="561" height="30" uuid="1b93111c-420c-4f02-9be5-15fcd1dd19c9"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Liberation Serif" size="20" isBold="true"/>
-				</textElement>
-				<textFieldExpression><![CDATA["Event Name:  "  +  $F{prg_evnt_name}]]></textFieldExpression>
-			</textField>
-		</band>
+	<columnHeader height="35" splitType="Stretch">
+		<element kind="textField" uuid="1b93111c-420c-4f02-9be5-15fcd1dd19c9" x="10" y="0" width="561" height="30" fontName="Liberation Serif" fontSize="20.0" evaluationTime="Group" bold="true" evaluationGroup="Event Group" hTextAlign="Center" vTextAlign="Middle" style="Title">
+			<expression><![CDATA["Event Name:  "  +  $F{prg_evnt_name}]]></expression>
+		</element>
 	</columnHeader>
-	<pageFooter>
-		<band height="18" splitType="Stretch">
-			<textField>
-				<reportElement positionType="Float" isPrintRepeatedValues="false" x="357" y="0" width="180" height="14" uuid="939151c2-9ca6-4242-8dc7-cb221f56865a"/>
-				<textElement textAlignment="Right">
-					<font size="9"/>
-				</textElement>
-				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
-			</textField>
-			<textField evaluationTime="Report">
-				<reportElement positionType="Float" x="540" y="0" width="30" height="14" uuid="68dca04e-3420-4945-9894-1b614216db7c"/>
-				<textElement>
-					<font size="9"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$V{total_pages}]]></textFieldExpression>
-			</textField>
-		</band>
+	<pageFooter height="18" splitType="Stretch">
+		<element kind="textField" uuid="939151c2-9ca6-4242-8dc7-cb221f56865a" x="357" y="0" width="180" height="14" positionType="Float" printRepeatedValues="false" fontSize="9.0" hTextAlign="Right">
+			<expression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></expression>
+		</element>
+		<element kind="textField" uuid="68dca04e-3420-4945-9894-1b614216db7c" x="540" y="0" width="30" height="14" positionType="Float" fontSize="9.0" evaluationTime="Report">
+			<expression><![CDATA[$V{total_pages}]]></expression>
+		</element>
 	</pageFooter>
 </jasperReport>

@@ -17,13 +17,13 @@
             "driver": "MySQL",
             "name": "MYSQL - Debian",
             "database": "nbbtm_central",
-            "username": "centadmin",
-            "password": "cuhqsUsj80"
+            "username": "admincentral",
+            "password": ""
         }
     ],
     "cSpell.words": [
         "actve"
     ],
-    "workbench.colorTheme": "Amethyst Dark (Higher Contrast)",
+    "workbench.colorTheme": "Viow Arabian",
     "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }
