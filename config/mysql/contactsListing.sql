@@ -25,6 +25,7 @@ BEGIN
         COALESCE(c.last_name, '') AS last_name,
         COALESCE(c.first_name, '') AS first_name,
         COALESCE(c.n_sufix, '') AS n_sufix,
+        CONCAT(c.first_name, ' ', c.last_name, ' ' ,coalesce(c.n_sufix, '' )) AS contact_name,
         c.gender,
         c.phone_1,
         c.c_email

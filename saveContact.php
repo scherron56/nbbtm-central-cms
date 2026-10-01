@@ -205,6 +205,33 @@ try {
         $insFamily->close();
     }
 
+    // Keep the ministry involvement table in sync with the contact form.
+    $delMinistry = $db->prepare("DELETE FROM member_alliance WHERE contact_id = ?");
+    $delMinistry->bind_param("i", $contact_id);
+    $delMinistry->execute();
+    $delMinistry->close();
+
+    $selectedMinistries = $_POST['ministries'] ?? [];
+    $ministryRoles      = $_POST['roles'] ?? [];
+
+    if (is_array($selectedMinistries) && !empty($selectedMinistries)) {
+        $insMinistry = $db->prepare("
+            INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active)
+            VALUES (?, ?, ?, 1)
+        ");
+
+        foreach ($selectedMinistries as $minCommId) {
+            $minCommId = intval($minCommId);
+            if ($minCommId <= 0) { continue; }
+
+            $roleId = !empty($ministryRoles[$minCommId]) ? intval($ministryRoles[$minCommId]) : null;
+
+            $insMinistry->bind_param("iii", $contact_id, $minCommId, $roleId);
+            $insMinistry->execute();
+        }
+        $insMinistry->close();
+    }
+
     // 3. Save Attachments into document_lib
     $fileKey = !empty($_FILES['attach_files']['name']) ? 'attach_files' : (!empty($_FILES['document_name']['name']) ? 'document_name' : null);
 

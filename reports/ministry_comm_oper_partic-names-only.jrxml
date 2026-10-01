@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 7.0.6.final using JasperReports Library version 6.10.0  -->
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 6.10.0  -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Ministries, Committees and Operations" columnCount="3" printOrder="Horizontal" pageWidth="792" pageHeight="612" orientation="Landscape" columnWidth="250" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="484a4b8f-8f51-45b3-a46b-0d7aed20b5e3">
-	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian"/>
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
-	<parameter name="p_grp_type_id" class="java.lang.String">
-		<parameterDescription><![CDATA[Association Type]]></parameterDescription>
-	</parameter>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
+	<template><![CDATA["cms_styles.jrtx"]]></template>
 	<parameter name="p_grp_ids" class="java.lang.String">
 		<parameterDescription><![CDATA[Association IDs]]></parameterDescription>
 	</parameter>
@@ -51,7 +49,10 @@
 		<groupHeader>
 			<band height="20">
 				<textField>
-					<reportElement x="0" y="0" width="750" height="20" isPrintWhenDetailOverflows="true" printWhenGroupChanges="Group2" uuid="9bc3e890-e553-4831-a5c1-4ee5a77fc123"/>
+					<reportElement style="Header 2" x="0" y="0" width="750" height="20" isPrintWhenDetailOverflows="true" printWhenGroupChanges="Group2" uuid="9bc3e890-e553-4831-a5c1-4ee5a77fc123"/>
+					<box>
+						<bottomPen lineWidth="1.0" lineStyle="Solid"/>
+					</box>
 					<textElement textAlignment="Center" verticalAlignment="Middle">
 						<font fontName="DejaVu Serif" size="13" isBold="true" isItalic="true"/>
 					</textElement>
@@ -63,11 +64,11 @@
 	<group name="Association Name">
 		<groupExpression><![CDATA[$F{min_comm_id}]]></groupExpression>
 		<groupHeader>
-			<band height="26">
+			<band height="34">
 				<textField>
 					<reportElement x="10" y="10" width="228" height="16" uuid="bf50cb7d-f2d9-4989-9348-c630cad1670c"/>
 					<textElement>
-						<font fontName="Nimbus Roman" size="13" isBold="true"/>
+						<font size="13" isBold="true" isUnderline="true"/>
 					</textElement>
 					<textFieldExpression><![CDATA[$F{CommitteeName} + " Participants"]]></textFieldExpression>
 				</textField>
@@ -84,22 +85,22 @@
 		<band splitType="Stretch"/>
 	</background>
 	<pageHeader>
-		<band height="135">
+		<band height="145">
 			<image scaleImage="FillFrame">
-				<reportElement x="-1" y="0" width="571" height="110" uuid="701fd0d8-0105-4d6a-b28c-4fb11acaa8c5">
+				<reportElement x="-1" y="0" width="751" height="110" uuid="701fd0d8-0105-4d6a-b28c-4fb11acaa8c5">
 					<printWhenExpression><![CDATA[$V{PAGE_NUMBER}.intValue() == 1]]></printWhenExpression>
 				</reportElement>
 				<imageExpression><![CDATA["/var/www/html/images/nbbtm header - with addr.png"]]></imageExpression>
 			</image>
 			<textField>
-				<reportElement x="20" y="100" width="710" height="30" printWhenGroupChanges="Group1" uuid="ff7e4ca9-c8af-4562-b7af-d1b51d3e314b"/>
+				<reportElement style="Title" x="-1" y="115" width="751" height="30" printWhenGroupChanges="Group1" uuid="ff7e4ca9-c8af-4562-b7af-d1b51d3e314b"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Lora" size="16"/>
+					<font size="16"/>
 				</textElement>
-				<textFieldExpression><![CDATA[IF($V{PAGE_NUMBER}.intValue() == 1,"Ministries/Committees/Operations",  "Ministries/Committees/Operations cont...")]]></textFieldExpression>
+				<textFieldExpression><![CDATA[IF($V{PAGE_NUMBER}.intValue() == 1,"Ministries/Committees/Operations Partuicipants",  "Min/Comm/Oper - Participants cont...")]]></textFieldExpression>
 			</textField>
 			<image scaleImage="FillFrame">
-				<reportElement x="0" y="0" width="570" height="110" uuid="376b9599-b3c7-4ab6-baad-c88772527a50">
+				<reportElement stretchType="ElementGroupHeight" x="0" y="0" width="750" height="110" uuid="376b9599-b3c7-4ab6-baad-c88772527a50">
 					<printWhenExpression><![CDATA[$V{PAGE_NUMBER} > 1]]></printWhenExpression>
 				</reportElement>
 				<imageExpression><![CDATA["/var/www/html/images/nbbtm header - no addr.png"]]></imageExpression>
@@ -107,7 +108,7 @@
 		</band>
 	</pageHeader>
 	<detail>
-		<band height="16" splitType="Stretch">
+		<band height="17" splitType="Stretch">
 			<textField>
 				<reportElement x="10" y="0" width="170" height="16" uuid="113e9ed3-8cca-4ed5-b5cf-d5ab0bb7d64d"/>
 				<textElement verticalAlignment="Middle">
@@ -118,23 +119,23 @@
 		</band>
 	</detail>
 	<pageFooter>
-		<band height="27">
+		<band height="15">
 			<textField evaluationTime="Report">
-				<reportElement x="630" y="1" width="40" height="20" uuid="657a88ba-e420-4261-b14b-3c48d7782e0f"/>
+				<reportElement x="630" y="0" width="40" height="14" uuid="657a88ba-e420-4261-b14b-3c48d7782e0f"/>
 				<textElement>
 					<font fontName="Nimbus Roman" size="10" isBold="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="550" y="0" width="80" height="20" uuid="d96e4cb9-5b9e-45a8-b329-bab61a51330d"/>
+				<reportElement x="550" y="0" width="80" height="14" uuid="d96e4cb9-5b9e-45a8-b329-bab61a51330d"/>
 				<textElement textAlignment="Right">
 					<font fontName="Nimbus Roman" size="10" isBold="false"/>
 				</textElement>
 				<textFieldExpression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
 			</textField>
 			<textField pattern="EEEEE dd MMMMM yyyy">
-				<reportElement x="0" y="0" width="197" height="20" uuid="8f0138d2-e648-4ef9-801d-41399f829d7b"/>
+				<reportElement x="0" y="0" width="197" height="14" uuid="8f0138d2-e648-4ef9-801d-41399f829d7b"/>
 				<textElement>
 					<font fontName="DejaVu Sans Condensed" size="10" isBold="false"/>
 				</textElement>
