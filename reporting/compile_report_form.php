@@ -2,9 +2,9 @@
 require_once __DIR__ . '/../include/auth.php';
 require_once __DIR__ . '/../config/report_paths.php';
 
-if (!isDeveloper()) {
+if (!isAdmin()) {
     http_response_code(403);
-    exit('Access denied. Developer privileges required.');
+    exit('Access denied. Admin privileges required.');
 }
 
 $message = $_SESSION['compile_report_message'] ?? '';

@@ -25,6 +25,7 @@ try {
         FROM app_report_parameters p
         INNER JOIN app_reports r ON r.id = p.report_id
         WHERE r.report_key = ? AND r.is_active = 1
+          AND p.param_name NOT IN ('path', 'SUBREPORT_DIR')
         ORDER BY p.id ASC
     ");
     if (!$stmt) {

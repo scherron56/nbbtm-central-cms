@@ -2,9 +2,9 @@
 require_once __DIR__ . '/../include/auth.php';
 require_once __DIR__ . '/JasperCompiler.php';
 
-if (!isDeveloper()) {
+if (!isAdmin()) {
     http_response_code(403);
-    exit('Access denied. Developer privileges required.');
+    exit('Access denied. Admin privileges required.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

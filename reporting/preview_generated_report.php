@@ -79,7 +79,7 @@ $streamUrl = 'view_generated_report.php?file=' . rawurlencode($fileName);
 <body>
 <main class="dashboard-container">
   <h2><?= htmlspecialchars($fileName) ?></h2>
-  <p><a href="generated_reports.php">&larr; Back to Generated Reports</a></p>
+  <p><a href="generated_reports.php">&larr; Back to View Generated Reports</a></p>
 
   <div class="viewer-toolbar">
     <div class="nav-group">

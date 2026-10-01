@@ -334,7 +334,7 @@ try {
             <h4 style="color: #28089a; margin: 0;">Procedure Parameters</h4>
             <span style="display:flex; flex-wrap:wrap; gap:1rem;">
               <a href="reporting/option_builder.php" style="font-size: 0.85rem;">Build Select Options JSON</a>
-              <?php if (isDeveloper()): ?>
+              <?php if (isAdmin()): ?>
                 <a href="reporting/compile_report_form.php" style="font-size: 0.85rem;">Compile Reports</a>
               <?php endif; ?>
             </span>
@@ -408,7 +408,7 @@ try {
           <div class="report-actions">
             <button type="submit" class="btn-primary report-action-btn"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
             <a href="reporting/report_files.php" class="btn-secondary report-action-btn">Manage Saved Reports</a>
-            <?php if (isDeveloper()): ?>
+            <?php if (isAdmin()): ?>
               <a href="reporting/compile_report_form.php" class="btn-accent report-action-btn">Compile Reports</a>
             <?php endif; ?>
           </div>

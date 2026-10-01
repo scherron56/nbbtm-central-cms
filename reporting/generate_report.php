@@ -64,9 +64,22 @@ $stmt->bind_param('i', $report['id']);
 $stmt->execute();
 $paramResult = $stmt->get_result();
 
+// Directory parameters are resolved from .env on the server and never taken
+// from the request. They are only sent to reports that register them, because
+// JasperStarter rejects parameters a report does not declare.
+$serverPathParams = [
+    'path'          => 'REPORTS_STYLE_PATH',
+    'SUBREPORT_DIR' => 'REPORTS_SUBREPORT_PATH',
+];
+
 $jasperParams = [];
 while ($param = $paramResult->fetch_assoc()) {
     $pName = $param['param_name'];
+
+    if (isset($serverPathParams[$pName])) {
+        $jasperParams[$pName] = rtrim(reportPath($serverPathParams[$pName]), '/\\') . '/';
+        continue;
+    }
 
     // multi_select controls submit their value as an array via a
     // "paramName[]" field name; everything else is a plain scalar.
@@ -129,8 +142,15 @@ if (!is_dir($resourceDirectory)) {
     die("Error: Report styles directory not found: {$resourceDirectory}");
 }
 
-$uniqueId   = uniqid('rep_', true);
-$outputPath = $outputDir . '/' . $uniqueId;
+// Saved reports are named "<report_key>_<YYYYmmdd>_<His>.pdf" so
+// generated_reports.php can list them; a numeric suffix avoids collisions
+// when the same report is generated twice within one second.
+$fileStem   = preg_replace('/[^A-Za-z0-9_-]/', '_', $reportKey) . '_' . date('Ymd_His');
+$outputName = $fileStem;
+for ($suffix = 2; file_exists($outputDir . '/' . $outputName . '.pdf'); $suffix++) {
+    $outputName = $fileStem . '_' . $suffix;
+}
+$outputPath = $outputDir . '/' . $outputName;
 
 // 9. Configure JasperStarter's Java font extensions.
 configureReportFonts();
@@ -151,7 +171,7 @@ $options = [
 ];
 
 
-// 11. Run JasperReports and Output PDF
+// 11. Run JasperReports and open the saved PDF in the in-browser viewer
 try {
     $jasperStarterPath = reportPath('JASPER_STARTER_PATH');
     $jasper = new PHPJasper(dirname($jasperStarterPath));
@@ -164,15 +184,7 @@ try {
         die("Error: Report execution completed but output PDF was not created. Check your MySQL stored procedure.");
     }
 
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: inline; filename="' . $reportKey . '.pdf"');
-    header('Content-Transfer-Encoding: binary');
-    header('Content-Length: ' . filesize($generatedPdf));
-    header('Accept-Ranges: bytes');
-
-    readfile($generatedPdf);
-
-    unlink($generatedPdf);
+    header('Location: preview_generated_report.php?file=' . rawurlencode(basename($generatedPdf)), true, 303);
     exit;
 
 } catch (Exception $e) {

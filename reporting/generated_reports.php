@@ -56,12 +56,13 @@ if (is_dir($outputDirectory)) {
             continue;
         }
 
-        // Generated files are named "<report_key>_<YYYYmmdd>_<His>.pdf". Parse the
+        // Generated files are named "<report_key>_<YYYYmmdd>_<His>.pdf", with an
+        // optional "_<n>" suffix when two run in the same second. Parse the
         // report key back out (when it matches that pattern) so we can show a
         // friendly title; otherwise just display the raw filename.
         $reportKey = null;
         $reportTitle = null;
-        if (preg_match('/^(.+)_(\d{8})_(\d{6})$/', pathinfo($fileName, PATHINFO_FILENAME), $matches)) {
+        if (preg_match('/^(.+)_(\d{8})_(\d{6})(?:_\d+)?$/', pathinfo($fileName, PATHINFO_FILENAME), $matches)) {
             $reportKey = $matches[1];
             $reportTitle = $reportTitlesByKey[$reportKey] ?? null;
         }
@@ -82,14 +83,15 @@ usort($generatedReports, static fn(array $a, array $b): int => $b['modified'] <=
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generated Reports - Central Management</title>
-    <link rel="stylesheet" href="../css/style.css">
+    <base href="../">
+    <title>View Generated Reports - Central Management</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
     <?php include_once __DIR__ . '/../include/header.php'; ?>
     <main class="dashboard-container">
-        <h2>Generated Reports</h2>
+        <h2>View Generated Reports</h2>
         <p>View PDF reports that have already been generated. Reports remain here until deleted.</p>
 
         <?php if (!empty($message)): ?><div class="card" style="color:#166534; margin-bottom:1rem;"><?= htmlspecialchars($message) ?></div><?php endif; ?>
@@ -109,7 +111,7 @@ usort($generatedReports, static fn(array $a, array $b): int => $b['modified'] <=
                 <tbody>
                     <?php if (!$generatedReports): ?>
                         <tr>
-                            <td colspan="5">No generated reports found yet. Run a report from <a href="admin_reports.php">Run Jasper Reports</a> to create one.</td>
+                            <td colspan="5">No generated reports found yet. Run a report from <a href="reporting/admin_reports.php">Run Jasper Reports</a> to create one.</td>
                         </tr>
                         <?php else: foreach ($generatedReports as $report): ?>
                             <tr>
@@ -118,8 +120,8 @@ usort($generatedReports, static fn(array $a, array $b): int => $b['modified'] <=
                                 <td><?= number_format($report['size'] / 1024, 1) ?> KB</td>
                                 <td><?= htmlspecialchars(date('Y-m-d H:i', $report['modified'])) ?></td>
                                 <td>
-                                    <a class="btn btn-sm btn-primary" href="preview_generated_report.php?file=<?= rawurlencode($report['name']) ?>" target="_blank">View</a>
-                                    <form method="post" action="generated_reports.php" class="inline-form" onsubmit="return confirm('Delete this generated report?');">
+                                    <a class="btn btn-sm btn-primary" href="reporting/preview_generated_report.php?file=<?= rawurlencode($report['name']) ?>" target="_blank">View</a>
+                                    <form method="post" action="reporting/generated_reports.php" class="inline-form" onsubmit="return confirm('Delete this generated report?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="file_name" value="<?= htmlspecialchars($report['name']) ?>">
                                         <button type="submit" class="btn btn-sm btn-danger">Delete</button>

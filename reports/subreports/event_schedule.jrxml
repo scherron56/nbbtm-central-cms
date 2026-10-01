@@ -94,7 +94,7 @@
 	</columnHeader>
 	<detail>
 		<band height="21" splitType="Stretch">
-			<textField>
+			<textField isBlankWhenNull="true">
 				<reportElement x="350" y="0" width="100" height="16" uuid="4d028f5d-449a-4734-8236-15a289788488">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="87b35d38-ab4f-46fc-a00a-e587933a80bd"/>
 				</reportElement>
@@ -103,7 +103,7 @@
 				</textElement>
 				<textFieldExpression><![CDATA[$F{start_time}]]></textFieldExpression>
 			</textField>
-			<textField>
+			<textField isBlankWhenNull="true">
 				<reportElement x="220" y="0" width="100" height="16" uuid="4f16e81f-9306-471b-b842-c76b3899f24f">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="e778d41e-7c5a-47d3-b44b-48234c59d248"/>
 				</reportElement>
@@ -112,14 +112,14 @@
 				</textElement>
 				<textFieldExpression><![CDATA[$F{start_date}]]></textFieldExpression>
 			</textField>
-			<textField>
+			<textField isBlankWhenNull="true">
 				<reportElement x="40" y="0" width="180" height="16" uuid="5d7ccc2d-b098-4d5b-b823-c6b11030ebbd"/>
 				<textElement>
 					<font size="11"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{activity_scheduled}]]></textFieldExpression>
 			</textField>
-			<textField>
+			<textField isBlankWhenNull="true">
 				<reportElement positionType="Float" x="470" y="2" width="90" height="13" uuid="76bf1d48-9a3f-4a9f-8aaa-c63829e38a35">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="a82173a9-9a5c-4045-968b-2ab8e2555968"/>
 				</reportElement>

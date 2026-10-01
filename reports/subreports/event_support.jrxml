@@ -42,7 +42,7 @@
 		<groupExpression><![CDATA[$F{min_comm_id}]]></groupExpression>
 		<groupHeader>
 			<band height="18">
-				<textField>
+				<textField isBlankWhenNull="true">
 					<reportElement style="base_style" x="0" y="0" width="244" height="18" uuid="595bd959-d903-4a9b-8899-30b4b46efda7"/>
 					<textElement verticalAlignment="Middle">
 						<font size="11" isBold="true"/>

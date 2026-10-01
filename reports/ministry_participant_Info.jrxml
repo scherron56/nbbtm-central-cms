@@ -75,7 +75,7 @@
 						<topPen lineWidth="1.0" lineStyle="Solid"/>
 						<bottomPen lineWidth="1.0" lineStyle="Solid"/>
 					</box>
-					<textElement textAlignment="Center" verticalAlignment="Middle" markup=""/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" markup="none"/>
 					<textFieldExpression><![CDATA[$F{CommitteeName}]]></textFieldExpression>
 				</textField>
 				<staticText>

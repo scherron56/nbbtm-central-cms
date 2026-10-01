@@ -69,15 +69,15 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base href="../">
-  <title>Saved Reports - Central Management</title>
+  <title>Upload Report Files - Central Management</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <?php include_once __DIR__ . '/../include/header.php'; ?>
 <main class="dashboard-container">
-  <h2>Saved Report Files</h2>
+  <h2>Upload Report Files</h2>
   <p>Upload, read, or delete Jasper report templates stored in the reports directory.</p>
-  <?php if (isDeveloper()): ?>
+  <?php if (isAdmin()): ?>
     <p><a href="reporting/compile_report_form.php" class="btn-accent" style="text-decoration:none;">Compile JRXML Report</a></p>
   <?php endif; ?>
 
@@ -86,7 +86,7 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
 
   <section class="card" style="margin-bottom:1.5rem;">
     <h3>Upload Report</h3>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" action="reporting/report_files.php" enctype="multipart/form-data">
       <input type="hidden" name="action" value="upload">
       <input type="file" name="report_file" accept=".jrxml,.jasper" required>
       <button type="submit" class="btn-primary">Upload Report</button>
@@ -107,7 +107,7 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
           <td><?= htmlspecialchars(date('Y-m-d H:i', $reportFile['modified'])) ?></td>
           <td>
             <a class="btn btn-sm btn-secondary" href="reporting/report_file.php?file=<?= rawurlencode($reportFile['name']) ?>" target="_blank">Read</a>
-            <form method="post" style="display:inline;" onsubmit="return confirm('Delete this report file?');">
+            <form method="post" action="reporting/report_files.php" style="display:inline;" onsubmit="return confirm('Delete this report file?');">
               <input type="hidden" name="action" value="delete">
               <input type="hidden" name="file_name" value="<?= htmlspecialchars($reportFile['name']) ?>">
               <button type="submit" class="btn btn-sm btn-danger">Delete</button>

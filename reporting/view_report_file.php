@@ -37,7 +37,7 @@ if (!in_array($extension, ['jrxml', 'jasper'], true)) {
 <body>
 <main class="dashboard-container">
   <h2><?= htmlspecialchars($fileName) ?></h2>
-  <p><a href="report_files.php">&larr; Back to Saved Reports</a></p>
+  <p><a href="report_files.php">&larr; Back to Upload Report Files</a></p>
   <pre id="file-content">Loading...</pre>
 </main>
 <script>
