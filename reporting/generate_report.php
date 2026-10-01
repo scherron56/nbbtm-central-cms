@@ -191,7 +191,7 @@ if (!file_exists($inputPath)) {
 }
 
 // 7. Fetch Parameters
-$stmt = $db->prepare("SELECT param_name, param_type, is_required, default_value FROM app_report_parameters WHERE report_id = ?");
+$stmt = $db->prepare("SELECT param_name, param_type, control_type, is_required, default_value FROM app_report_parameters WHERE report_id = ?");
 $stmt->bind_param('i', $report['id']);
 $stmt->execute();
 $paramResult = $stmt->get_result();
@@ -199,7 +199,38 @@ $paramResult = $stmt->get_result();
 $jasperParams = [];
 while ($param = $paramResult->fetch_assoc()) {
     $pName  = $param['param_name'];
-    if ($param['param_type'] === 'bool' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    if (($param['control_type'] ?? '') === 'multi_select') {
+        $rawVal = $_POST[$pName] ?? $_GET[$pName] ?? null;
+        if (!is_array($rawVal) || empty($rawVal)) {
+            $rawVal = $param['default_value'];
+        } else {
+            $selectedValues = [];
+            foreach ($rawVal as $value) {
+                if (!is_scalar($value)) {
+                    http_response_code(422);
+                    die("Error: Invalid value for parameter '{$pName}'.");
+                }
+
+                if ($param['param_type'] === 'int') {
+                    $integerValue = filter_var($value, FILTER_VALIDATE_INT);
+                    if ($integerValue === false) {
+                        http_response_code(422);
+                        die("Error: Parameter '{$pName}' requires integer values.");
+                    }
+                    $selectedValues[] = $integerValue;
+                } else {
+                    $selectedValues[] = (string)$value;
+                }
+            }
+
+            $rawVal = json_encode($selectedValues);
+            if ($rawVal === false) {
+                http_response_code(422);
+                die("Error: Unable to encode parameter '{$pName}'.");
+            }
+        }
+    } elseif ($param['param_type'] === 'bool' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $rawVal = isset($_POST[$pName]);
     } else {
         $rawVal = $_POST[$pName] ?? $_GET[$pName] ?? $param['default_value'];
@@ -211,22 +242,16 @@ while ($param = $paramResult->fetch_assoc()) {
     }
 
     if ($rawVal !== null && $rawVal !== '') {
-        $jasperParams[$pName] = match ($param['param_type']) {
-            'int'    => (int)$rawVal,
-            'float'  => (float)$rawVal,
-            'bool'   => filter_var($rawVal, FILTER_VALIDATE_BOOLEAN),
-            default  => (string)$rawVal,
+        $jasperParams[$pName] = match (true) {
+            ($param['control_type'] ?? '') === 'multi_select' => (string)$rawVal,
+            $param['param_type'] === 'int' => (int)$rawVal,
+            $param['param_type'] === 'float' => (float)$rawVal,
+            $param['param_type'] === 'bool' => filter_var($rawVal, FILTER_VALIDATE_BOOLEAN),
+            default => (string)$rawVal,
         };
     }
 }
 $stmt->close();
-
-// Provide shared Jasper parameters once so subreports and assets resolve
-// consistently regardless of the current working directory.
-$subreportDir = resolveSubreportDir($inputPath);
-if ($subreportDir !== null) {
-    $jasperParams['SUBREPORT_DIR'] = $subreportDir;
-}
 
 // Detect declared parameters from the report's .jrxml *source*, not the
 // compiled .jasper file. Compiled .jasper files are serialized Java objects
@@ -235,6 +260,15 @@ if ($subreportDir !== null) {
 // source always sits alongside the compiled report with the same base name.
 $jrxmlPath = preg_replace('/\.jasper$/', '.jrxml', $inputPath);
 $reportSource = file_exists($jrxmlPath) ? file_get_contents($jrxmlPath) : file_get_contents($inputPath);
+
+// JasperStarter rejects parameters that the selected report does not declare.
+// Only provide the shared subreport directory to reports that request it.
+if (preg_match('/<parameter\s+name="SUBREPORT_DIR"/', $reportSource)) {
+    $subreportDir = resolveSubreportDir($inputPath);
+    if ($subreportDir !== null) {
+        $jasperParams['SUBREPORT_DIR'] = $subreportDir;
+    }
+}
 
 // Provide the shared IMAGE_DIR parameter for report templates (e.g. letterhead
 // images) that declare it; only pass it when the .jrxml actually defines this

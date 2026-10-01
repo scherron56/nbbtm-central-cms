@@ -33,10 +33,12 @@ function renderReportControls(controls, containerId) {
       
       // MULTI-SELECT DROPDOWN (Collection / List)
       case 'multi_select':
+        group.style.setProperty('--colspan', '12');
         inputElement = document.createElement('select');
-        inputElement.name = control.name;
+        inputElement.name = `${control.name}[]`;
         inputElement.id = control.name;
         inputElement.multiple = true;
+        inputElement.size = 8;
         inputElement.className = 'form-control select-multi';
         populateOptions(inputElement, control);
         break;

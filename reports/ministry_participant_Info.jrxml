@@ -3,7 +3,7 @@
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Ministry_Participant_Info" pageWidth="792" pageHeight="612" orientation="Landscape" columnWidth="752" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="4a54a24c-e5a7-434b-9355-7384f319a8da">
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
-	<template><![CDATA["cms_styles.jrtx"]]></template>
+	<template><![CDATA[$P{path} + "cms_styles.jrtx"]]></template>
 	<parameter name="p_grp_type_id" class="java.lang.String">
 		<parameterDescription><![CDATA[Group Type]]></parameterDescription>
 	</parameter>
@@ -12,7 +12,7 @@
 	</parameter>
 	<parameter name="path" class="java.lang.String"/>
 	<queryString>
-		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_id}, $P{p_grp_ids})]]>
+		<![CDATA[call CommitteeReport($P{p_grp_ids})]]>
 	</queryString>
 	<field name="min_grp_type_desc" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="min_grp_type_desc"/>
@@ -75,7 +75,7 @@
 						<topPen lineWidth="1.0" lineStyle="Solid"/>
 						<bottomPen lineWidth="1.0" lineStyle="Solid"/>
 					</box>
-					<textElement textAlignment="Center" verticalAlignment="Middle" markup=""/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" markup="none"/>
 					<textFieldExpression><![CDATA[$F{CommitteeName}]]></textFieldExpression>
 				</textField>
 				<staticText>
