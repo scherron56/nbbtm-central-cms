@@ -4,7 +4,7 @@
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
 	<template><![CDATA["cms_styles.jrtx"]]></template>
-	<parameter name="p_grp_type_id" class="java.lang.String">
+	<parameter name="p_grp_type_ids" class="java.lang.String">
 		<parameterDescription><![CDATA[Group Type]]></parameterDescription>
 	</parameter>
 	<parameter name="p_grp_ids" class="java.lang.String">
@@ -12,7 +12,7 @@
 	</parameter>
 	<parameter name="path" class="java.lang.String"/>
 	<queryString>
-		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_id}, $P{p_grp_ids})]]>
+		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_ids}, $P{p_grp_ids})]]>
 	</queryString>
 	<field name="min_grp_type_desc" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="min_grp_type_desc"/>
