@@ -9,6 +9,7 @@
 	</parameter>
 	<parameter name="p_grp_ids" class="java.lang.String">
 		<parameterDescription><![CDATA[Association IDs]]></parameterDescription>
+		<defaultValueExpression><![CDATA["[]"]]></defaultValueExpression>
 	</parameter>
 	<queryString>
 		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_ids}, $P{p_grp_ids})]]>
