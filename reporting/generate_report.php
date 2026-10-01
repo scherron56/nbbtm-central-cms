@@ -79,9 +79,26 @@ while ($param = $paramResult->fetch_assoc()) {
         if (!is_array($rawVal) || empty($rawVal)) {
             $rawVal = $param['default_value'];
         } else {
-            // Stored procedures consume multi-select params as a
-            // comma-separated list (e.g. via FIND_IN_SET).
-            $rawVal = implode(',', array_map('strval', $rawVal));
+            $selectedValues = [];
+            foreach ($rawVal as $value) {
+                if (!is_scalar($value)) {
+                    http_response_code(422);
+                    die("Error: Invalid value for parameter '{$pName}'.");
+                }
+
+                if ($param['param_type'] === 'int') {
+                    $integerValue = filter_var($value, FILTER_VALIDATE_INT);
+                    if ($integerValue === false) {
+                        http_response_code(422);
+                        die("Error: Parameter '{$pName}' requires integer values.");
+                    }
+                    $selectedValues[] = $integerValue;
+                } else {
+                    $selectedValues[] = (string)$value;
+                }
+            }
+
+            $rawVal = json_encode($selectedValues, JSON_THROW_ON_ERROR);
         }
     } else {
         $rawVal = $_POST[$pName] ?? $_GET[$pName] ?? $param['default_value'];
@@ -93,11 +110,12 @@ while ($param = $paramResult->fetch_assoc()) {
     }
 
     if ($rawVal !== null && $rawVal !== '') {
-        $jasperParams[$pName] = match ($param['param_type']) {
-            'int'    => (int)$rawVal,
-            'float'  => (float)$rawVal,
-            'bool'   => filter_var($rawVal, FILTER_VALIDATE_BOOLEAN),
-            default  => (string)$rawVal,
+        $jasperParams[$pName] = match (true) {
+            ($param['control_type'] ?? '') === 'multi_select' => (string)$rawVal,
+            $param['param_type'] === 'int' => (int)$rawVal,
+            $param['param_type'] === 'float' => (float)$rawVal,
+            $param['param_type'] === 'bool' => filter_var($rawVal, FILTER_VALIDATE_BOOLEAN),
+            default => (string)$rawVal,
         };
     }
 }
