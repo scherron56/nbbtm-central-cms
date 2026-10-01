@@ -97,7 +97,7 @@
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="16"/>
 				</textElement>
-				<textFieldExpression><![CDATA[IF($V{PAGE_NUMBER}.intValue() == 1,"Ministries/Committees/Operations Partuicipants",  "Min/Comm/Oper - Participants cont...")]]></textFieldExpression>
+				<textFieldExpression><![CDATA[IF($V{PAGE_NUMBER}.intValue() == 1,"Ministries/Committees/Operations Participants",  "Min/Comm/Oper - Participants cont...")]]></textFieldExpression>
 			</textField>
 			<image scaleImage="FillFrame">
 				<reportElement stretchType="ElementGroupHeight" x="0" y="0" width="750" height="110" uuid="376b9599-b3c7-4ab6-baad-c88772527a50">

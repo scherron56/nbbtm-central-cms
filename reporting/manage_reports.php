@@ -85,7 +85,7 @@ if ($userIsAdmin) {
                             $pLabel = 'Print Group';
                         }
                         $pType  = in_array($param['type'] ?? '', ['string', 'int', 'float', 'bool', 'date']) ? $param['type'] : 'string';
-                        $pControl = in_array($param['control_type'] ?? '', ['auto', 'text', 'number', 'date', 'checkbox', 'single_select'], true)
+                        $pControl = in_array($param['control_type'] ?? '', ['auto', 'text', 'number', 'date', 'checkbox', 'single_select', 'multi_select'], true)
                             ? $param['control_type']
                             : 'auto';
                         $pControl = $pControl === 'auto' ? null : $pControl;
@@ -103,7 +103,7 @@ if ($userIsAdmin) {
                             }
                         }
 
-                        if ($pControl === 'single_select') {
+                        if ($pControl === 'single_select' || $pControl === 'multi_select') {
                             try {
                                 $options = json_decode($pOptions, true, 512, JSON_THROW_ON_ERROR);
                             } catch (JsonException $e) {
@@ -126,7 +126,7 @@ if ($userIsAdmin) {
 
                             $pOptions = json_encode($options, JSON_THROW_ON_ERROR);
                         } elseif ($pOptions !== '') {
-                            throw new RuntimeException("Static options are only supported for a single-select control ('{$pName}').");
+                            throw new RuntimeException("Static options are only supported for single-select or multi-select controls ('{$pName}').");
                         } else {
                             $pOptions = null;
                         }
@@ -253,6 +253,25 @@ try {
       margin-right: 8px;
     }
     .edit-btn:hover { text-decoration: underline; }
+    .report-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+    .report-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      line-height: 1.2;
+      text-decoration: none;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -350,6 +369,7 @@ try {
                     <option value="date" <?= ($param['control_type'] ?? '') === 'date' ? 'selected' : '' ?>>Date picker</option>
                     <option value="checkbox" <?= ($param['control_type'] ?? '') === 'checkbox' ? 'selected' : '' ?>>Checkbox</option>
                     <option value="single_select" <?= ($param['control_type'] ?? '') === 'single_select' ? 'selected' : '' ?>>Dropdown</option>
+                    <option value="multi_select" <?= ($param['control_type'] ?? '') === 'multi_select' ? 'selected' : '' ?>>Multi-select Dropdown</option>
                   </select>
                   <input type="text" name="params[<?= $idx ?>][default]" class="form-control" value="<?= htmlspecialchars($param['default_value'] ?? '') ?>" placeholder="Default Val">
                   <input type="text" name="params[<?= $idx ?>][placeholder]" class="form-control" value="<?= htmlspecialchars($param['placeholder'] ?? '') ?>" placeholder="Placeholder (text inputs)">
@@ -380,6 +400,7 @@ try {
                   <option value="date">Date picker</option>
                   <option value="checkbox">Checkbox</option>
                   <option value="single_select">Dropdown</option>
+                  <option value="multi_select">Multi-select Dropdown</option>
                 </select>
                 <input type="text" name="params[0][default]" class="form-control" placeholder="Default Val">
                 <input type="text" name="params[0][placeholder]" class="form-control" placeholder="Placeholder (text inputs)">
@@ -394,11 +415,11 @@ try {
             <?php endif; ?>
           </div>
 
-          <button type="button" class="btn-secondary" onclick="addParamRow()" style="margin-top: 0.5rem; width: fit-content;">+ Add Parameter</button>
+          <button type="button" class="btn-secondary report-action-btn" onclick="addParamRow()" style="margin-top: 0.5rem;">+ Add Parameter</button>
 
-          <div style="margin-top: 1.5rem;">
-            <button type="submit" class="btn-primary"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
-            <a href="report_files.php" class="btn-secondary" style="text-decoration:none; margin-left:0.5rem;">Manage Saved Reports</a>
+          <div class="report-actions">
+            <button type="submit" class="btn-primary report-action-btn"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
+            <a href="report_files.php" class="btn-secondary report-action-btn">Manage Saved Reports</a>
           </div>
         </form>
       </section>
@@ -505,6 +526,7 @@ function addParamRow() {
       <option value="date">Date picker</option>
       <option value="checkbox">Checkbox</option>
       <option value="single_select">Dropdown</option>
+      <option value="multi_select">Multi-select Dropdown</option>
     </select>
     <input type="text" name="params[${paramCounter}][default]" class="form-control" placeholder="Default Val">
     <input type="text" name="params[${paramCounter}][placeholder]" class="form-control" placeholder="Placeholder (text inputs)">
