@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../config/report_paths.php';
+
 final class JasperCompiler
 {
     private string $jasperStarterPath;
@@ -9,8 +11,8 @@ final class JasperCompiler
     public function __construct(?string $jasperStarterPath = null, ?string $reportsDirectory = null)
     {
         $this->jasperStarterPath = $jasperStarterPath
-            ?? __DIR__ . '/../vendor/geekcom/phpjasper/bin/jasperstarter/bin/jasperstarter';
-        $this->reportsDirectory = rtrim($reportsDirectory ?? __DIR__ . '/../reports', '/\\');
+            ?? reportPath('JASPER_STARTER_PATH');
+        $this->reportsDirectory = rtrim($reportsDirectory ?? reportPath('REPORTS_TEMPLATE_PATH'), '/\\');
     }
 
     public function setReportName(string $reportName): self

@@ -18,6 +18,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../include/auth.php';
 require_once __DIR__ . '/../vendor/autoload.php'; // PHPJasper Composer Autoload
+require_once __DIR__ . '/../config/report_paths.php';
 
 use PHPJasper\PHPJasper;
 
@@ -30,8 +31,8 @@ case 'export_pdf':
         $sessionId  = intval($_REQUEST['vbs_sessions_id'] ?? 0);
 
         // Path definitions
-        $input = __DIR__ . '/../reports/' . $reportName . '.jasper';
-        $outputFolder = __DIR__ . '/../reports/output';
+        $input = reportPath('REPORTS_TEMPLATE_PATH') . '/' . $reportName . '.jasper';
+        $outputFolder = reportPath('REPORTS_OUTPUT_PATH');
         $outputFileName = $reportName . '_' . time();
         $outputPath = $outputFolder . '/' . $outputFileName;
 
@@ -46,6 +47,7 @@ case 'export_pdf':
         // Database Credentials and Parameters
         $options = [
             'format' => ['pdf'],
+            'resources' => reportPath('REPORTS_STYLE_PATH'),
             'params' => [
                 'p_session_id' => $sessionId,
                 'IMAGE_DIR'    => $image_path // Pass the image path into PHPJasper parameters
@@ -61,7 +63,7 @@ case 'export_pdf':
         ];
 
         try {
-            $jasper = new PHPJasper();
+            $jasper = new PHPJasper(dirname(reportPath('JASPER_STARTER_PATH')));
             
             // Generate command and execute report export
             $jasper->process($input, $outputPath, $options)->execute();

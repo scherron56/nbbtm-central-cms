@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../include/auth.php';
+require_once __DIR__ . '/../config/report_paths.php';
 
 if (!isDeveloper()) {
     http_response_code(403);
@@ -10,7 +11,7 @@ $message = $_SESSION['compile_report_message'] ?? '';
 $error = $_SESSION['compile_report_error'] ?? '';
 unset($_SESSION['compile_report_message'], $_SESSION['compile_report_error']);
 
-$reportDirectory = __DIR__ . '/../reports';
+$reportDirectory = reportPath('REPORTS_TEMPLATE_PATH');
 $existingReports = [];
 if (is_dir($reportDirectory)) {
     foreach (scandir($reportDirectory) as $fileName) {

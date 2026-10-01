@@ -1,14 +1,14 @@
 <?php
 require_once __DIR__ . '/../include/auth.php';
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/../config/report_paths.php';
 
 if (!isAdmin()) {
     http_response_code(403);
     exit('Access denied.');
 }
 
-$reportsOutputPath = __DIR__ . '/../' . ($_ENV['REPORTS_OUTPUT_PATH'] ?? 'reports/output');
+$reportsOutputPath = reportPath('REPORTS_OUTPUT_PATH');
 
 $message = '';
 $error = '';

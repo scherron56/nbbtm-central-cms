@@ -1,12 +1,13 @@
 <?php
 require_once __DIR__ . '/../include/auth.php';
+require_once __DIR__ . '/../config/report_paths.php';
 
 if (!isAdmin()) {
     http_response_code(403);
     exit('Access denied.');
 }
 
-$reportDirectory = __DIR__ . '/../reports';
+$reportDirectory = reportPath('REPORTS_TEMPLATE_PATH');
 $allowedExtensions = ['jrxml', 'jasper'];
 $message = '';
 $error = '';

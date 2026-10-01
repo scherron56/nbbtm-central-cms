@@ -25,14 +25,15 @@ if (!file_exists(__DIR__ . '/../vendor/autoload.php')) {
     die("Error: Composer autoloader not found. Run 'composer require geekcom/phpjasper' in the project root.");
 }
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/report_paths.php';
 
 use PHPJasper\PHPJasper;
  
 
 
 // 1. Set the CLASSPATH before PHPJasper runs Java
-$fontJar =  __DIR__ . '/../vendor/geekcom/phpjasper/bin/jasperstarter/lib/custom-fonts.jar';
-putenv('CLASSPATH=' . $fontJar . PATH_SEPARATOR . getenv('CLASSPATH'));
+$fontPath = reportPath('REPORTS_FONTS_PATH');
+putenv('CLASSPATH=' . $fontPath . PATH_SEPARATOR . getenv('CLASSPATH'));
 
 // 4. Retrieve Report Key
 $reportKey = trim($_POST['report'] ?? $_GET['report'] ?? '');
@@ -54,10 +55,11 @@ if (!$report || (int)$report['is_active'] !== 1) {
 }
 
 // 6. Verify Template File Exists
-$inputPath = __DIR__ . '/../reports/' . $report['file_name'];
+$templateDirectory = reportPath('REPORTS_TEMPLATE_PATH');
+$inputPath = $templateDirectory . '/' . $report['file_name'];
 if (!file_exists($inputPath)) {
     http_response_code(404);
-    die("Error: Compiled report template '{$report['file_name']}' not found in " . __DIR__ . '/../reports/');
+    die("Error: Compiled report template '{$report['file_name']}' not found in {$templateDirectory}.");
 }
 
 // 7. Fetch Parameters
@@ -102,9 +104,15 @@ while ($param = $paramResult->fetch_assoc()) {
 $stmt->close();
 
 // 8. Prepare Output Directory
-$outputDir = __DIR__ . '/../reports/output';
+$outputDir = reportPath('REPORTS_OUTPUT_PATH');
 if (!is_dir($outputDir)) {
     mkdir($outputDir, 0775, true);
+}
+
+$resourceDirectory = reportPath('REPORTS_STYLE_PATH');
+if (!is_dir($resourceDirectory)) {
+    http_response_code(500);
+    die("Error: Report styles directory not found: {$resourceDirectory}");
 }
 
 $uniqueId   = uniqid('rep_', true);
@@ -120,9 +128,7 @@ if (file_exists('/opt/java8/bin/java')) {
 $options = [
     'format' => ['pdf'],
     'params' => $jasperParams, //
-    'classpath' => [
-        __DIR__ . '/../storage/fonts/custom-fonts.jar'
-    ],
+    'resources' => $resourceDirectory,
     'db_connection' => [
         'driver'   => 'mysql', //
         'username' => USER,     // from config/db.php
@@ -136,7 +142,8 @@ $options = [
 
 // 11. Run JasperReports and Output PDF
 try {
-    $jasper = new PHPJasper();
+    $jasperStarterPath = reportPath('JASPER_STARTER_PATH');
+    $jasper = new PHPJasper(dirname($jasperStarterPath));
     $jasper->process($inputPath, $outputPath, $options)->execute();
 
     $generatedPdf = $outputPath . '.pdf';
