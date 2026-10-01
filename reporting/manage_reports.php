@@ -235,6 +235,25 @@ try {
       margin-right: 8px;
     }
     .edit-btn:hover { text-decoration: underline; }
+    .report-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+    .report-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      line-height: 1.2;
+      text-decoration: none;
+      white-space: nowrap;
+    }
     @media (max-width: 700px) {
       .param-row {
         grid-template-columns: 1fr;
@@ -384,13 +403,13 @@ try {
             <?php endif; ?>
           </div>
 
-          <button type="button" class="btn-secondary" onclick="addParamRow()" style="margin-top: 0.5rem; width: fit-content;">+ Add Parameter</button>
+          <button type="button" class="btn-secondary report-action-btn" onclick="addParamRow()" style="margin-top: 0.5rem;">+ Add Parameter</button>
 
-          <div style="margin-top: 1.5rem;">
-            <button type="submit" class="btn-primary"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
-            <a href="reporting/report_files.php" class="btn-secondary" style="text-decoration:none; margin-left:0.5rem;">Manage Saved Reports</a>
+          <div class="report-actions">
+            <button type="submit" class="btn-primary report-action-btn"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
+            <a href="reporting/report_files.php" class="btn-secondary report-action-btn">Manage Saved Reports</a>
             <?php if (isDeveloper()): ?>
-              <a href="reporting/compile_report_form.php" class="btn-accent" style="text-decoration:none; margin-left:0.5rem;">Compile Reports</a>
+              <a href="reporting/compile_report_form.php" class="btn-accent report-action-btn">Compile Reports</a>
             <?php endif; ?>
           </div>
         </form>
