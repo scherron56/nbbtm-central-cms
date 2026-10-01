@@ -10,7 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
         'lifetime' => 0, // 24 Hours
         'path'     => '/',   // Root path ensures session spans all sub-folders
         'httponly' => true,
-        'samesite' => 'Lax'
+    'samesite' => 'Lax'
     ]);
     session_start();
 }

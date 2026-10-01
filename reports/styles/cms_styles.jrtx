@@ -1,0 +1,8 @@
+<jasperTemplate>
+	<style name="Title" default="true" forecolor="#132178" fontName="Liberation Serif" fontSize="20.0" bold="true"/>
+	<style name="Column Header" style="Title" fontSize="12.0"/>
+	<style name="Base Style" style="Title" fontSize="11.0" bold="false"/>
+	<style name="Header 2" style="Title" fontSize="16.0" italic="true"/>
+	<style name="Column Header - Italic" style="Column Header" fontSize="12.0" italic="true"/>
+	<style name="Details" style="Base Style" fontSize="11.0" bold="false"/>
+</jasperTemplate>

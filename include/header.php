@@ -75,7 +75,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
 
           <!-- Admin / Full Control Menu Dropdown -->
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
+            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'manage_reports.php', 'report_files.php', 'compile_report_form.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
               Admin &#9662;
             </a>
             <ul class="submenu">
@@ -90,13 +90,16 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
               </li>
 
               <li class="dropdown-nested">
-                <a href="#" class="<?= in_array($currentPage, ['admin_reports.php', 'manage_reports.php', 'report_files.php']) ? 'active' : '' ?>">
+                <a href="#" class="<?= in_array($currentPage, ['admin_reports.php', 'manage_reports.php', 'report_files.php', 'compile_report_form.php']) ? 'active' : '' ?>">
                   Reports &#9656;
                 </a>
                 <ul class="submenu-nested">
-                  <li><a href="admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
-                  <li><a href="manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
-                  <li><a href="report_files.php" class="<?= ($currentPage === 'report_files.php') ? 'active' : '' ?>">Saved Reports</a></li>
+                  <li><a href="reporting/admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
+                  <li><a href="reporting/manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
+                  <li><a href="reporting/report_files.php" class="<?= ($currentPage === 'report_files.php') ? 'active' : '' ?>">Saved Reports</a></li>
+                  <?php if (isDeveloper()): ?>
+                    <li><a href="reporting/compile_report_form.php" class="<?= ($currentPage === 'compile_report_form.php') ? 'active' : '' ?>">Compile Reports</a></li>
+                  <?php endif; ?>
                 </ul>
               </li>
               <li><a href="self_register.php" class="<?= ($currentPage === 'self_register.php') ? 'active' : '' ?>">Self Registration</a></li>

@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 6.10.0  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="event_program_summary" pageWidth="612" pageHeight="792" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="d3cbfa6c-d037-4833-ba25-646ef866909c">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<template><![CDATA[$P{path} + "central_admin_style1.jrtx"]]></template>
+	<parameter name="p_event_id" class="java.lang.Integer"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String">
+		<defaultValueExpression><![CDATA["/home/clarice/Repository/nbbtm-central/reports/subreports/"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="path" class="java.lang.String" evaluationTime="Early"/>
+	<queryString>
+		<![CDATA[call getEventInfo($P{p_event_id})]]>
+	</queryString>
+	<field name="prg_evnt_id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="prg_evnt_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="prg_evnt_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="prg_evnt_name" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prg_evnt_name"/>
+		<property name="com.jaspersoft.studio.field.label" value="prg_evnt_name"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="min_comm_id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="min_comm_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="min_comm_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="contact_id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="contact_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="contact_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="contact_name" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="contact_name"/>
+		<property name="com.jaspersoft.studio.field.label" value="contact_name"/>
+	</field>
+	<field name="contact_phone" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="contact_phone"/>
+		<property name="com.jaspersoft.studio.field.label" value="contact_phone"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="contact_email" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="contact_email"/>
+		<property name="com.jaspersoft.studio.field.label" value="contact_email"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="location" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="location"/>
+		<property name="com.jaspersoft.studio.field.label" value="location"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="goal" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="goal"/>
+		<property name="com.jaspersoft.studio.field.label" value="goal"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="prg_evnt_purpose" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="prg_evnt_purpose"/>
+		<property name="com.jaspersoft.studio.field.label" value="prg_evnt_purpose"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="requires_registration" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="requires_registration"/>
+		<property name="com.jaspersoft.studio.field.label" value="requires_registration"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="requires_fee" class="java.lang.Boolean">
+		<property name="com.jaspersoft.studio.field.name" value="requires_fee"/>
+		<property name="com.jaspersoft.studio.field.label" value="requires_fee"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="registration_fee" class="java.math.BigDecimal">
+		<property name="com.jaspersoft.studio.field.name" value="registration_fee"/>
+		<property name="com.jaspersoft.studio.field.label" value="registration_fee"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="audience_target" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="audience_target"/>
+		<property name="com.jaspersoft.studio.field.label" value="audience_target"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="attend_estimate" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="attend_estimate"/>
+		<property name="com.jaspersoft.studio.field.label" value="attend_estimate"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="notes" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="notes"/>
+		<property name="com.jaspersoft.studio.field.label" value="notes"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="programs_events"/>
+	</field>
+	<field name="schedule_id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="schedule_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="schedule_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_schedules"/>
+	</field>
+	<field name="start_date" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="start_date"/>
+		<property name="com.jaspersoft.studio.field.label" value="start_date"/>
+	</field>
+	<field name="start_time" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="start_time"/>
+		<property name="com.jaspersoft.studio.field.label" value="start_time"/>
+	</field>
+	<field name="end_date" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="end_date"/>
+		<property name="com.jaspersoft.studio.field.label" value="end_date"/>
+	</field>
+	<field name="end_time" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="end_time"/>
+		<property name="com.jaspersoft.studio.field.label" value="end_time"/>
+	</field>
+	<field name="budget_item_id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="budget_item_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="budget_item_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_budget_items"/>
+	</field>
+	<field name="item_description" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="item_description"/>
+		<property name="com.jaspersoft.studio.field.label" value="item_description"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_budget_items"/>
+	</field>
+	<field name="item_type" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="item_type"/>
+		<property name="com.jaspersoft.studio.field.label" value="item_type"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_budget_items"/>
+	</field>
+	<field name="amount" class="java.math.BigDecimal">
+		<property name="com.jaspersoft.studio.field.name" value="amount"/>
+		<property name="com.jaspersoft.studio.field.label" value="amount"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_budget_items"/>
+	</field>
+	<field name="COLUMN_26" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="min_comm_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="min_comm_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_min_support"/>
+	</field>
+	<field name="min_comm_name" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="min_comm_name"/>
+		<property name="com.jaspersoft.studio.field.label" value="min_comm_name"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="ministry_committee"/>
+	</field>
+	<variable name="total_pages" class="java.lang.Integer">
+		<variableExpression><![CDATA[$V{PAGE_NUMBER}]]></variableExpression>
+	</variable>
+	<group name="Event Group">
+		<groupExpression><![CDATA[$F{prg_evnt_id}]]></groupExpression>
+		<groupHeader>
+			<band height="390">
+				<textField>
+					<reportElement x="170" y="1" width="194" height="20" forecolor="#041D55" uuid="cb0c921f-45e1-466a-8ac1-12aa45e57b2b"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Liberation Serif" size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Phone Number:  "  + $F{contact_phone}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="0" y="1" width="166" height="20" uuid="8891b398-7ede-415b-a499-4dfcb85ad1ee"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Contact:  "  + $F{contact_name}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="368" y="1" width="191" height="20" forecolor="#031C55" uuid="af44bfc0-c248-4e5a-a131-5c6634151db4"/>
+					<textElement verticalAlignment="Middle">
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["E-mail:  " + $F{contact_email}]]></textFieldExpression>
+				</textField>
+				<subreport>
+					<reportElement positionType="Float" x="0" y="30" width="570" height="30" uuid="ec343cbc-1432-49ee-ac40-0684694b75f7"/>
+					<subreportParameter name="p_event_id">
+						<subreportParameterExpression><![CDATA[$P{p_event_id}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="path">
+						<subreportParameterExpression><![CDATA[$P{path}]]></subreportParameterExpression>
+					</subreportParameter>
+					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_schedule.jasper"]]></subreportExpression>
+				</subreport>
+				<textField>
+					<reportElement positionType="Float" x="120" y="70" width="330" height="23" uuid="0a027acb-bb0c-49be-a94a-6379478e0fba"/>
+					<textElement>
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{audience_target}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="1" y="69" width="119" height="24" uuid="637857e6-4a9d-4098-86ee-7d1c5f4840fe"/>
+					<textElement>
+						<font size="12" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Target Audience:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="220" y="93" width="197" height="22" uuid="719565dc-b497-407c-86e5-5870400bc48e">
+						<printWhenExpression><![CDATA[$F{requires_fee} != null && $F{requires_fee}]]></printWhenExpression>
+					</reportElement>
+					<textElement>
+						<font size="11" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Donation/Registration Amount:]]></text>
+				</staticText>
+				<textField pattern="$###.##" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="420" y="93" width="100" height="22" uuid="76bfe72c-4db7-4169-92b4-52ff02138036">
+						<printWhenExpression><![CDATA[$F{requires_fee} != null && $F{requires_fee}]]></printWhenExpression>
+					</reportElement>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{registration_fee}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement positionType="Float" x="0" y="93" width="220" height="22" uuid="c59233d4-e7c4-4c4d-8714-383a5a2b6cf0"/>
+					<textElement markup="html">
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Estimated Attendance:  "  + $F{attend_estimate}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="1" y="120" width="572" height="21" uuid="194a1bca-635e-47c2-b7a3-ad5788009d43"/>
+					<textElement textAlignment="Center">
+						<font size="14" isBold="true" isItalic="true" isUnderline="true"/>
+					</textElement>
+					<text><![CDATA[Core Purpose & Objectives]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="3" y="140" width="95" height="20" uuid="c9748402-ea01-4abf-a5ea-e587ddc1bec8"/>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[Event Purpose]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true">
+					<reportElement positionType="Float" x="2" y="160" width="571" height="20" uuid="53b5aef0-15af-4e75-842b-6b2b71f73794"/>
+					<textElement>
+						<font size="11" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{prg_evnt_purpose}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="3" y="189" width="570" height="21" uuid="f0834604-58c5-48f7-a91a-2f1d568a170c"/>
+					<textElement>
+						<font size="11" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Key Deliverables / Goals]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true">
+					<reportElement positionType="Float" x="3" y="210" width="570" height="20" uuid="c3e13565-761a-42a0-bc81-ab52e6d271ad"/>
+					<textElement>
+						<font size="11"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{goal}]]></textFieldExpression>
+				</textField>
+				<subreport>
+					<reportElement positionType="Float" x="-1" y="250" width="572" height="28" uuid="908a74c4-ffea-44b1-895b-5d5cca9844e0"/>
+					<subreportParameter name="p_event_id">
+						<subreportParameterExpression><![CDATA[$P{p_event_id}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="path">
+						<subreportParameterExpression><![CDATA[$P{path}]]></subreportParameterExpression>
+					</subreportParameter>
+					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_actuals.2.jasper"]]></subreportExpression>
+				</subreport>
+				<textField>
+					<reportElement positionType="Float" x="-1" y="300" width="572" height="20" forecolor="#0F137D" uuid="bb6a243b-d805-4cd3-b027-d4b8175619e3"/>
+					<textElement>
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["The following Ministries / Operations will give support during this event: "]]></textFieldExpression>
+				</textField>
+				<subreport>
+					<reportElement positionType="Float" x="3" y="320" width="517" height="30" uuid="fc352c4a-9b8b-4b64-897b-8964d68fdbb6"/>
+					<subreportParameter name="p_event_id">
+						<subreportParameterExpression><![CDATA[$P{p_event_id}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="path">
+						<subreportParameterExpression><![CDATA[$P{path}]]></subreportParameterExpression>
+					</subreportParameter>
+					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_support.jasper"]]></subreportExpression>
+				</subreport>
+				<textField>
+					<reportElement positionType="Float" x="-1" y="350" width="302" height="20" uuid="e5aac6a7-a16b-4958-8987-98fd989a45e8"/>
+					<textElement>
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Special Requests & Specific Support Notes"]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement positionType="Float" x="-2" y="372" width="572" height="18" uuid="8076d830-647d-41b2-97eb-299262ab1ae3"/>
+					<textElement>
+						<font size="11"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{notes}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="101" splitType="Stretch">
+			<image>
+				<reportElement stretchType="ContainerHeight" x="1" y="0" width="569" height="101" uuid="a46f6d05-36b2-4401-aa07-0c1451c442af"/>
+				<imageExpression><![CDATA["/var/www/html/images/nbbtm header - with addr.png"]]></imageExpression>
+			</image>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="35" splitType="Stretch">
+			<textField>
+				<reportElement x="10" y="0" width="561" height="30" uuid="1b93111c-420c-4f02-9be5-15fcd1dd19c9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Liberation Serif" size="20" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Event Name:  "  +  $F{prg_evnt_name}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<pageFooter>
+		<band height="18" splitType="Stretch">
+			<textField>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="357" y="0" width="180" height="14" uuid="939151c2-9ca6-4242-8dc7-cb221f56865a"/>
+				<textElement textAlignment="Right">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement positionType="Float" x="540" y="0" width="30" height="14" uuid="68dca04e-3420-4945-9894-1b614216db7c"/>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{total_pages}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>

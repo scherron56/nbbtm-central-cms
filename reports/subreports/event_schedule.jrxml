@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 6.10.0  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="event_schedule" pageWidth="612" pageHeight="792" orientation="Landscape" columnWidth="612" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="d9034655-6a4f-4f16-99e9-d01f96a01686">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<template><![CDATA[$P{path} + "central_admin_style1.jrtx"]]></template>
+	<parameter name="p_event_id" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[$P{p_event_id}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="path" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[call getEventSched($P{p_event_id})]]>
+	</queryString>
+	<field name="prg_evnt_id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="prg_evnt_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="prg_evnt_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_schedules"/>
+	</field>
+	<field name="schedule_id" class="java.lang.Integer">
+		<property name="com.jaspersoft.studio.field.name" value="schedule_id"/>
+		<property name="com.jaspersoft.studio.field.label" value="schedule_id"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_schedules"/>
+	</field>
+	<field name="activity_scheduled" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="activity_scheduled"/>
+		<property name="com.jaspersoft.studio.field.label" value="activity_scheduled"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="prg_evnt_schedules"/>
+	</field>
+	<field name="start_date" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="start_date"/>
+		<property name="com.jaspersoft.studio.field.label" value="start_date"/>
+	</field>
+	<field name="start_time" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="start_time"/>
+		<property name="com.jaspersoft.studio.field.label" value="start_time"/>
+	</field>
+	<field name="end_date" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="end_date"/>
+		<property name="com.jaspersoft.studio.field.label" value="end_date"/>
+	</field>
+	<field name="end_time" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="end_time"/>
+		<property name="com.jaspersoft.studio.field.label" value="end_time"/>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<columnHeader>
+		<band height="24" splitType="Stretch">
+			<staticText>
+				<reportElement x="220" y="0" width="100" height="18" uuid="3c4600ae-f557-4f9e-97a3-affab5f98b2e">
+					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="e778d41e-7c5a-47d3-b44b-48234c59d248"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Date]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="40" y="0" width="180" height="18" uuid="418aa0d8-f762-4f4f-94be-563cd6ecc8f1"/>
+				<textElement textAlignment="Left">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Scheduled Activity]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="350" y="0" width="100" height="18" uuid="7b51dcb2-332c-42f7-a535-543ce26324a5">
+					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="87b35d38-ab4f-46fc-a00a-e587933a80bd"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[From]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="470" y="0" width="90" height="18" uuid="7499d567-917b-4ad2-aa8f-18ba968f00e7">
+					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="a82173a9-9a5c-4045-968b-2ab8e2555968"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[To]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="21" splitType="Stretch">
+			<textField>
+				<reportElement x="350" y="0" width="100" height="16" uuid="4d028f5d-449a-4734-8236-15a289788488">
+					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="87b35d38-ab4f-46fc-a00a-e587933a80bd"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{start_time}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="220" y="0" width="100" height="16" uuid="4f16e81f-9306-471b-b842-c76b3899f24f">
+					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="e778d41e-7c5a-47d3-b44b-48234c59d248"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{start_date}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="40" y="0" width="180" height="16" uuid="5d7ccc2d-b098-4d5b-b823-c6b11030ebbd"/>
+				<textElement>
+					<font size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{activity_scheduled}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" x="470" y="2" width="90" height="13" uuid="76bf1d48-9a3f-4a9f-8aaa-c63829e38a35">
+					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="a82173a9-9a5c-4045-968b-2ab8e2555968"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{end_time}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="30" y="0" width="530" height="1" isRemoveLineWhenBlank="true" uuid="6ccd3280-5b40-4c7f-a59a-5658d948b167"/>
+			</line>
+		</band>
+	</detail>
+</jasperReport>

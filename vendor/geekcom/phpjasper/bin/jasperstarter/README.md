@@ -7,6 +7,12 @@ JasperStarter is an opensource command line launcher and batch compiler for
 
 The official homepage is [jasperstater.cenote.de][].
 
+**JasperStarter is not vulnerable to [CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228).**
+
+**But all releases including 3.5.0 contain log4j-1.2.17 which is affected by
+[CVE-2019-17571](https://nvd.nist.gov/vuln/detail/CVE-2019-17571).** I cannot say if it is possible to
+exploit this with JasperStarter but in any case you should update to a newer version of JasperStarter.
+
 It has the following features:
 
   * Run any JasperReport that needs a jdbc, csv, xml, json, jsonql or empty datasource
@@ -33,7 +39,7 @@ It has the following features:
 
 Requirements:
 
-  * Java 1.8 or higher
+  * Java 1.8
   * A JDBC 2.1 driver for your database
 
 
@@ -131,7 +137,7 @@ If you like the software you can write a [review][] :-)
 The sourcecode is available at [bitbucket.org/cenote/jasperstarter][], the
 project website is hosted at [Sourceforge][].
 
-JasperStarter is build with [Maven][]. 
+JasperStarter is build with [Maven][].
 
 On Linux 64 bit the launch4j-maven-plugin may fail. In this case, may you need the following libs in a 32 bit version:
 
@@ -159,7 +165,7 @@ or if you build from the current default branch you better use:
 **without having it\'s dependencies in** `../lib` ! See **dev** profile below!
 
 If you want to build the Windows setup.exe, you need to have _nsis_ in your
-search path (works on linux too, you can find a compiled release in the 
+search path (works on linux too, you can find a compiled release in the
 sourceforge download folder _build-tools_ for your convenience)
 an add the **windows-setup** profile to your build:
 

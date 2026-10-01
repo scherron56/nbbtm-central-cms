@@ -66,8 +66,11 @@ $currentYear = date('Y');
 
             <span class="footer-subheading">Reports</span>
             <ul>
-              <li><a href="admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
-              <li><a href="manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
+              <li><a href="reporting/admin_reports.php" class="<?= ($currentPage === 'admin_reports.php') ? 'active' : '' ?>">Run Jasper Reports</a></li>
+              <li><a href="reporting/manage_reports.php" class="<?= ($currentPage === 'manage_reports.php') ? 'active' : '' ?>">Configure Reports</a></li>
+              <?php if (isDeveloper()): ?>
+                <li><a href="reporting/compile_report_form.php" class="<?= ($currentPage === 'compile_report_form.php') ? 'active' : '' ?>">Compile Reports</a></li>
+              <?php endif; ?>
             </ul>
 
             <ul>
