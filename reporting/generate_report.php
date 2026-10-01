@@ -31,10 +31,6 @@ use PHPJasper\PHPJasper;
  
 
 
-// 1. Set the CLASSPATH before PHPJasper runs Java
-$fontPath = reportPath('REPORTS_FONTS_PATH');
-putenv('CLASSPATH=' . $fontPath . PATH_SEPARATOR . getenv('CLASSPATH'));
-
 // 4. Retrieve Report Key
 $reportKey = trim($_POST['report'] ?? $_GET['report'] ?? '');
 if ($reportKey === '') {
@@ -136,11 +132,8 @@ if (!is_dir($resourceDirectory)) {
 $uniqueId   = uniqid('rep_', true);
 $outputPath = $outputDir . '/' . $uniqueId;
 
-// 9. Force Execution with Java 8
-if (file_exists('/opt/java8/bin/java')) {
-    putenv("JAVA_HOME=/opt/java8");
-    putenv("PATH=/opt/java8/bin:" . getenv('PATH'));
-}
+// 9. Configure JasperStarter's Java font extensions.
+configureReportFonts();
 
 // 10. Database Connection Parameters
 $options = [

@@ -56,9 +56,7 @@
 					<box>
 						<bottomPen lineWidth="1.0" lineStyle="Solid"/>
 					</box>
-					<textElement textAlignment="Center" verticalAlignment="Middle">
-						<font fontName="DejaVu Serif" size="13" isBold="true" isItalic="true"/>
-					</textElement>
+					<textElement textAlignment="Center" verticalAlignment="Middle"/>
 					<textFieldExpression><![CDATA[$F{min_grp_type_desc}]]></textFieldExpression>
 				</textField>
 			</band>
@@ -69,10 +67,7 @@
 		<groupHeader>
 			<band height="34">
 				<textField>
-					<reportElement x="10" y="10" width="228" height="16" uuid="bf50cb7d-f2d9-4989-9348-c630cad1670c"/>
-					<textElement>
-						<font size="13" isBold="true" isUnderline="true"/>
-					</textElement>
+					<reportElement style="Association Header" x="10" y="10" width="228" height="16" uuid="bf50cb7d-f2d9-4989-9348-c630cad1670c"/>
 					<textFieldExpression><![CDATA[$F{CommitteeName} + " Participants"]]></textFieldExpression>
 				</textField>
 			</band>
@@ -98,7 +93,6 @@
 			<textField>
 				<reportElement style="Title" x="-1" y="115" width="751" height="30" printWhenGroupChanges="Group1" uuid="ff7e4ca9-c8af-4562-b7af-d1b51d3e314b"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="16"/>
 				</textElement>
 				<textFieldExpression><![CDATA[IF($V{PAGE_NUMBER}.intValue() == 1,"Ministries/Committees/Operations Partuicipants",  "Min/Comm/Oper - Participants cont...")]]></textFieldExpression>
 			</textField>
@@ -113,10 +107,8 @@
 	<detail>
 		<band height="17" splitType="Stretch">
 			<textField>
-				<reportElement x="10" y="0" width="170" height="16" uuid="113e9ed3-8cca-4ed5-b5cf-d5ab0bb7d64d"/>
-				<textElement verticalAlignment="Middle">
-					<font fontName="Nimbus Roman" size="11"/>
-				</textElement>
+				<reportElement style="Details" x="10" y="0" width="170" height="16" uuid="113e9ed3-8cca-4ed5-b5cf-d5ab0bb7d64d"/>
+				<textElement verticalAlignment="Middle"/>
 				<textFieldExpression><![CDATA[$F{MemberName}]]></textFieldExpression>
 			</textField>
 		</band>
@@ -124,24 +116,18 @@
 	<pageFooter>
 		<band height="15">
 			<textField evaluationTime="Report">
-				<reportElement x="630" y="0" width="40" height="14" uuid="657a88ba-e420-4261-b14b-3c48d7782e0f"/>
-				<textElement>
-					<font fontName="Nimbus Roman" size="10" isBold="false"/>
-				</textElement>
+				<reportElement style="Footer" x="630" y="0" width="40" height="14" uuid="657a88ba-e420-4261-b14b-3c48d7782e0f"/>
+				<textElement/>
 				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="550" y="0" width="80" height="14" uuid="d96e4cb9-5b9e-45a8-b329-bab61a51330d"/>
-				<textElement textAlignment="Right">
-					<font fontName="Nimbus Roman" size="10" isBold="false"/>
-				</textElement>
+				<reportElement style="Footer" x="550" y="0" width="80" height="14" uuid="d96e4cb9-5b9e-45a8-b329-bab61a51330d"/>
+				<textElement textAlignment="Right"/>
 				<textFieldExpression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
 			</textField>
 			<textField pattern="EEEEE dd MMMMM yyyy">
-				<reportElement x="0" y="0" width="197" height="14" uuid="8f0138d2-e648-4ef9-801d-41399f829d7b"/>
-				<textElement>
-					<font fontName="DejaVu Sans Condensed" size="10" isBold="false"/>
-				</textElement>
+				<reportElement style="Footer" x="0" y="0" width="197" height="14" uuid="8f0138d2-e648-4ef9-801d-41399f829d7b"/>
+				<textElement/>
 				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
 			</textField>
 		</band>

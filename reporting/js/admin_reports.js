@@ -47,7 +47,6 @@ function loadReportParams(reportKey) {
       params.forEach(param => {
         const div = document.createElement('div');
         div.className = 'field-group';
-        div.style.setProperty('--colspan', '6');
 
         const label = document.createElement('label');
         label.htmlFor = param.param_name;
@@ -64,6 +63,7 @@ function loadReportParams(reportKey) {
         const controlType = param.control_type && param.control_type !== 'auto'
           ? param.control_type
           : null;
+        div.style.setProperty('--colspan', controlType === 'multi_select' ? '12' : '6');
         const options = Array.isArray(param.static_options) ? param.static_options : [];
 
         let control;
@@ -73,6 +73,10 @@ function loadReportParams(reportKey) {
           control.id = param.param_name;
           control.className = 'form-control';
           control.name = controlType === 'multi_select' ? param.param_name + '[]' : param.param_name;
+
+          if (controlType === 'multi_select') {
+            control.classList.add('form-control-multiselect');
+          }
 
           if (controlType === 'single_select' && !isRequired) {
             const blankOpt = document.createElement('option');

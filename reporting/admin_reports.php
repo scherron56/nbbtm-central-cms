@@ -56,6 +56,7 @@ if ($userIsAdmin) {
       outline: none;
     }
     .form-control:focus { border-color: #2563eb; }
+    .form-control-multiselect { height: 160px; }
     label { font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px; display: block; }
   </style>
 </head>
