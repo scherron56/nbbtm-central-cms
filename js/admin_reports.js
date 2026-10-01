@@ -49,34 +49,85 @@ function loadReportParams(reportKey) {
         div.className = 'field-group';
         div.style.setProperty('--colspan', '6');
 
-        let inputType = 'text';
-        if (param.param_type === 'int' || param.param_type === 'float') {
-          inputType = 'number';
-        } else if (param.param_type === 'date') {
-          inputType = 'date';
-        }
-
         const label = document.createElement('label');
         label.htmlFor = param.param_name;
         label.textContent = param.lbl_param_name || param.param_name;
 
-        if (Number(param.is_required) === 1) {
+        const isRequired = Number(param.is_required) === 1;
+        if (isRequired) {
           const requiredMark = document.createElement('span');
           requiredMark.className = 'text-danger';
           requiredMark.textContent = ' *';
           label.appendChild(requiredMark);
         }
 
-        const input = document.createElement('input');
-        input.type = inputType;
-        input.id = param.param_name;
-        input.name = param.param_name;
-        input.className = 'form-control';
-        input.value = param.default_value || '';
-        input.required = Number(param.is_required) === 1;
+        const controlType = param.control_type && param.control_type !== 'auto'
+          ? param.control_type
+          : null;
+        const options = Array.isArray(param.static_options) ? param.static_options : [];
+
+        let control;
+
+        if (controlType === 'single_select' || controlType === 'multi_select') {
+          control = document.createElement('select');
+          control.id = param.param_name;
+          control.className = 'form-control';
+          control.name = controlType === 'multi_select' ? param.param_name + '[]' : param.param_name;
+
+          if (controlType === 'single_select' && !isRequired) {
+            const blankOpt = document.createElement('option');
+            blankOpt.value = '';
+            blankOpt.textContent = '-- Select --';
+            control.appendChild(blankOpt);
+          }
+
+          options.forEach(opt => {
+            const optionEl = document.createElement('option');
+            optionEl.value = opt.value;
+            optionEl.textContent = opt.label;
+            if (controlType === 'single_select' && param.default_value !== undefined && String(opt.value) === String(param.default_value)) {
+              optionEl.selected = true;
+            }
+            control.appendChild(optionEl);
+          });
+
+          if (controlType === 'multi_select') {
+            control.multiple = true;
+          }
+        } else if (controlType === 'checkbox') {
+          control = document.createElement('input');
+          control.type = 'checkbox';
+          control.id = param.param_name;
+          control.name = param.param_name;
+          control.className = 'form-check-input';
+          control.value = '1';
+          control.checked = param.default_value === '1' || param.default_value === true;
+        } else {
+          let inputType = 'text';
+          if (controlType === 'text') {
+            inputType = 'text';
+          } else if (controlType === 'number') {
+            inputType = 'number';
+          } else if (controlType === 'date') {
+            inputType = 'date';
+          } else if (param.param_type === 'int' || param.param_type === 'float') {
+            inputType = 'number';
+          } else if (param.param_type === 'date') {
+            inputType = 'date';
+          }
+
+          control = document.createElement('input');
+          control.type = inputType;
+          control.id = param.param_name;
+          control.name = param.param_name;
+          control.className = 'form-control';
+          control.value = param.default_value || '';
+        }
+
+        control.required = isRequired;
 
         div.appendChild(label);
-        div.appendChild(input);
+        div.appendChild(control);
         container.appendChild(div);
       });
 

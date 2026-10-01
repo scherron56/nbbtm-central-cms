@@ -61,15 +61,29 @@ if (!file_exists($inputPath)) {
 }
 
 // 7. Fetch Parameters
-$stmt = $db->prepare("SELECT param_name, param_type, is_required, default_value FROM app_report_parameters WHERE report_id = ?");
+$stmt = $db->prepare("SELECT param_name, param_type, control_type, is_required, default_value FROM app_report_parameters WHERE report_id = ?");
 $stmt->bind_param('i', $report['id']);
 $stmt->execute();
 $paramResult = $stmt->get_result();
 
 $jasperParams = [];
 while ($param = $paramResult->fetch_assoc()) {
-    $pName  = $param['param_name'];
-    $rawVal = $_POST[$pName] ?? $_GET[$pName] ?? $param['default_value'];
+    $pName = $param['param_name'];
+
+    // multi_select controls submit their value as an array via a
+    // "paramName[]" field name; everything else is a plain scalar.
+    if (($param['control_type'] ?? '') === 'multi_select') {
+        $rawVal = $_POST[$pName] ?? $_GET[$pName] ?? null;
+        if (!is_array($rawVal) || empty($rawVal)) {
+            $rawVal = $param['default_value'];
+        } else {
+            // Stored procedures consume multi-select params as a
+            // comma-separated list (e.g. via FIND_IN_SET).
+            $rawVal = implode(',', array_map('strval', $rawVal));
+        }
+    } else {
+        $rawVal = $_POST[$pName] ?? $_GET[$pName] ?? $param['default_value'];
+    }
 
     if ((int)$param['is_required'] === 1 && ($rawVal === null || $rawVal === '')) {
         http_response_code(422);

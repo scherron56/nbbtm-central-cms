@@ -63,17 +63,48 @@ if ($userIsAdmin) {
 
                 // Insert / Re-insert parameters
                 if (!empty($rawParams) && is_array($rawParams)) {
-                    $pStmt = $db->prepare("INSERT INTO app_report_parameters (report_id, lbl_param_name, param_name, param_type, is_required, default_value) VALUES (?, ?, ?, ?, ?, ?)");
+                    $pStmt = $db->prepare("INSERT INTO app_report_parameters (report_id, lbl_param_name, param_name, param_type, control_type, static_options, is_required, default_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     foreach ($rawParams as $param) {
                         $pName  = trim($param['name'] ?? '');
                         if ($pName === '') continue;
 
                         $pLabel = trim($param['label'] ?? '') !== '' ? trim($param['label']) : null;
                         $pType  = in_array($param['type'] ?? '', ['string', 'int', 'float', 'bool', 'date']) ? $param['type'] : 'string';
+                        $pControl = in_array($param['control_type'] ?? '', ['auto', 'text', 'number', 'date', 'checkbox', 'single_select', 'multi_select'], true)
+                            ? $param['control_type']
+                            : 'auto';
+                        $pOptions = trim($param['options'] ?? '');
+                        if ($pControl === 'single_select' || $pControl === 'multi_select') {
+                            try {
+                                $options = json_decode($pOptions, true, 512, JSON_THROW_ON_ERROR);
+                            } catch (JsonException $e) {
+                                throw new RuntimeException("Options for '{$pName}' must be valid JSON.");
+                            }
+
+                            if (!is_array($options)) {
+                                throw new RuntimeException("Options for '{$pName}' must be a JSON array.");
+                            }
+
+                            foreach ($options as $option) {
+                                if (!is_array($option)
+                                    || !array_key_exists('value', $option)
+                                    || !array_key_exists('label', $option)
+                                    || !is_scalar($option['value'])
+                                    || !is_scalar($option['label'])) {
+                                    throw new RuntimeException("Each option for '{$pName}' must contain scalar value and label fields.");
+                                }
+                            }
+
+                            $pOptions = json_encode($options, JSON_THROW_ON_ERROR);
+                        } elseif ($pOptions !== '') {
+                            throw new RuntimeException("Static options are only supported for a single-select or multi-select control ('{$pName}').");
+                        } else {
+                            $pOptions = null;
+                        }
                         $pReq   = isset($param['required']) ? 1 : 0;
                         $pDef   = trim($param['default'] ?? '') !== '' ? trim($param['default']) : null;
 
-                        $pStmt->bind_param('isssis', $reportId, $pLabel, $pName, $pType, $pReq, $pDef);
+                        $pStmt->bind_param('isssssis', $reportId, $pLabel, $pName, $pType, $pControl, $pOptions, $pReq, $pDef);
                         $pStmt->execute();
                     }
                     $pStmt->close();
@@ -151,10 +182,17 @@ try {
     label { font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px; display: block; }
     .param-row {
       display: grid;
-      grid-template-columns: 2fr 2fr 1.2fr 0.6fr 1.2fr auto;
+      grid-template-columns: 2fr 2fr 1.2fr 1.2fr 2fr 0.6fr 1.2fr auto;
       gap: 0.5rem;
       align-items: center;
       margin-bottom: 0.5rem;
+    }
+    .param-options {
+      height: 38px;
+      min-height: 38px;
+      resize: vertical;
+      font-family: monospace;
+      font-size: 0.8rem;
     }
     .del-btn {
       background: none;
@@ -245,6 +283,7 @@ try {
           <div id="param-list">
             <?php if (!empty($editParams)): ?>
               <?php foreach ($editParams as $idx => $param): ?>
+                <?php $pControlVal = $param['control_type'] ?? 'auto'; ?>
                 <div class="param-row">
                   <input type="text" name="params[<?= $idx ?>][name]" class="form-control" value="<?= htmlspecialchars($param['param_name']) ?>" placeholder="Param Name (e.g. p_dept_id)" required>
                   <input type="text" name="params[<?= $idx ?>][label]" class="form-control" value="<?= htmlspecialchars($param['lbl_param_name'] ?? '') ?>" placeholder="Display Label (e.g. Department)">
@@ -255,6 +294,16 @@ try {
                     <option value="date" <?= $param['param_type'] === 'date' ? 'selected' : '' ?>>Date</option>
                     <option value="bool" <?= $param['param_type'] === 'bool' ? 'selected' : '' ?>>Boolean</option>
                   </select>
+                  <select name="params[<?= $idx ?>][control_type]" class="form-control" onchange="toggleParamOptions(this)">
+                    <option value="auto" <?= $pControlVal === 'auto' ? 'selected' : '' ?>>Auto control</option>
+                    <option value="text" <?= $pControlVal === 'text' ? 'selected' : '' ?>>Text input</option>
+                    <option value="number" <?= $pControlVal === 'number' ? 'selected' : '' ?>>Number input</option>
+                    <option value="date" <?= $pControlVal === 'date' ? 'selected' : '' ?>>Date picker</option>
+                    <option value="checkbox" <?= $pControlVal === 'checkbox' ? 'selected' : '' ?>>Checkbox</option>
+                    <option value="single_select" <?= $pControlVal === 'single_select' ? 'selected' : '' ?>>Dropdown</option>
+                    <option value="multi_select" <?= $pControlVal === 'multi_select' ? 'selected' : '' ?>>Multi-select Dropdown</option>
+                  </select>
+                  <textarea name="params[<?= $idx ?>][options]" class="form-control param-options" placeholder='Options JSON, e.g. [{"value":"1","label":"Music Ministry"}]' style="<?= in_array($pControlVal, ['single_select', 'multi_select'], true) ? '' : 'display:none;' ?>"><?= htmlspecialchars($param['static_options'] ?? '') ?></textarea>
                   <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
                     <input type="checkbox" name="params[<?= $idx ?>][required]" value="1" <?= $param['is_required'] ? 'checked' : '' ?>> Req
                   </label>
@@ -273,6 +322,16 @@ try {
                   <option value="date">Date</option>
                   <option value="bool">Boolean</option>
                 </select>
+                <select name="params[0][control_type]" class="form-control" onchange="toggleParamOptions(this)">
+                  <option value="auto" selected>Auto control</option>
+                  <option value="text">Text input</option>
+                  <option value="number">Number input</option>
+                  <option value="date">Date picker</option>
+                  <option value="checkbox">Checkbox</option>
+                  <option value="single_select">Dropdown</option>
+                  <option value="multi_select">Multi-select Dropdown</option>
+                </select>
+                <textarea name="params[0][options]" class="form-control param-options" placeholder='Options JSON, e.g. [{"value":"1","label":"Music Ministry"}]' style="display:none;"></textarea>
                 <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
                   <input type="checkbox" name="params[0][required]" value="1"> Req
                 </label>
@@ -355,6 +414,16 @@ function addParamRow() {
       <option value="date">Date</option>
       <option value="bool">Boolean</option>
     </select>
+    <select name="params[${paramCounter}][control_type]" class="form-control" onchange="toggleParamOptions(this)">
+      <option value="auto" selected>Auto control</option>
+      <option value="text">Text input</option>
+      <option value="number">Number input</option>
+      <option value="date">Date picker</option>
+      <option value="checkbox">Checkbox</option>
+      <option value="single_select">Dropdown</option>
+      <option value="multi_select">Multi-select Dropdown</option>
+    </select>
+    <textarea name="params[${paramCounter}][options]" class="form-control param-options" placeholder='Options JSON, e.g. [{"value":"1","label":"Music Ministry"}]' style="display:none;"></textarea>
     <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; margin: 0;">
       <input type="checkbox" name="params[${paramCounter}][required]" value="1"> Req
     </label>
@@ -367,6 +436,14 @@ function addParamRow() {
 
 function removeParamRow(btn) {
   btn.closest('.param-row').remove();
+}
+
+function toggleParamOptions(select) {
+  const row = select.closest('.param-row');
+  const textarea = row ? row.querySelector('.param-options') : null;
+  if (!textarea) return;
+  const showOptions = select.value === 'single_select' || select.value === 'multi_select';
+  textarea.style.display = showOptions ? '' : 'none';
 }
 </script>
 </body>
