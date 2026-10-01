@@ -419,7 +419,8 @@ try {
 
           <div class="report-actions">
             <button type="submit" class="btn-primary report-action-btn"><?= $editReport ? 'Update Report Configuration' : 'Save Report Configuration' ?></button>
-            <a href="report_files.php" class="btn-secondary report-action-btn">Manage Saved Reports</a>
+            <a href="reporting/report_files.php" class="btn-secondary report-action-btn">Manage Saved Reports</a>
+            <a href="reporting/compile_report_form.php" class="btn-accent report-action-btn">Compile Reports</a>
           </div>
         </form>
       </section>
