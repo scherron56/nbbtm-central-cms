@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperTemplate xmlns="http://jasperreports.sourceforge.net/jasperreports/template" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/template http://jasperreports.sourceforge.net/xsd/jaspertemplate.xsd">
+	<style name="Title" isDefault="true" forecolor="#132178" fontName="Liberation Serif" fontSize="20.0" isBold="true"/>
+	<style name="Column Header" style="Title" fontSize="12.0"/>
+	<style name="Base Style" style="Title" fontSize="11.0" isBold="false"/>
+	<style name="Header 2" style="Title" fontSize="16.0" isItalic="true"/>
+	<style name="Column Header - Italic" style="Column Header" fontSize="12.0" isItalic="true"/>
+	<style name="Details" style="Base Style" fontSize="11.0" isBold="false"/>
+	<style name="Association Header" style="Base Style" fontSize="13.0" isBold="true" isUnderline="true"/>
+	<style name="Footer" style="Base Style" fontSize="9.0" forecolor="#666666"/>
+</jasperTemplate>

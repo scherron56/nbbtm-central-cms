@@ -1,7 +1,7 @@
 <?php
  /* Hello dev {-_-}. Please not modify this file. Thank you. */
 if (php_sapi_name() == "cli-server") {
-     class MyRouter extends \stdClass { 
+     class MyRouter extends \stdClass {
         public function __construct()
         {
             $this->query = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
@@ -15,6 +15,16 @@ if (php_sapi_name() == "cli-server") {
     $req = new MyRouter();
     $pathinfo = (object) pathinfo($req->path);
     if (property_exists($pathinfo, "extension")) {
+        if (array_search(strtolower($pathinfo->extension), ["php", "html", "htm"]) === false) {
+            // Static assets (css, js, images, fonts, etc.): let the built-in PHP server
+            // serve the file directly from disk so it gets the correct Content-Type
+            // header. Routing these through include() here would output them as
+            // text/html, which breaks stylesheets and scripts in the browser.
+            $staticFile = str_replace("/", DIRECTORY_SEPARATOR, __DIR__ . "/.." . $req->path);
+            if (is_file($staticFile)) {
+                return false;
+            }
+        }
         if (array_search(strtolower($pathinfo->extension), ["php", "html", "htm"]) !== false) {
             if (strtolower($_SERVER['REQUEST_URI']) === "/.vscode/router.php") die;
             $isHtmlNavigation = $_SERVER['REQUEST_METHOD'] === 'GET'
@@ -23,13 +33,17 @@ if (php_sapi_name() == "cli-server") {
                 include(str_replace("/", DIRECTORY_SEPARATOR, __DIR__ . "/.." . $req->path));
                 exit;
             }
-            ob_start();
+            // Render the page first so <!DOCTYPE html> stays the very first byte of the
+            // response (keeps browsers in standards mode; some libraries like TinyMCE
+            // refuse to initialize in quirks mode, which happens if content is emitted
+            // before the doctype).
+            include(str_replace("/", DIRECTORY_SEPARATOR, __DIR__ . "/.." . $req->path));
  ?>
             <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
             <script type="module">
                 window.addEventListener('DOMContentLoaded', (event) => {
-                const socket = io(`ws://localhost:5003`, { 
-                    auth: { token : "YTZkMWJkMzItZjI2ZC00NTUxLWExNDctYTE4ZjI4NjVhYmZjMTc4Nzg0MDMxOTA1Mg==aMc" },   
+                const socket = io(`ws://localhost:5003`, {
+                    auth: { token : "YTZkMWJkMzItZjI2ZC00NTUxLWExNDctYTE4ZjI4NjVhYmZjMTc4Nzg0MDMxOTA1Mg==aMc" },
                     withCredentials: true,
                     reconnectionAttempts: 3
                 });
@@ -44,10 +58,10 @@ if (php_sapi_name() == "cli-server") {
                     }
                 })
                 socket.on("disconnect", (reason) => {  console.log("Disconnected from server"); });
-                }); 
+                });
             </script>
-        <?php  ob_get_flush(); }
-    }  
+        <?php exit; }
+    }
     include(str_replace("/", DIRECTORY_SEPARATOR,  __DIR__ . "/.." . $req->path));
 }
 ?>

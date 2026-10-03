@@ -3,7 +3,7 @@
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Ministries, Committees and Operations" columnCount="3" printOrder="Horizontal" pageWidth="792" pageHeight="612" orientation="Landscape" columnWidth="250" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="484a4b8f-8f51-45b3-a46b-0d7aed20b5e3">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian"/>
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
-	<parameter name="p_grp_type_id" class="java.lang.String">
+	<parameter name="p_grp_type_ids" class="java.lang.String">
 		<parameterDescription><![CDATA[Association Type]]></parameterDescription>
 	</parameter>
 	<parameter name="p_grp_ids" class="java.lang.String">
@@ -13,7 +13,7 @@
 		<defaultValueExpression><![CDATA[http:/localhost/images/]]></defaultValueExpression>
 	</parameter>
 	<queryString>
-		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_id}, $P{p_grp_ids})]]>
+		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_ids}, $P{p_grp_ids})]]>
 	</queryString>
 	<field name="min_grp_type_desc" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="min_grp_type_desc"/>

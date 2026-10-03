@@ -21,10 +21,11 @@ if (!$reportKey) {
 
 try {
     $stmt = $db->prepare("
-        SELECT p.param_name, p.lbl_param_name, p.param_type, p.is_required, p.default_value 
+        SELECT p.param_name, p.lbl_param_name, p.param_type, p.control_type, p.static_options, p.is_required, p.default_value 
         FROM app_report_parameters p
         INNER JOIN app_reports r ON r.id = p.report_id
         WHERE r.report_key = ? AND r.is_active = 1
+          AND p.param_name NOT IN ('path', 'SUBREPORT_DIR')
         ORDER BY p.id ASC
     ");
     if (!$stmt) {
@@ -35,6 +36,18 @@ try {
     $stmt->execute();
     $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
+
+    // Decode static_options JSON (used by single_select / multi_select controls)
+    // into a native array so the front-end doesn't have to parse it itself.
+    foreach ($result as &$param) {
+        if (!empty($param['static_options'])) {
+            $decoded = json_decode($param['static_options'], true);
+            $param['static_options'] = is_array($decoded) ? $decoded : [];
+        } else {
+            $param['static_options'] = [];
+        }
+    }
+    unset($param);
 
     echo json_encode($result);
 } catch (Exception $e) {

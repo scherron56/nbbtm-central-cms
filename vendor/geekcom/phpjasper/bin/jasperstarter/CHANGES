@@ -2,6 +2,41 @@
 JasperStarter - Running JasperReports from command line
 ========================================================
 
+Release notes - JasperStarter - Version 3.6.2
+---------------------------------------------
+
+** Bug
+    * JAS-161 CVE-2021-44832 in log4j-2.17.0
+
+
+Release notes - JasperStarter - Version 3.6.1
+---------------------------------------------
+
+** Bug
+    * JAS-160 log4j 2.16.0 is vulnerable to CVE-2021-45105
+
+
+Release notes - JasperStarter - Version 3.6.0
+---------------------------------------------
+
+** Bug
+    * CVE-2019-17571 - Included in Log4j 1.2 is a SocketServer class that is
+      vulnerable to deserialization of untrusted data which can be exploited to
+      remotely execute arbitrary code when combined with a deserialization
+      gadget when listening to untrusted network traffic for log data. This
+      affects Log4j versions up to 1.2 up to 1.2.17.
+
+    * [JAS-158] Jasperstarter contains an old log4j-1.2.17 which is affected by CVE-2019-17571
+    * [JAS-146] mvn: Could not resolve dependencies \(...\) from/to jaspersoft.artifactoryonline.com
+    * [JAS-142] Failed to generate qrcode - zxing library missing
+
+** Improvement
+    * [JAS-156] Is JasperStarter vulnerable to CVE-2021-44228
+
+** Task
+    * [JAS-157] Include JasperReports 6.18.1
+
+
 Release notes - JasperStarter - Version 3.5.0
 ---------------------------------------------
 
@@ -84,7 +119,7 @@ Release notes - JasperStarter - Version 3.3.0
 ---------------------------------------------
 
 Known bugs:
-    * [JAS-120] - JasperReports-6.7.0 Version does not match with reported version from the jar file in 
+    * [JAS-120] - JasperReports-6.7.0 Version does not match with reported version from the jar file in
       This is an upstream error which causes JasperStarter to put out
       a wrong JasperReports version number of 6.6.0 instead of 6.7.0
       if you call: jasperstarter -V
@@ -146,15 +181,15 @@ This Release works with Java8.
 
 ** Bug
     * [JAS-69] - Calls of assertEquals have the arguments actual and
-                 expected interchanged 
-    * [JAS-70] - Example report csv.jrxml truncates data 
+                 expected interchanged
+    * [JAS-70] - Example report csv.jrxml truncates data
     * [JAS-80] - jasperstarter by default is missing some important
-                 jasper studio builtin libraries 
+                 jasper studio builtin libraries
     * [JAS-81] - Eclipse compiler error when running using Java 8
 
 ** Improvement
     * [JAS-68] - Expand documentation with calls of running the
-                 example reports 
+                 example reports
 
 ** New Feature
     * [JAS-67] - Ability to produce CSV Metadata reports
@@ -233,7 +268,7 @@ Release Notes - JasperStarter - Version 2.1.0
 Release Notes - JasperStarter - Version 2.0.0
 ----------------------------------------------
 
-The command line syntax has changed in this release! 
+The command line syntax has changed in this release!
 <input> is now an argument and the format of report parameters has changed.
 Specifying the parameter type is no longer necessary. The type is determined
 from the report and it is no longer possible to provide a non existent
@@ -267,7 +302,7 @@ Release Notes - JasperStarter - Version 1.4.2
 
 ** Bug
     * [JAS-41] - Command "jasperstarter params" gives no useful result
-                 if param has no description 
+                 if param has no description
 
 
 Release Notes - JasperStarter - Version 1.4.1
@@ -359,7 +394,7 @@ JasperStarter is now able to prompt for report parameters.
           jrxml    - compiles implicit
           jrprint  - print, view or export previously filled reports.
         New output type: jrprint. This makes --keep obsolete.
-        New parameter -w writes compiled file to imput dir if jrxml is
+        New parameter -w writes compiled file to input dir if jrxml is
         processed.
         Parameter -t defaults to "none" and can therefore be omited if no
         database is needed.
@@ -424,7 +459,7 @@ V 0.3.1 Bugfix: removed jasperreports-javaflow
 V 0.3.0 Print preview
         nicer help message
         package renamed
- 
+
 V 0.2.0 Print support added
         Added exportformats html, odt
         Added report parameter type date.
