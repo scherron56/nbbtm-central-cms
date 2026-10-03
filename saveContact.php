@@ -205,6 +205,35 @@ try {
         $insFamily->close();
     }
 
+    $ministries = $_POST['ministries'] ?? [];
+    $roles = $_POST['roles'] ?? [];
+    if (!is_array($ministries) || !is_array($roles)) {
+        throw new InvalidArgumentException('Invalid ministry assignments.');
+    }
+
+    $delMinistries = $db->prepare("DELETE FROM member_alliance WHERE contact_id = ?");
+    $delMinistries->bind_param("i", $contact_id);
+    $delMinistries->execute();
+    $delMinistries->close();
+
+    if ($ministries) {
+        $insMinistry = $db->prepare("INSERT INTO member_alliance (contact_id, min_comm_id, role_id, is_active) VALUES (?, ?, ?, 1)");
+        foreach (array_unique($ministries) as $ministryId) {
+            if (!ctype_digit((string)$ministryId) || (int)$ministryId <= 0) {
+                throw new InvalidArgumentException('Invalid ministry assignment.');
+            }
+            $ministryId = (int)$ministryId;
+            $roleValue = $roles[$ministryId] ?? '';
+            if ($roleValue !== '' && (!ctype_digit((string)$roleValue) || (int)$roleValue <= 0)) {
+                throw new InvalidArgumentException('Invalid ministry role.');
+            }
+            $roleId = $roleValue === '' ? null : (int)$roleValue;
+            $insMinistry->bind_param("iii", $contact_id, $ministryId, $roleId);
+            $insMinistry->execute();
+        }
+        $insMinistry->close();
+    }
+
     // 3. Save Attachments into document_lib
     $fileKey = !empty($_FILES['attach_files']['name']) ? 'attach_files' : (!empty($_FILES['document_name']['name']) ? 'document_name' : null);
 
