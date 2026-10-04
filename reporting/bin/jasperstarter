@@ -1,0 +1,31 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__ . '/../../config/report_paths.php';
+
+try {
+    $javaHome = getenv('JAVA_HOME');
+    $java = $javaHome !== false && $javaHome !== ''
+        ? rtrim($javaHome, '/\\') . '/bin/java'
+        : 'java';
+
+    $command = escapeshellarg($java)
+        . ' --add-opens=java.base/java.net=ALL-UNNAMED'
+        . ' -cp ' . escapeshellarg(reportJasperClasspath())
+        . ' de.cenote.jasperstarter.App';
+    foreach (array_slice($argv, 1) as $argument) {
+        $command .= ' ' . escapeshellarg($argument);
+    }
+
+    // JasperStarter discovers its JDBC drivers relative to its original bin directory.
+    $starterDirectory = dirname(reportPath('JASPER_STARTER_PATH'));
+    if (!is_dir($starterDirectory) || !chdir($starterDirectory)) {
+        throw new RuntimeException("Cannot use JasperStarter working directory: {$starterDirectory}");
+    }
+} catch (RuntimeException $e) {
+    fwrite(STDERR, "JasperStarter configuration error: {$e->getMessage()}\n");
+    exit(1);
+}
+
+passthru($command, $exitCode);
+exit($exitCode);

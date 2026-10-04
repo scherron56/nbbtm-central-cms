@@ -149,26 +149,26 @@
 		<groupExpression><![CDATA[$F{prg_evnt_id}]]></groupExpression>
 		<groupHeader>
 			<band height="390">
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement x="170" y="1" width="194" height="20" forecolor="#041D55" uuid="cb0c921f-45e1-466a-8ac1-12aa45e57b2b"/>
 					<textElement textAlignment="Center" verticalAlignment="Middle">
 						<font fontName="Liberation Serif" size="11" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA["Phone Number:  "  + ($F{contact_phone} == null ? "" : $F{contact_phone})]]></textFieldExpression>
+					<textFieldExpression><![CDATA["Phone Number:  "  + $F{contact_phone}]]></textFieldExpression>
 				</textField>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement x="0" y="1" width="166" height="20" uuid="8891b398-7ede-415b-a499-4dfcb85ad1ee"/>
 					<textElement textAlignment="Left" verticalAlignment="Middle">
 						<font size="11" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA["Contact:  "  + ($F{contact_name} == null ? "" : $F{contact_name})]]></textFieldExpression>
+					<textFieldExpression><![CDATA["Contact:  "  + $F{contact_name}]]></textFieldExpression>
 				</textField>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement x="368" y="1" width="191" height="20" forecolor="#031C55" uuid="af44bfc0-c248-4e5a-a131-5c6634151db4"/>
 					<textElement verticalAlignment="Middle">
 						<font size="11" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA["E-mail:  " + ($F{contact_email} == null ? "" : $F{contact_email})]]></textFieldExpression>
+					<textFieldExpression><![CDATA["E-mail:  " + $F{contact_email}]]></textFieldExpression>
 				</textField>
 				<subreport>
 					<reportElement positionType="Float" x="0" y="30" width="570" height="30" uuid="ec343cbc-1432-49ee-ac40-0684694b75f7"/>
@@ -181,7 +181,7 @@
 					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_schedule.jasper"]]></subreportExpression>
 				</subreport>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement positionType="Float" x="120" y="70" width="330" height="23" uuid="0a027acb-bb0c-49be-a94a-6379478e0fba"/>
 					<textElement>
 						<font size="12" isBold="true"/>
@@ -213,12 +213,12 @@
 					</textElement>
 					<textFieldExpression><![CDATA[$F{registration_fee}]]></textFieldExpression>
 				</textField>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement positionType="Float" x="0" y="93" width="220" height="22" uuid="c59233d4-e7c4-4c4d-8714-383a5a2b6cf0"/>
 					<textElement markup="html">
 						<font size="12" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA["Estimated Attendance:  "  + ($F{attend_estimate} == null ? "" : $F{attend_estimate})]]></textFieldExpression>
+					<textFieldExpression><![CDATA["Estimated Attendance:  "  + $F{attend_estimate}]]></textFieldExpression>
 				</textField>
 				<staticText>
 					<reportElement positionType="Float" x="1" y="120" width="572" height="21" uuid="194a1bca-635e-47c2-b7a3-ad5788009d43"/>
@@ -234,7 +234,7 @@
 					</textElement>
 					<text><![CDATA[Event Purpose]]></text>
 				</staticText>
-				<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<textField isStretchWithOverflow="true">
 					<reportElement positionType="Float" x="2" y="160" width="571" height="20" uuid="53b5aef0-15af-4e75-842b-6b2b71f73794"/>
 					<textElement>
 						<font size="11" isBold="false"/>
@@ -248,7 +248,7 @@
 					</textElement>
 					<text><![CDATA[Key Deliverables / Goals]]></text>
 				</staticText>
-				<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<textField isStretchWithOverflow="true">
 					<reportElement positionType="Float" x="3" y="210" width="570" height="20" uuid="c3e13565-761a-42a0-bc81-ab52e6d271ad"/>
 					<textElement>
 						<font size="11"/>
@@ -266,7 +266,7 @@
 					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_actuals.2.jasper"]]></subreportExpression>
 				</subreport>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement positionType="Float" x="-1" y="300" width="572" height="20" forecolor="#0F137D" uuid="bb6a243b-d805-4cd3-b027-d4b8175619e3"/>
 					<textElement>
 						<font size="11" isBold="true"/>
@@ -284,14 +284,14 @@
 					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "event_support.jasper"]]></subreportExpression>
 				</subreport>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement positionType="Float" x="-1" y="350" width="302" height="20" uuid="e5aac6a7-a16b-4958-8987-98fd989a45e8"/>
 					<textElement>
 						<font size="11" isBold="true"/>
 					</textElement>
 					<textFieldExpression><![CDATA["Special Requests & Specific Support Notes"]]></textFieldExpression>
 				</textField>
-				<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<textField isStretchWithOverflow="true">
 					<reportElement positionType="Float" x="-2" y="372" width="572" height="18" uuid="8076d830-647d-41b2-97eb-299262ab1ae3"/>
 					<textElement>
 						<font size="11"/>
@@ -314,25 +314,25 @@
 	</pageHeader>
 	<columnHeader>
 		<band height="35" splitType="Stretch">
-			<textField isBlankWhenNull="true">
+			<textField>
 				<reportElement x="10" y="0" width="561" height="30" uuid="1b93111c-420c-4f02-9be5-15fcd1dd19c9"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Liberation Serif" size="20" isBold="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA["Event Name:  "  +  ($F{prg_evnt_name} == null ? "" : $F{prg_evnt_name})]]></textFieldExpression>
+				<textFieldExpression><![CDATA["Event Name:  "  +  $F{prg_evnt_name}]]></textFieldExpression>
 			</textField>
 		</band>
 	</columnHeader>
 	<pageFooter>
 		<band height="18" splitType="Stretch">
-			<textField isBlankWhenNull="true">
+			<textField>
 				<reportElement positionType="Float" isPrintRepeatedValues="false" x="357" y="0" width="180" height="14" uuid="939151c2-9ca6-4242-8dc7-cb221f56865a"/>
 				<textElement textAlignment="Right">
 					<font size="9"/>
 				</textElement>
 				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
 			</textField>
-			<textField isBlankWhenNull="true" evaluationTime="Report">
+			<textField evaluationTime="Report">
 				<reportElement positionType="Float" x="540" y="0" width="30" height="14" uuid="68dca04e-3420-4945-9894-1b614216db7c"/>
 				<textElement>
 					<font size="9"/>

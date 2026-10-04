@@ -19,7 +19,6 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../include/auth.php';
 require_once __DIR__ . '/../vendor/autoload.php'; // PHPJasper Composer Autoload
 require_once __DIR__ . '/../config/report_paths.php';
-configureReportFonts();
 
 use PHPJasper\PHPJasper;
 
@@ -64,7 +63,7 @@ case 'export_pdf':
         ];
 
         try {
-            $jasper = new PHPJasper(dirname(reportPath('JASPER_STARTER_PATH')));
+            $jasper = new PHPJasper(dirname(reportJasperStarterPath()));
             
             // Generate command and execute report export
             $jasper->process($input, $outputPath, $options)->execute();

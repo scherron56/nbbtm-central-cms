@@ -11,3 +11,6 @@ reports/output/*.pdf
 
 # Auto-generated merge of storage/fonts/*.jar, rebuilt on demand by generate_report.php
 storage/fonts/_merged/
+
+# Locally built Java 21-compatible JasperStarter runtime (see reporting/README.md)
+storage/jasperstarter/

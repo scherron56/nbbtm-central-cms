@@ -152,9 +152,6 @@ for ($suffix = 2; file_exists($outputDir . '/' . $outputName . '.pdf'); $suffix+
 }
 $outputPath = $outputDir . '/' . $outputName;
 
-// 9. Configure JasperStarter's Java font extensions.
-configureReportFonts();
-
 // 10. Database Connection Parameters
 $options = [
     'format' => ['pdf'],
@@ -173,7 +170,7 @@ $options = [
 
 // 11. Run JasperReports and open the saved PDF in the in-browser viewer
 try {
-    $jasperStarterPath = reportPath('JASPER_STARTER_PATH');
+    $jasperStarterPath = reportJasperStarterPath();
     $jasper = new PHPJasper(dirname($jasperStarterPath));
     $jasper->process($inputPath, $outputPath, $options)->execute();
 

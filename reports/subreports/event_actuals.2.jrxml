@@ -79,7 +79,7 @@
 					</textElement>
 					<textFieldExpression><![CDATA[$F{item_type} != null && $F{item_type}.equalsIgnoreCase("Expense") ? $F{budget_amount} : BigDecimal.ZERO]]></textFieldExpression>
 				</textField>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement x="0" y="3" width="170" height="16" uuid="1a5eb853-5ae3-41f5-88ff-4ba32c3671ae">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					</reportElement>
@@ -101,7 +101,7 @@
 		</groupHeader>
 		<groupFooter>
 			<band height="35">
-				<textField isBlankWhenNull="true" evaluationTime="Group" evaluationGroup="Group1" pattern="#,##0.00;(#,##0.00)">
+				<textField evaluationTime="Group" evaluationGroup="Group1" pattern="#,##0.00;(#,##0.00)">
 					<reportElement style="Balance Style" x="429" y="4" width="110" height="19" uuid="d7ff410f-0fa7-4590-bfa8-2c4eb890e4a4">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					</reportElement>
@@ -116,12 +116,12 @@
 					</textElement>
 					<textFieldExpression><![CDATA[$V{actual_budget_item_sum}]]></textFieldExpression>
 				</textField>
-				<textField isBlankWhenNull="true">
+				<textField>
 					<reportElement style="Balance Style" x="212" y="5" width="208" height="18" uuid="916cc62f-7226-442e-89b1-2c61711690f5"/>
 					<textElement textAlignment="Right">
 						<font fontName="DejaVu Serif" size="11" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[($F{item_description} == null ? "" : $F{item_description}) + " Total Balance:"]]></textFieldExpression>
+					<textFieldExpression><![CDATA[$F{item_description} + " Total Balance:"]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupFooter>
@@ -204,7 +204,7 @@
 	</columnHeader>
 	<detail>
 		<band height="23" splitType="Stretch">
-			<textField isBlankWhenNull="true">
+			<textField>
 				<reportElement x="20" y="0" width="160" height="23" uuid="834c3d18-6e6c-4baf-8466-cee6b3827ba5">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="9603ea4b-41a4-49ef-a8b2-0d2a1a81020f"/>
 				</reportElement>
@@ -238,7 +238,7 @@
 	</detail>
 	<summary>
 		<band height="20">
-			<textField isBlankWhenNull="true" evaluationTime="Group" evaluationGroup="Group1" pattern="#,##0.00;(#,##0.00)">
+			<textField evaluationTime="Group" evaluationGroup="Group1" pattern="#,##0.00;(#,##0.00)">
 				<reportElement style="Balance Style" x="430" y="0" width="110" height="19" uuid="6820769d-d12b-48a5-8bb3-b15b502e38a9">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				</reportElement>

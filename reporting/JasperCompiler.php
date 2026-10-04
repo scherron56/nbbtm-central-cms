@@ -11,7 +11,7 @@ final class JasperCompiler
     public function __construct(?string $jasperStarterPath = null, ?string $reportsDirectory = null)
     {
         $this->jasperStarterPath = $jasperStarterPath
-            ?? reportPath('JASPER_STARTER_PATH');
+            ?? reportJasperStarterPath();
         $this->reportsDirectory = rtrim($reportsDirectory ?? reportPath('REPORTS_TEMPLATE_PATH'), '/\\');
     }
 
