@@ -4,10 +4,20 @@
 require_once __DIR__ . '/../../config/report_paths.php';
 
 try {
-    $javaHome = getenv('JAVA_HOME');
-    $java = $javaHome !== false && $javaHome !== ''
-        ? rtrim($javaHome, '/\\') . '/bin/java'
-        : 'java';
+    $javaHome = '';
+    foreach (['JAVA_HOME', 'JASPER_JAVA_HOME'] as $environmentVariable) {
+        $configuredHome = trim((string)(
+            $_ENV[$environmentVariable]
+            ?? $_SERVER[$environmentVariable]
+            ?? getenv($environmentVariable)
+            ?: ''
+        ));
+        if ($configuredHome !== '') {
+            $javaHome = $configuredHome;
+            break;
+        }
+    }
+    $java = $javaHome !== '' ? rtrim($javaHome, '/\\') . '/bin/java' : 'java';
 
     $command = escapeshellarg($java)
         . ' --add-opens=java.base/java.net=ALL-UNNAMED'

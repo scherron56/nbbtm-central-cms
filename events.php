@@ -540,6 +540,7 @@ $canEdit = canEdit();
 
                         $('#requires_registration').prop('checked', reqReg);
                         $('#requires_fee').prop('checked', reqFee);
+                        $('#is_public').prop('checked', parseInt(ev.is_public) === 1);
 
                         if (reqFee) {
                             $('#fee_container').show();
@@ -1151,6 +1152,13 @@ $canEdit = canEdit();
                     <div class="field-group" id="fee_container" style="display: none; --colspan: 2;">
                         <label for="registration_fee">Registration Fee ($):</label>
                         <input type="number" step="0.01" id="registration_fee" name="registration_fee" class="form-control" value="0.00">
+                    </div>
+
+                    <div class="field-group" style="--colspan: 2;">
+                        <label>
+                            <input type="checkbox" id="is_public" name="is_public" value="1">
+                            Show on Public Calendar (visible to visitors who are not signed in)
+                        </label>
                     </div>
 
                     <!-- SPECIAL REQUESTS AND SPECIFIC SUPPORT NOTES -->

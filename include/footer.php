@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 $currentYear = date('Y');
+$isLoggedIn = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 ?>
 <footer class="site-footer">
   <div class="footer-container">
@@ -17,12 +18,19 @@ $currentYear = date('Y');
           <p>4301 So. 1st Avenue</p>
           <p>Minneapolis, MN 55409</p>
           <p>Phone: (612) 823-8680</p>
-          <p>Email: nbbtmadmin@claricecraftedsolutions.org</p>
+          <p>Email: webadmin@newbeginningstbm.org</p>
         </address>
       </div>
 
       <?php if (empty($hide_menu)): ?>
-        <?php if (isAdmin() || isDeveloper()): ?>
+        <?php if ($isLoggedIn && isMember()): ?>
+          <div class="footer-col">
+            <h4>Documents</h4>
+            <ul>
+              <li><a href="member_documents.php" class="<?= ($currentPage === 'member_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
+            </ul>
+          </div>
+        <?php elseif ($isLoggedIn && (isAdmin() || isDeveloper())): ?>
           <!-- Full Admin & Developer Navigation Columns -->
           <div class="footer-col">
             <h4>Navigation</h4>
@@ -79,7 +87,7 @@ $currentYear = date('Y');
             </ul>
           </div>
 
-        <?php elseif (canEdit()): ?>
+        <?php elseif ($isLoggedIn && canEdit()): ?>
           <!-- Staff Navigation: Editing links visible, Admin section omitted -->
           <div class="footer-col">
             <h4>Navigation</h4>
@@ -112,7 +120,7 @@ $currentYear = date('Y');
             </ul>
           </div>
 
-        <?php else: ?>
+        <?php elseif ($isLoggedIn): ?>
           <!-- View / Browser Role Limited Quick Links -->
           <div class="footer-col">
             <h4>Quick Links</h4>
@@ -137,6 +145,13 @@ $currentYear = date('Y');
             <ul>
               <li><a href="vbs_sessions.php" class="<?= ($currentPage === 'vbs_sessions.php') ? 'active' : '' ?>">Sessions</a></li>
               <li><a href="vbs_registration.php" class="<?= ($currentPage === 'vbs_registration.php') ? 'active' : '' ?>">Registration</a></li>
+            </ul>
+          </div>
+        <?php else: ?>
+          <div class="footer-col">
+            <h4>Navigation</h4>
+            <ul>
+              <li><a href="index.php" class="<?= in_array($currentPage, ['index.php', 'index1.php']) ? 'active' : '' ?>">Home</a></li>
             </ul>
           </div>
         <?php endif; ?>

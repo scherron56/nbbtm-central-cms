@@ -71,6 +71,22 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
   <base href="../">
   <title>Upload Report Files - Central Management</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .report-file-actions {
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 0.5rem;
+    }
+    .report-file-actions .inline-form {
+      display: flex;
+      margin: 0;
+    }
+    .report-file-actions .btn {
+      width: auto;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+  </style>
 </head>
 <body>
 <?php include_once __DIR__ . '/../include/header.php'; ?>
@@ -106,12 +122,14 @@ usort($reportFiles, static fn(array $a, array $b): int => strcasecmp($a['name'],
           <td><?= number_format($reportFile['size'] / 1024, 1) ?> KB</td>
           <td><?= htmlspecialchars(date('Y-m-d H:i', $reportFile['modified'])) ?></td>
           <td>
-            <a class="btn btn-sm btn-secondary" href="reporting/report_file.php?file=<?= rawurlencode($reportFile['name']) ?>" target="_blank">Read</a>
-            <form method="post" action="reporting/report_files.php" style="display:inline;" onsubmit="return confirm('Delete this report file?');">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="file_name" value="<?= htmlspecialchars($reportFile['name']) ?>">
-              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-            </form>
+            <div class="action-buttons report-file-actions">
+              <a class="btn btn-sm btn-secondary" href="reporting/report_file.php?file=<?= rawurlencode($reportFile['name']) ?>" target="_blank">Read</a>
+              <form method="post" action="reporting/report_files.php" class="inline-form" onsubmit="return confirm('Delete this report file?');">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="file_name" value="<?= htmlspecialchars($reportFile['name']) ?>">
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+              </form>
+            </div>
           </td>
         </tr>
       <?php endforeach; endif; ?>

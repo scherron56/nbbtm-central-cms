@@ -123,8 +123,8 @@
 		<band height="97" splitType="Stretch">
 			<image scaleImage="FillFrame">
 				<reportElement x="0" y="0" width="570" height="97" uuid="d92e4250-cad0-42e2-bec4-144913b2fd3e"/>
-				<imageExpression><![CDATA[$V{PAGE_NUMBER} == 1
-? "/var/www/html/images/nbbtm header - with addr.png"
+				<imageExpression><![CDATA[$V{PAGE_NUMBER} == 1 
+? "/var/www/html/images/nbbtm header - with addr.png" 
 : "/var/www/html/images/nbbtm header - no addr.png"]]></imageExpression>
 			</image>
 		</band>

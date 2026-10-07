@@ -62,15 +62,15 @@ if (is_dir($reportDirectory)) {
   <p>Select a saved <code>.jrxml</code> template to compile it into a <code>.jasper</code> file in the reports directory.</p>
 
   <?php if ($message): ?>
-    <div class="card" style="color:#166534; margin-bottom:1rem;"><?= htmlspecialchars($message) ?></div>
+    <div class="card" role="status" style="color:#166534; margin-bottom:1rem;"><?= htmlspecialchars($message) ?></div>
   <?php endif; ?>
   <?php if ($error): ?>
-    <div class="card" style="color:#991b1b; margin-bottom:1rem; white-space:pre-wrap;"><?= htmlspecialchars($error) ?></div>
+    <div class="card" role="alert" style="color:#991b1b; margin-bottom:1rem; white-space:pre-wrap;"><?= htmlspecialchars($error) ?></div>
   <?php endif; ?>
 
   <section class="card compile-form">
     <?php if ($existingReports): ?>
-      <form method="post" action="reporting/compile_report.php">
+      <form id="compile-report-form" method="post" action="reporting/compile_report.php">
         <div style="margin-bottom:1rem;">
           <label for="report_name">JRXML Report Template</label>
           <select id="report_name" name="report_name" class="form-control" required autofocus>
@@ -81,10 +81,11 @@ if (is_dir($reportDirectory)) {
           </select>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:0.75rem;">
-          <button type="submit" class="btn-primary">Compile Report</button>
+          <button id="compile-report-button" type="submit" class="btn-primary">Compile Report</button>
           <a href="reporting/report_files.php" class="btn-accent" style="text-decoration:none;">View Saved Reports</a>
           <a href="reporting/manage_reports.php" class="btn-secondary" style="text-decoration:none;">Manage Reports</a>
         </div>
+        <p id="compile-report-status" role="status" aria-live="polite" hidden></p>
       </form>
     <?php else: ?>
       <p>No JRXML templates were found in the reports directory.</p>
@@ -93,5 +94,39 @@ if (is_dir($reportDirectory)) {
   </section>
 </main>
 <?php include_once __DIR__ . '/../include/footer.php'; ?>
+<script>
+  const compileForm = document.getElementById('compile-report-form');
+  if (compileForm) {
+    const reportSelect = document.getElementById('report_name');
+    const compileButton = document.getElementById('compile-report-button');
+    const compileStatus = document.getElementById('compile-report-status');
+
+    reportSelect.addEventListener('invalid', () => {
+      compileStatus.textContent = 'Select a JRXML report template before compiling.';
+      compileStatus.className = 'text-danger';
+      compileStatus.hidden = false;
+    });
+
+    reportSelect.addEventListener('change', () => {
+      compileStatus.hidden = true;
+    });
+
+    compileForm.addEventListener('submit', () => {
+      compileButton.disabled = true;
+      compileButton.textContent = 'Compiling...';
+      compileForm.setAttribute('aria-busy', 'true');
+      compileStatus.textContent = 'Compiling ' + reportSelect.value + '. Please wait for the result.';
+      compileStatus.className = '';
+      compileStatus.hidden = false;
+    });
+
+    window.addEventListener('pageshow', () => {
+      compileButton.disabled = false;
+      compileButton.textContent = 'Compile Report';
+      compileForm.removeAttribute('aria-busy');
+      compileStatus.hidden = true;
+    });
+  }
+</script>
 </body>
 </html>

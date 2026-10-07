@@ -285,6 +285,7 @@ switch ($action) {
         $reqReg = !empty($_POST['requires_registration']) ? 1 : 0;
         $reqFee = !empty($_POST['requires_fee']) ? 1 : 0;
         $regFee = $reqFee ? floatval($_POST['registration_fee'] ?? 0) : 0.00;
+        $isPublic = !empty($_POST['is_public']) ? 1 : 0;
 
         if (empty($eventName) || $minCommId <= 0 || empty($location)) {
             sendEventJson(['success' => false, 'error' => 'Please complete all required fields.'], 400);
@@ -298,19 +299,19 @@ switch ($action) {
                     UPDATE programs_events
                     SET prg_evnt_name = ?, min_comm_id = ?, contact_id = ?, contact_phone = ?, contact_email = ?,
                         location = ?, prg_evnt_purpose = ?, goal = ?, audience_target = ?, attend_estimate = ?,
-                        notes = ?, requires_registration = ?, requires_fee = ?, registration_fee = ?
+                        notes = ?, requires_registration = ?, requires_fee = ?, registration_fee = ?, is_public = ?
                     WHERE prg_evnt_id = ?
                 ");
-                $stmt->bind_param("siissssssiiiidi", $eventName, $minCommId, $contactId, $contactPhone, $contactEmail, $location, $purpose, $goal, $audience, $attendEst, $notes, $reqReg, $reqFee, $regFee, $prgevntId);
+                $stmt->bind_param("siissssssisiidii", $eventName, $minCommId, $contactId, $contactPhone, $contactEmail, $location, $purpose, $goal, $audience, $attendEst, $notes, $reqReg, $reqFee, $regFee, $isPublic, $prgevntId);
                 $stmt->execute();
                 $stmt->close();
             } else {
                 $stmt = $db->prepare("
                     INSERT INTO programs_events
-                    (prg_evnt_name, min_comm_id, contact_id, contact_phone, contact_email, location, prg_evnt_purpose, goal, audience_target, attend_estimate, notes, requires_registration, requires_fee, registration_fee)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (prg_evnt_name, min_comm_id, contact_id, contact_phone, contact_email, location, prg_evnt_purpose, goal, audience_target, attend_estimate, notes, requires_registration, requires_fee, registration_fee, is_public)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->bind_param("siissssssiiiid", $eventName, $minCommId, $contactId, $contactPhone, $contactEmail, $location, $purpose, $goal, $audience, $attendEst, $notes, $reqReg, $reqFee, $regFee);
+                $stmt->bind_param("siissssssisiidi", $eventName, $minCommId, $contactId, $contactPhone, $contactEmail, $location, $purpose, $goal, $audience, $attendEst, $notes, $reqReg, $reqFee, $regFee, $isPublic);
                 $stmt->execute();
                 $prgevntId = $stmt->insert_id;
                 $stmt->close();

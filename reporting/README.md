@@ -13,9 +13,11 @@ for both compilation and PDF export. The launcher opens `java.net` to unnamed
 modules because this upstream build still uses reflection to add resources.
 Report styles also continue to use the separate resources option.
 
-The launcher uses `$JAVA_HOME/bin/java` when `JAVA_HOME` is set, otherwise
-`java` from `PATH`. This installation is tested with Java 21 and keeps
-JasperReports 6.18.1 for compatibility with existing report templates.
+The launcher uses `$JAVA_HOME/bin/java` when `JAVA_HOME` is set, then
+`$JASPER_JAVA_HOME/bin/java`, otherwise `java` from `PATH`. Both Java home
+settings can be loaded from the root `.env` file or the process environment.
+This installation is tested with Java 21 and keeps JasperReports 6.18.1 for
+compatibility with existing report templates.
 Do not configure `-Djava.ext.dirs` in
 `JAVA_TOOL_OPTIONS`: Java 9 and later no longer support extension directories.
 
@@ -48,3 +50,12 @@ To check startup without accessing the database:
 ```sh
 reporting/bin/jasperstarter --version
 ```
+
+## Compiling from the application
+
+Admins and developers can open **Admin > Reports > Compile Reports**, select a
+saved JRXML template, and click **Compile Report**. The button shows
+**Compiling...** while the request runs and prevents duplicate submissions.
+The page then displays either the compilation confirmation or the compiler's
+error details. Compilation still works without JavaScript; progress feedback
+requires JavaScript. A template must be selected before submitting.

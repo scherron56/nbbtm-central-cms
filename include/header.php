@@ -31,6 +31,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
     <nav class="navbar">
       <ul class="nav-links">
         <li><a href="index.php" class="<?= in_array($currentPage, ['index.php', 'index1.php']) ? 'active' : '' ?>">Home</a></li>
+        <li><a href="calendar.php" class="<?= ($currentPage === 'calendar.php') ? 'active' : '' ?>">Calendar</a></li>
 
         <?php if ($isLoggedIn && isMember()): ?>
           <li><a href="member_documents.php" class="<?= ($currentPage === 'member_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>
@@ -75,7 +76,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
 
           <!-- Admin / Full Control Menu Dropdown -->
           <li class="dropdown">
-            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'generated_reports.php', 'manage_reports.php', 'report_files.php', 'compile_report_form.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
+            <a href="#" class="<?= in_array($currentPage, ['admin_mailer.php', 'ministry_mailer.php', 'user_management.php', 'admin_reports.php', 'generated_reports.php', 'manage_reports.php', 'report_files.php', 'compile_report_form.php', 'calendar_schedule.php']) ? 'active' : '' ?>" style="border-left: 2px solid #f59e0b;">
               Admin &#9662;
             </a>
             <ul class="submenu">
@@ -103,6 +104,7 @@ $mustChangePassword = !empty($_SESSION['must_change_password']);
                   <?php endif; ?>
                 </ul>
               </li>
+              <li><a href="calendar_schedule.php" class="<?= ($currentPage === 'calendar_schedule.php') ? 'active' : '' ?>">Calendar Schedule</a></li>
               <li><a href="self_register.php" class="<?= ($currentPage === 'self_register.php') ? 'active' : '' ?>">Self Registration</a></li>
               <li><a href="user_management.php" class="<?= ($currentPage === 'user_management.php') ? 'active' : '' ?>">👥 User Management</a></li>
               <li><a href="admin_documents.php" class="<?= ($currentPage === 'admin_documents.php') ? 'active' : '' ?>">NBBTM Documents</a></li>

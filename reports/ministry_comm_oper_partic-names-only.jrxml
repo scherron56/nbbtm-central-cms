@@ -5,10 +5,10 @@
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Mysql - Debian 2"/>
 	<template><![CDATA["cms_styles.jrtx"]]></template>
 	<parameter name="p_grp_type_ids" class="java.lang.String">
-		<parameterDescription><![CDATA[Association Type]]></parameterDescription>
+		<parameterDescription><![CDATA[Group Category(ies):]]></parameterDescription>
 	</parameter>
 	<parameter name="p_grp_ids" class="java.lang.String">
-		<parameterDescription><![CDATA[Association IDs]]></parameterDescription>
+		<parameterDescription><![CDATA[Group(s)]]></parameterDescription>
 	</parameter>
 	<queryString>
 		<![CDATA[call GenerateCommitteeReport($P{p_grp_type_ids}, $P{p_grp_ids})]]>
@@ -64,10 +64,10 @@
 			</band>
 		</groupHeader>
 	</group>
-	<group name="Association Name">
+	<group name="Association Name" isReprintHeaderOnEachPage="true" isReprintHeaderOnEachColumn="true">
 		<groupExpression><![CDATA[$F{min_comm_id}]]></groupExpression>
 		<groupHeader>
-			<band height="34">
+			<band height="26">
 				<textField>
 					<reportElement x="10" y="10" width="228" height="16" uuid="bf50cb7d-f2d9-4989-9348-c630cad1670c"/>
 					<textElement>

@@ -38,21 +38,54 @@ try {
     error_log("Mailer Contact Query Error: " . $e->getMessage());
 }
 
-// Verified Brevo sender identities
-$verifiedSenders = [
-    'revtdsublett@claricecraftedsolutions.org'   => 'Rev. Tracye Sublett',
-    'nbbtmadmin@claricecraftedsolutions.org' => 'NBBTM Admin',
-    'nbbtmtest@claricecraftedsolutions.org' => 'NBBTM Test Account',
-    'ccsadmin@claricecraftedsolutions.org' => 'CCS Admin',
-];
+$senderEmail = filter_var(
+    function_exists('nbbtmMailerEnv') ? nbbtmMailerEnv('FROM_EMAIL') : ($_ENV['FROM_EMAIL'] ?? ''),
+    FILTER_VALIDATE_EMAIL
+);
+$senderName = function_exists('nbbtmMailerEnv')
+    ? nbbtmMailerEnv('FROM_NAME', 'NBBTM System')
+    : ($_ENV['FROM_NAME'] ?? 'NBBTM System');
+$allowedSenders = [];
+$senderConfigError = '';
+$senderConfig = function_exists('nbbtmMailerEnv')
+    ? nbbtmMailerEnv('EMAIL_SENDERS')
+    : ($_ENV['EMAIL_SENDERS'] ?? '');
 
-$message = '';
-$statusClass = '';
+try {
+    if ($senderConfig !== '') {
+        $configuredSenders = json_decode($senderConfig, false, 512, JSON_THROW_ON_ERROR);
+        if (!$configuredSenders instanceof stdClass || count((array) $configuredSenders) === 0) {
+            throw new UnexpectedValueException('EMAIL_SENDERS must be a non-empty JSON object.');
+        }
+        foreach ($configuredSenders as $email => $name) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !is_string($name)
+                || trim($name) === '' || strpbrk($name, "\r\n") !== false) {
+                throw new UnexpectedValueException('EMAIL_SENDERS must map valid email addresses to non-empty, single-line display names.');
+            }
+            $allowedSenders[$email] = trim($name);
+        }
+        $senderEmail = isset($allowedSenders[$senderEmail]) ? $senderEmail : array_key_first($allowedSenders);
+        $senderName = $allowedSenders[$senderEmail];
+    } elseif ($senderEmail) {
+        $allowedSenders[$senderEmail] = $senderName;
+    } else {
+        throw new UnexpectedValueException('FROM_EMAIL is missing or invalid.');
+    }
+} catch (JsonException | UnexpectedValueException $e) {
+    error_log('Admin Mailer Sender Configuration Error: ' . $e->getMessage());
+    $allowedSenders = [];
+    $senderConfigError = 'Sender configuration is invalid. Check EMAIL_SENDERS and FROM_EMAIL in .env.';
+}
+
+$message = $senderConfigError;
+$statusClass = $senderConfigError !== '' ? 'text-danger' : '';
 
 // Handle email dispatch
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $senderEmail = filter_var($_POST['sender_email'] ?? '', FILTER_VALIDATE_EMAIL);
-    $senderName  = $verifiedSenders[$senderEmail] ?? 'NBBTM System';
+    $requestedSender = $_POST['sender_email'] ?? '';
+    $senderEmail = is_string($requestedSender) && isset($allowedSenders[$requestedSender])
+        ? $requestedSender : '';
+    $senderName = $allowedSenders[$senderEmail] ?? '';
     $subject     = trim($_POST['subject'] ?? '');
     $rawBody     = trim($_POST['body_template'] ?? '');
     $selectedContactIds = $_POST['selected_contacts'] ?? [];
@@ -99,7 +132,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    if ($senderEmail && !empty($recipientsToSend) && $subject && $rawBody) {
+    if ($senderConfigError !== '') {
+        $message = $senderConfigError;
+        $statusClass = 'text-danger';
+    } elseif (!$senderEmail) {
+        $message = 'Please select a configured sender identity.';
+        $statusClass = 'text-danger';
+    } elseif (!empty($recipientsToSend) && $subject && $rawBody) {
         $successCount = 0;
         $failCount = 0;
 
@@ -265,11 +304,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <!-- Sender Configuration -->
       <div class="form-grid-section-12">
         <div class="field-group" style="--colspan: 12;">
-          <label for="sender_email"><strong>Sender Identity</strong></label>
+          <label for="sender_email"><strong>Sender Identity (from .env)</strong></label>
           <select name="sender_email" id="sender_email" style="padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%; height: 38px;" required>
-            <?php foreach ($verifiedSenders as $email => $label): ?>
-              <option value="<?= htmlspecialchars($email) ?>">
-                <?= htmlspecialchars($label) ?> &lt;<?= htmlspecialchars($email) ?>&gt;
+            <?php if (!$senderEmail): ?>
+              <option value="">Select a sender</option>
+            <?php endif; ?>
+            <?php foreach ($allowedSenders as $email => $name): ?>
+              <option value="<?= htmlspecialchars($email) ?>" <?= $email === $senderEmail ? 'selected' : '' ?>>
+                <?= htmlspecialchars($name) ?> &lt;<?= htmlspecialchars($email) ?>&gt;
               </option>
             <?php endforeach; ?>
           </select>
@@ -346,7 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 
       <div style="margin-top: 1.5rem;">
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Send Email</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%;" <?= $senderConfigError !== '' ? 'disabled' : '' ?>>Send Email</button>
       </div>
     </form>
   </div>
