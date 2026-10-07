@@ -1,197 +1,189 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="three_month_calendar" pageWidth="792" pageHeight="612" orientation="Landscape" columnWidth="742" leftMargin="25" rightMargin="25" topMargin="25" bottomMargin="25" whenNoDataType="NoDataSection">
-    <style name="Base" isDefault="true" fontName="DejaVu Sans" fontSize="9"/>
-    <style name="Day" style="Base" isBold="true" fontSize="10"/>
-    <parameter name="p_start_month" class="java.lang.Integer"/>
-    <parameter name="p_start_year" class="java.lang.Integer"/>
-    <parameter name="p_month_count" class="java.lang.Integer">
-        <defaultValueExpression><![CDATA[Integer.valueOf(3)]]></defaultValueExpression>
-    </parameter>
-    <queryString language="SQL"><![CDATA[CALL getMonthCalendar($P{p_start_month}, $P{p_start_year}, $P{p_month_count})]]></queryString>
-    <field name="month_start" class="java.sql.Date"/>
-    <field name="month_label" class="java.lang.String"/>
-    <field name="week_index" class="java.lang.Integer"/>
-    <field name="sun_day" class="java.lang.String"/>
-    <field name="sun_entries" class="java.lang.String"/>
-    <field name="mon_day" class="java.lang.String"/>
-    <field name="mon_entries" class="java.lang.String"/>
-    <field name="tue_day" class="java.lang.String"/>
-    <field name="tue_entries" class="java.lang.String"/>
-    <field name="wed_day" class="java.lang.String"/>
-    <field name="wed_entries" class="java.lang.String"/>
-    <field name="thu_day" class="java.lang.String"/>
-    <field name="thu_entries" class="java.lang.String"/>
-    <field name="fri_day" class="java.lang.String"/>
-    <field name="fri_entries" class="java.lang.String"/>
-    <field name="sat_day" class="java.lang.String"/>
-    <field name="sat_entries" class="java.lang.String"/>
-    <group name="Month" isStartNewPage="true">
-        <groupExpression><![CDATA[$F{month_start}]]></groupExpression>
-        <groupHeader>
-            <band height="62" splitType="Prevent">
-                <textField>
-                    <reportElement x="0" y="0" width="742" height="28"/>
-                    <textElement textAlignment="Center"><font size="20" isBold="true"/></textElement>
-                    <textFieldExpression><![CDATA[$F{month_label}]]></textFieldExpression>
-                </textField>
-                <staticText>
-                    <reportElement x="0" y="28" width="742" height="14"/>
-                    <textElement textAlignment="Center"><font size="8"/></textElement>
-                    <text><![CDATA[New Beginnings Baptist Tabernacle Ministries]]></text>
-                </staticText>
-                <staticText>
-                    <reportElement mode="Opaque" x="0" y="42" width="106" height="20" backcolor="#E8EDF2"/>
-                    <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                    <text><![CDATA[Sunday]]></text>
-                </staticText>
-                <staticText>
-                    <reportElement mode="Opaque" x="106" y="42" width="106" height="20" backcolor="#E8EDF2"/>
-                    <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                    <text><![CDATA[Monday]]></text>
-                </staticText>
-                <staticText>
-                    <reportElement mode="Opaque" x="212" y="42" width="106" height="20" backcolor="#E8EDF2"/>
-                    <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                    <text><![CDATA[Tuesday]]></text>
-                </staticText>
-                <staticText>
-                    <reportElement mode="Opaque" x="318" y="42" width="106" height="20" backcolor="#E8EDF2"/>
-                    <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                    <text><![CDATA[Wednesday]]></text>
-                </staticText>
-                <staticText>
-                    <reportElement mode="Opaque" x="424" y="42" width="106" height="20" backcolor="#E8EDF2"/>
-                    <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                    <text><![CDATA[Thursday]]></text>
-                </staticText>
-                <staticText>
-                    <reportElement mode="Opaque" x="530" y="42" width="106" height="20" backcolor="#E8EDF2"/>
-                    <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                    <text><![CDATA[Friday]]></text>
-                </staticText>
-                <staticText>
-                    <reportElement mode="Opaque" x="636" y="42" width="106" height="20" backcolor="#E8EDF2"/>
-                    <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
-                    <text><![CDATA[Saturday]]></text>
-                </staticText>
-            </band>
-        </groupHeader>
-    </group>
-    <detail>
-        <band height="80" splitType="Prevent">
-            <frame>
-                <reportElement x="0" y="0" width="106" height="80"/>
-                <box><pen lineWidth="0.5"/></box>
-                <textField isBlankWhenNull="true">
-                    <reportElement style="Day" x="4" y="2" width="98" height="14"/>
-                    <textFieldExpression><![CDATA[$F{sun_day}]]></textFieldExpression>
-                </textField>
-                <textField textAdjust="ScaleFont" isBlankWhenNull="true">
-                    <reportElement x="4" y="17" width="98" height="60"/>
-                    <textFieldExpression><![CDATA[$F{sun_entries}]]></textFieldExpression>
-                </textField>
-            </frame>
-            <frame>
-                <reportElement x="106" y="0" width="106" height="80"/>
-                <box><pen lineWidth="0.5"/></box>
-                <textField isBlankWhenNull="true">
-                    <reportElement style="Day" x="4" y="2" width="98" height="14"/>
-                    <textFieldExpression><![CDATA[$F{mon_day}]]></textFieldExpression>
-                </textField>
-                <textField textAdjust="ScaleFont" isBlankWhenNull="true">
-                    <reportElement x="4" y="17" width="98" height="60"/>
-                    <textFieldExpression><![CDATA[$F{mon_entries}]]></textFieldExpression>
-                </textField>
-            </frame>
-            <frame>
-                <reportElement x="212" y="0" width="106" height="80"/>
-                <box><pen lineWidth="0.5"/></box>
-                <textField isBlankWhenNull="true">
-                    <reportElement style="Day" x="4" y="2" width="98" height="14"/>
-                    <textFieldExpression><![CDATA[$F{tue_day}]]></textFieldExpression>
-                </textField>
-                <textField textAdjust="ScaleFont" isBlankWhenNull="true">
-                    <reportElement x="4" y="17" width="98" height="60"/>
-                    <textFieldExpression><![CDATA[$F{tue_entries}]]></textFieldExpression>
-                </textField>
-            </frame>
-            <frame>
-                <reportElement x="318" y="0" width="106" height="80"/>
-                <box><pen lineWidth="0.5"/></box>
-                <textField isBlankWhenNull="true">
-                    <reportElement style="Day" x="4" y="2" width="98" height="14"/>
-                    <textFieldExpression><![CDATA[$F{wed_day}]]></textFieldExpression>
-                </textField>
-                <textField textAdjust="ScaleFont" isBlankWhenNull="true">
-                    <reportElement x="4" y="17" width="98" height="60"/>
-                    <textFieldExpression><![CDATA[$F{wed_entries}]]></textFieldExpression>
-                </textField>
-            </frame>
-            <frame>
-                <reportElement x="424" y="0" width="106" height="80"/>
-                <box><pen lineWidth="0.5"/></box>
-                <textField isBlankWhenNull="true">
-                    <reportElement style="Day" x="4" y="2" width="98" height="14"/>
-                    <textFieldExpression><![CDATA[$F{thu_day}]]></textFieldExpression>
-                </textField>
-                <textField textAdjust="ScaleFont" isBlankWhenNull="true">
-                    <reportElement x="4" y="17" width="98" height="60"/>
-                    <textFieldExpression><![CDATA[$F{thu_entries}]]></textFieldExpression>
-                </textField>
-            </frame>
-            <frame>
-                <reportElement x="530" y="0" width="106" height="80"/>
-                <box><pen lineWidth="0.5"/></box>
-                <textField isBlankWhenNull="true">
-                    <reportElement style="Day" x="4" y="2" width="98" height="14"/>
-                    <textFieldExpression><![CDATA[$F{fri_day}]]></textFieldExpression>
-                </textField>
-                <textField textAdjust="ScaleFont" isBlankWhenNull="true">
-                    <reportElement x="4" y="17" width="98" height="60"/>
-                    <textFieldExpression><![CDATA[$F{fri_entries}]]></textFieldExpression>
-                </textField>
-            </frame>
-            <frame>
-                <reportElement x="636" y="0" width="106" height="80"/>
-                <box><pen lineWidth="0.5"/></box>
-                <textField isBlankWhenNull="true">
-                    <reportElement style="Day" x="4" y="2" width="98" height="14"/>
-                    <textFieldExpression><![CDATA[$F{sat_day}]]></textFieldExpression>
-                </textField>
-                <textField textAdjust="ScaleFont" isBlankWhenNull="true">
-                    <reportElement x="4" y="17" width="98" height="60"/>
-                    <textFieldExpression><![CDATA[$F{sat_entries}]]></textFieldExpression>
-                </textField>
-            </frame>
-        </band>
-    </detail>
-    <pageFooter>
-        <band height="20">
-            <staticText>
-                <reportElement x="0" y="5" width="690" height="13"/>
-                <textElement><font size="7"/></textElement>
-                <text><![CDATA[Service / Program / Birthday / Anniversary • Crowded days use smaller text. Regenerate after schedule changes.]]></text>
-            </staticText>
-            <textField>
-                <reportElement x="690" y="5" width="52" height="13"/>
-                <textElement textAlignment="Right"><font size="7"/></textElement>
-                <textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
-            </textField>
-        </band>
-    </pageFooter>
-    <noData>
-        <band height="30">
-            <staticText>
-                <reportElement x="0" y="0" width="742" height="30"/>
-                <text><![CDATA[No calendar data. Install the calendar tables and stored procedures, then select a starting month and year.]]></text>
-            </staticText>
-        </band>
-    </noData>
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 7.0.8-6f896111  -->
+<jasperReport name="three_month_calendar" language="java" columnCount="1" pageWidth="792" pageHeight="612" whenNoDataType="NoDataSection" columnWidth="742" leftMargin="25" rightMargin="25" topMargin="20" bottomMargin="20" uuid="6f80256f-d801-4f41-a85f-4619e3747563">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="MYSQL - nbbtm_central"/>
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<style name="Base" forecolor="#0B0580" fontName="Liberation Serif" fontSize="9.0"/>
+	<style name="Day" style="Base" fontName="Liberation Serif" fontSize="11.0" bold="true"/>
+	<style name="DayName" style="Day"/>
+	<style name="Title" style="Base" fontName="Liberation Serif" fontSize="20.0"/>
+	<parameter name="p_start_month" class="java.lang.Integer"/>
+	<parameter name="p_start_year" class="java.lang.Integer"/>
+	<parameter name="p_month_count" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[Integer.valueOf(3)]]></defaultValueExpression>
+	</parameter>
+	<query language="SQL"><![CDATA[CALL getMonthCalendar($P{p_start_month}, $P{p_start_year}, $P{p_month_count})]]></query>
+	<field name="month_start" class="java.sql.Date"/>
+	<field name="month_label" class="java.lang.String"/>
+	<field name="week_index" class="java.lang.Integer"/>
+	<field name="sun_day" class="java.lang.String"/>
+	<field name="sun_entries" class="java.lang.String"/>
+	<field name="mon_day" class="java.lang.String"/>
+	<field name="mon_entries" class="java.lang.String"/>
+	<field name="tue_day" class="java.lang.String"/>
+	<field name="tue_entries" class="java.lang.String"/>
+	<field name="wed_day" class="java.lang.String"/>
+	<field name="wed_entries" class="java.lang.String"/>
+	<field name="thu_day" class="java.lang.String"/>
+	<field name="thu_entries" class="java.lang.String"/>
+	<field name="fri_day" class="java.lang.String"/>
+	<field name="fri_entries" class="java.lang.String"/>
+	<field name="sat_day" class="java.lang.String"/>
+	<field name="sat_entries" class="java.lang.String"/>
+	<group name="Month" startNewPage="true">
+		<expression><![CDATA[$F{month_start}]]></expression>
+		<groupHeader>
+			<band height="68" splitType="Prevent">
+				<element kind="textField" uuid="1db44bc3-0b02-4de2-ba32-d152f2dee389" x="1" y="0" width="742" height="28" forecolor="#0C0E85" fontName="Liberation Serif" fontSize="20.0" bold="true" hTextAlign="Center">
+					<expression><![CDATA[$F{month_label}]]></expression>
+				</element>
+				<element kind="staticText" uuid="30948691-9252-4f52-8efe-06d6e6d1b299" x="0" y="31" width="742" height="14" forecolor="#0A0C80" fontName="Liberation Serif" fontSize="8.0" bold="true" italic="true" hTextAlign="Left" vTextAlign="Bottom" style="Base">
+					<text><![CDATA[New Beginnings Baptist Tabernacle Ministries]]></text>
+				</element>
+				<element kind="staticText" uuid="571651e7-c712-4b2b-af9a-0e472447aa18" x="0" y="49" width="106" height="18" backcolor="#E8EDF2" mode="Opaque" fontName="Liberation Serif" fontSize="12.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="DayName">
+					<box style="DayName">
+						<pen lineWidth="0.5"/>
+					</box>
+					<text><![CDATA[Sunday]]></text>
+				</element>
+				<element kind="staticText" uuid="d5bb5a7e-0a83-469c-8174-53c2e14aabf1" x="106" y="49" width="106" height="18" backcolor="#E8EDF2" mode="Opaque" bold="true" hTextAlign="Center" vTextAlign="Middle" style="DayName">
+					<box style="DayName">
+						<pen lineWidth="0.5"/>
+					</box>
+					<text><![CDATA[Monday]]></text>
+				</element>
+				<element kind="staticText" uuid="595114db-e30e-4d02-8759-6fa732d01571" x="212" y="49" width="106" height="18" backcolor="#E8EDF2" mode="Opaque" bold="true" hTextAlign="Center" vTextAlign="Middle" style="DayName">
+					<box style="DayName">
+						<pen lineWidth="0.5"/>
+					</box>
+					<text><![CDATA[Tuesday]]></text>
+				</element>
+				<element kind="staticText" uuid="69d89fb4-bd3c-41d6-839a-a0f929a8304b" x="318" y="49" width="106" height="18" backcolor="#E8EDF2" mode="Opaque" bold="true" hTextAlign="Center" vTextAlign="Middle" style="DayName">
+					<box style="DayName">
+						<pen lineWidth="0.5"/>
+					</box>
+					<text><![CDATA[Wednesday]]></text>
+				</element>
+				<element kind="staticText" uuid="fb0135cb-d1cc-422a-83f9-22edb36987b4" x="424" y="49" width="106" height="18" backcolor="#E8EDF2" mode="Opaque" bold="true" hTextAlign="Center" vTextAlign="Middle" style="DayName">
+					<box style="DayName">
+						<pen lineWidth="0.5"/>
+					</box>
+					<text><![CDATA[Thursday]]></text>
+				</element>
+				<element kind="staticText" uuid="d090f86a-2776-4824-b51f-86fa785cac94" x="530" y="49" width="106" height="18" backcolor="#E8EDF2" mode="Opaque" bold="true" hTextAlign="Center" vTextAlign="Middle" style="DayName">
+					<box style="DayName">
+						<pen lineWidth="0.5"/>
+					</box>
+					<text><![CDATA[Friday]]></text>
+				</element>
+				<element kind="staticText" uuid="a4eb2dcb-a733-4550-8072-6a204621fef6" x="636" y="49" width="106" height="18" backcolor="#E8EDF2" mode="Opaque" bold="true" hTextAlign="Center" vTextAlign="Middle" style="DayName">
+					<box style="DayName">
+						<pen lineWidth="0.5"/>
+					</box>
+					<text><![CDATA[Saturday]]></text>
+				</element>
+				<element kind="image" uuid="08a96fb7-154b-4b22-bed3-9257ae93ae83" x="0" y="0" width="270" height="36" stretchType="NoStretch" scaleImage="FillFrame" rotation="None">
+					<expression><![CDATA["/var/www/html/images/nbbtm header - no addr.png"]]></expression>
+				</element>
+			</band>
+		</groupHeader>
+	</group>
+	<detail>
+		<band height="80" splitType="Prevent">
+			<element kind="frame" uuid="99225e42-1561-45e2-9a37-01bea28d3d3d" x="0" y="0" width="106" height="80">
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<element kind="textField" uuid="89f56000-5a47-4028-8ff6-cb2f6e6302e2" x="4" y="2" width="98" height="14" blankWhenNull="true" style="Day">
+					<expression><![CDATA[$F{sun_day}]]></expression>
+				</element>
+				<element kind="textField" uuid="365941be-10be-4754-a0f8-2373bf8bef64" x="4" y="17" width="98" height="60" markup="styled" fontName="Liberation Serif" fontSize="9.0" textAdjust="ScaleFont" blankWhenNull="true">
+					<expression><![CDATA[$F{sun_entries}]]></expression>
+				</element>
+			</element>
+			<element kind="frame" uuid="5d27d42d-70c5-4f63-a93b-0a2d4485a656" x="106" y="0" width="106" height="80">
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<element kind="textField" uuid="e6c68b24-49f6-4ca7-bcde-a0901b2db841" x="4" y="2" width="98" height="14" blankWhenNull="true" style="Day">
+					<expression><![CDATA[$F{mon_day}]]></expression>
+				</element>
+				<element kind="textField" uuid="34a82081-5376-4ac5-9999-225bcc1f1f56" x="4" y="17" width="98" height="60" markup="styled" fontName="Liberation Serif" fontSize="9.0" textAdjust="ScaleFont" blankWhenNull="true">
+					<expression><![CDATA[$F{mon_entries}]]></expression>
+				</element>
+			</element>
+			<element kind="frame" uuid="58576e2f-2853-417c-8776-ac6e5513e114" x="212" y="0" width="106" height="80">
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<element kind="textField" uuid="fb4d4b2b-1765-4dcf-8ab4-adfd60402779" x="4" y="2" width="98" height="14" blankWhenNull="true" style="Day">
+					<expression><![CDATA[$F{tue_day}]]></expression>
+				</element>
+				<element kind="textField" uuid="bfe0c06f-896b-4daa-bc0b-b5a712e62f2c" x="4" y="17" width="98" height="60" markup="styled" fontName="Liberation Serif" fontSize="9.0" textAdjust="ScaleFont" blankWhenNull="true">
+					<expression><![CDATA[$F{tue_entries}]]></expression>
+				</element>
+			</element>
+			<element kind="frame" uuid="82df8344-a849-4b30-a296-dd61d50f5440" x="318" y="0" width="106" height="80">
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<element kind="textField" uuid="659dff77-9a51-4bab-9179-c917cff84f4d" x="4" y="2" width="98" height="14" blankWhenNull="true" style="Day">
+					<expression><![CDATA[$F{wed_day}]]></expression>
+				</element>
+				<element kind="textField" uuid="b79f3a63-3d3d-427b-8955-027514b4def2" x="4" y="17" width="98" height="60" markup="styled" fontName="Liberation Serif" fontSize="9.0" textAdjust="ScaleFont" blankWhenNull="true">
+					<expression><![CDATA[$F{wed_entries}]]></expression>
+				</element>
+			</element>
+			<element kind="frame" uuid="9d61ba1c-75cc-4bca-ad0c-f04b1ed55655" x="424" y="0" width="106" height="80">
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<element kind="textField" uuid="6e89dc26-b1e9-4e34-8ab0-611af2bac21c" x="4" y="2" width="98" height="14" blankWhenNull="true" style="Day">
+					<expression><![CDATA[$F{thu_day}]]></expression>
+				</element>
+				<element kind="textField" uuid="fe04b054-2f71-4812-8c09-eb93135c676a" x="4" y="17" width="98" height="60" markup="styled" fontName="Liberation Serif" fontSize="9.0" textAdjust="ScaleFont" blankWhenNull="true">
+					<expression><![CDATA[$F{thu_entries}]]></expression>
+				</element>
+			</element>
+			<element kind="frame" uuid="d4e2f5a3-efb3-4291-b42c-4812f5009f74" x="530" y="0" width="106" height="80">
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<element kind="textField" uuid="0460a020-2a20-4d98-a7df-045d3b122740" x="4" y="2" width="98" height="14" blankWhenNull="true" style="Day">
+					<expression><![CDATA[$F{fri_day}]]></expression>
+				</element>
+				<element kind="textField" uuid="c33a0ad4-1f62-4179-98ed-fe54b6a3770e" x="4" y="17" width="98" height="60" markup="styled" fontName="Liberation Serif" fontSize="9.0" textAdjust="ScaleFont" blankWhenNull="true">
+					<expression><![CDATA[$F{fri_entries}]]></expression>
+				</element>
+			</element>
+			<element kind="frame" uuid="fd79a829-44c6-4788-ba3a-c04305b1802e" x="636" y="0" width="106" height="80">
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<element kind="textField" uuid="8c865368-0ce0-4cde-bc41-8ad2933aeae7" x="4" y="2" width="98" height="14" blankWhenNull="true" style="Day">
+					<expression><![CDATA[$F{sat_day}]]></expression>
+				</element>
+				<element kind="textField" uuid="3ba60e05-04ac-49af-9035-0ff48f44c720" x="4" y="17" width="98" height="60" markup="styled" fontName="Liberation Serif" fontSize="9.0" textAdjust="ScaleFont" blankWhenNull="true">
+					<expression><![CDATA[$F{sat_entries}]]></expression>
+				</element>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="18">
+		<element kind="staticText" uuid="7900faa9-dc00-44b9-b80d-b8f3bfae261c" x="0" y="5" width="690" height="13" markup="styled" fontSize="7.0">
+			<text><![CDATA[<style forecolor="#2E7D32">Program/Event</style> / <style forecolor="#6A1B9A">Service</style> / <style forecolor="#EF6C00">Reminder</style> / <style forecolor="#C2185B">Birthday</style> / <style forecolor="#00838F">Anniversary</style> • Crowded days use smaller text. Regenerate after schedule changes.]]></text>
+		</element>
+		<element kind="textField" uuid="3f656095-aa6a-4e23-83fc-1f22eae6b612" x="690" y="5" width="52" height="13" fontSize="7.0" hTextAlign="Right">
+			<expression><![CDATA["Page " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+	<noData height="21"/>
 </jasperReport>
