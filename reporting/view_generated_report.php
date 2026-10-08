@@ -18,7 +18,8 @@ if ($extension !== 'pdf' || !$outputDirectory || !is_file($filePath)) {
 }
 
 header('Content-Type: application/pdf');
-header('Content-Disposition: inline; filename="' . addcslashes($fileName, "\"\\") . '"');
+$fallbackName = preg_replace('/[^\x20-\x7E]|["\\\\]/', '_', $fileName);
+header('Content-Disposition: inline; filename="' . $fallbackName . '"; filename*=UTF-8\'\'' . rawurlencode($fileName));
 header('Content-Length: ' . filesize($filePath));
 header('Accept-Ranges: bytes');
 readfile($filePath);

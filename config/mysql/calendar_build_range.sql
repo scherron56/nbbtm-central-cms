@@ -51,6 +51,7 @@ BEGIN
     FROM prg_evnt_schedules s
     JOIN programs_events p ON p.prg_evnt_id = s.prg_evnt_id
     WHERE (p_include_private = 1 OR p.is_public = 1)
+      AND s.calendar_weekdays IS NULL
       AND s.start_datetime >= '1000-01-01 00:00:00' AND s.start_datetime < v_end
       AND (s.end_datetime IS NULL OR s.end_datetime >= s.start_datetime)
       AND (s.start_datetime >= v_start OR s.end_datetime > v_start);
@@ -70,6 +71,25 @@ BEGIN
 
     SET v_date = DATE_SUB(v_start, INTERVAL 1 DAY);
     WHILE v_date < v_end DO
+        INSERT INTO tmp_calendar_raw (title, start_datetime, end_datetime, entry_type)
+        SELECT COALESCE(NULLIF(CONCAT_WS(' - ', NULLIF(TRIM(p.prg_evnt_name), ''), NULLIF(TRIM(s.activity_scheduled), '')), ''), 'Program'),
+               TIMESTAMP(v_date, TIME(s.start_datetime)),
+               CASE WHEN s.end_datetime IS NULL THEN NULL
+                    WHEN TIME(s.end_datetime) < TIME(s.start_datetime)
+                        THEN TIMESTAMP(DATE_ADD(v_date, INTERVAL 1 DAY), TIME(s.end_datetime))
+                    ELSE TIMESTAMP(v_date, TIME(s.end_datetime)) END,
+               'Program'
+        FROM prg_evnt_schedules s
+        JOIN programs_events p ON p.prg_evnt_id = s.prg_evnt_id
+        LEFT JOIN calendar_program_exceptions e
+          ON e.schedule_id = s.schedule_id AND e.occurrence_date = v_date
+        WHERE (p_include_private = 1 OR p.is_public = 1)
+          AND s.calendar_weekdays IS NOT NULL
+          AND (s.calendar_weekdays & (1 << (DAYOFWEEK(v_date) - 1))) <> 0
+          AND v_date BETWEEN DATE(s.start_datetime) AND DATE(COALESCE(s.end_datetime, s.start_datetime))
+          AND (s.end_datetime IS NULL OR s.end_datetime >= s.start_datetime)
+          AND e.id IS NULL;
+
         INSERT INTO tmp_calendar_candidates (title, start_datetime, end_datetime, entry_type, is_anchor)
         SELECT s.name, TIMESTAMP(v_date, s.start_time),
                CASE WHEN s.end_time IS NULL THEN NULL
@@ -98,6 +118,20 @@ BEGIN
           AND v_date BETWEEN d.start_date AND COALESCE(d.end_date, d.start_date);
         SET v_date = DATE_ADD(v_date, INTERVAL 1 DAY);
     END WHILE;
+
+    INSERT INTO tmp_calendar_raw (title, start_datetime, end_datetime, entry_type)
+    SELECT COALESCE(NULLIF(CONCAT_WS(' - ', NULLIF(TRIM(p.prg_evnt_name), ''), NULLIF(TRIM(s.activity_scheduled), '')), ''), 'Program'),
+           e.replacement_start, e.replacement_end, 'Program'
+    FROM calendar_program_exceptions e
+    JOIN prg_evnt_schedules s ON s.schedule_id = e.schedule_id
+    JOIN programs_events p ON p.prg_evnt_id = s.prg_evnt_id
+    WHERE e.is_cancelled = 0 AND (p_include_private = 1 OR p.is_public = 1)
+      AND s.calendar_weekdays IS NOT NULL
+      AND (s.calendar_weekdays & (1 << (DAYOFWEEK(e.occurrence_date) - 1))) <> 0
+      AND e.occurrence_date BETWEEN DATE(s.start_datetime) AND DATE(COALESCE(s.end_datetime, s.start_datetime))
+      AND (s.end_datetime IS NULL OR s.end_datetime >= s.start_datetime)
+      AND e.replacement_start < v_end
+      AND (e.replacement_start >= v_start OR e.replacement_end > v_start);
 
     INSERT INTO tmp_calendar_candidates (title, start_datetime, end_datetime, entry_type, is_anchor)
     SELECT s.name, e.replacement_start, e.replacement_end, 'Service', s.recurrence = 'weekly'
@@ -205,6 +239,8 @@ BEGIN
         DECLARE v_entry_start DATETIME;
         DECLARE v_entry_end DATETIME;
         DECLARE v_line LONGTEXT;
+        DECLARE v_safe_title LONGTEXT;
+        DECLARE v_color VARCHAR(7);
         DECLARE entry_cursor CURSOR FOR
             SELECT calendar_date, title, entry_type, start_datetime, end_datetime
             FROM tmp_calendar_entries
@@ -214,7 +250,16 @@ BEGIN
         entry_loop: LOOP
             FETCH entry_cursor INTO v_entry_date, v_title, v_type, v_entry_start, v_entry_end;
             IF v_done THEN LEAVE entry_loop; END IF;
-            SET v_line = CONCAT(v_type, ': ', v_title,
+            -- Preserve the styled-text output used by the deployed calendar reports.
+            SET v_safe_title = REPLACE(REPLACE(REPLACE(v_title, '&', '&amp;'), '<', '&lt;'), '>', '&gt;');
+            SET v_color = CASE v_type
+                WHEN 'Program' THEN '#2E7D32'
+                WHEN 'Service' THEN '#6A1B9A'
+                WHEN 'Reminder' THEN '#EF6C00'
+                WHEN 'Birthday' THEN '#C2185B'
+                WHEN 'Anniversary' THEN '#00838F'
+                ELSE '#000000' END;
+            SET v_line = CONCAT('<style forecolor="', v_color, '">', v_safe_title,
                 CASE WHEN v_entry_start IS NULL THEN ''
                      ELSE CONCAT(' (', DATE_FORMAT(v_entry_start, '%H:%i'),
                          CASE WHEN v_entry_end IS NULL OR v_entry_end = v_entry_start THEN ''
@@ -223,7 +268,7 @@ BEGIN
                                        THEN CONCAT(' ', DATE_FORMAT(v_entry_end, '%b %e')) ELSE '' END) END,
                          CASE WHEN DATE(v_entry_start) <> v_entry_date
                               THEN CONCAT('; from ', DATE_FORMAT(v_entry_start, '%b %e')) ELSE '' END,
-                         ')') END);
+                         ')') END, '</style>');
             UPDATE tmp_calendar_days
             SET entries = CONCAT(entries, CASE WHEN entries = '' THEN '' ELSE CHAR(10) END, v_line)
             WHERE calendar_date = v_entry_date;

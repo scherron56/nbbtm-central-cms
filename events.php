@@ -179,6 +179,7 @@ $canEdit = canEdit();
         $('#btnAddDate').on('click', function() {
             $('#dateTimeContainer').append(`
                 <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                    <input type="hidden" name="schedule_ids[]" value="">
                     <div class="field-group" style="margin-bottom: 6px;">
                         <label>Activity Description:</label>
                         <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
@@ -567,6 +568,7 @@ $canEdit = canEdit();
                                 
                                 $('#dateTimeContainer').append(`
                                     <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                                        <input type="hidden" name="schedule_ids[]" value="${Number(sch.schedule_id)}">
                                         <div class="field-group" style="margin-bottom: 6px;">
                                             <label>Activity Description:</label>
                                             <input type="text" name="activity_scheduled[]" value="${actVal}" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
@@ -903,6 +905,7 @@ $canEdit = canEdit();
             
             $('#dateTimeContainer').html(`
             <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                <input type="hidden" name="schedule_ids[]" value="">
                 <div class="field-group" style="margin-bottom: 6px;">
                     <label>Activity Description:</label>
                     <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
@@ -1046,6 +1049,7 @@ $canEdit = canEdit();
                         
                         <div id="dateTimeContainer">
                             <div class="date-time-row" style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                                <input type="hidden" name="schedule_ids[]" value="">
                                 <div class="field-group" style="margin-bottom: 6px;">
                                     <label>Activity Description:</label>
                                     <input type="text" name="activity_scheduled[]" placeholder="e.g. Keynote Address, Registration Setup" class="form-control">
@@ -1062,6 +1066,11 @@ $canEdit = canEdit();
                                     <div class="btn-remove-wrapper" style="display: flex; align-items: flex-end;">
                                         <button type="button" class="btn btn-danger btnRemoveDate" disabled>&times;</button>
                                     </div>
+                                    <?php if (isAdmin()): ?>
+                                        <p>After saving, choose weekday-only calendar display and date exceptions in
+                                            <a href="calendar_schedule.php#programCalendar">Calendar Schedule</a>.
+                                            Removing an activity also removes its calendar exceptions.</p>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

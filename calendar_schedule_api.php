@@ -3,6 +3,7 @@
 ob_start();
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/include/auth.php';
+require_once __DIR__ . '/include/program_calendar.php';
 
 requireAdmin();
 
@@ -107,13 +108,133 @@ function parseFlag(string $key): int
 }
 
 $action = $_REQUEST['action'] ?? '';
-$writeActions = ['save_service', 'delete_service', 'save_exception', 'delete_exception', 'save_reminder', 'delete_reminder'];
+$writeActions = ['save_service', 'delete_service', 'save_exception', 'delete_exception', 'save_reminder', 'delete_reminder',
+    'save_program_schedule', 'save_program_exception', 'delete_program_exception'];
 if (in_array($action, $writeActions, true) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     fail('This action requires a POST request.', 405);
 }
 
+$programTransaction = false;
 try {
     switch ($action) {
+        case 'list_program_schedules':
+            $rows = $db->query(
+                'SELECT s.*, p.prg_evnt_name,
+                        (SELECT COUNT(*) FROM calendar_program_exceptions e WHERE e.schedule_id = s.schedule_id) AS exception_count
+                 FROM prg_evnt_schedules s JOIN programs_events p ON p.prg_evnt_id = s.prg_evnt_id
+                 ORDER BY p.prg_evnt_name, s.start_datetime, s.schedule_id'
+            )->fetch_all(MYSQLI_ASSOC);
+            respond(200, ['status' => 'success', 'data' => $rows]);
+
+        case 'save_program_schedule':
+        case 'save_program_exception':
+            $scheduleId = (int)($_POST['schedule_id'] ?? 0);
+            $db->begin_transaction();
+            $programTransaction = true;
+            $stmt = $db->prepare('SELECT * FROM prg_evnt_schedules WHERE schedule_id = ? FOR UPDATE');
+            $stmt->bind_param('i', $scheduleId);
+            $stmt->execute();
+            $schedule = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if (!$schedule) {
+                $db->rollback();
+                fail('Select a valid program activity.', 404);
+            }
+            if ($action === 'save_program_schedule') {
+                $mode = $_POST['calendar_mode'] ?? '';
+                if (!in_array($mode, ['continuous', 'weekdays'], true)) {
+                    fail('Select a valid calendar display mode.');
+                }
+                $mask = null;
+                if ($mode === 'weekdays') {
+                    $days = $_POST['weekdays'] ?? [];
+                    if (!is_array($days) || !$days) {
+                        fail('Select at least one weekday.');
+                    }
+                    $mask = 0;
+                    foreach ($days as $day) {
+                        if (!is_string($day) || !preg_match('/^[0-6]$/', $day)) {
+                            fail('Select valid weekdays.');
+                        }
+                        $mask |= 1 << (int)$day;
+                    }
+                }
+                $schedule['calendar_weekdays'] = $mask;
+                validateProgramCalendarSchedule($db, $schedule);
+                $stmt = $db->prepare('UPDATE prg_evnt_schedules SET calendar_weekdays = ? WHERE schedule_id = ?');
+                $stmt->bind_param('ii', $mask, $scheduleId);
+                $stmt->execute();
+                $stmt->close();
+                $db->commit();
+                $programTransaction = false;
+                respond(200, ['status' => 'success', 'message' => 'Program calendar days saved.']);
+            }
+            $id = (int)($_POST['id'] ?? 0);
+            $date = parseDateValue($_POST['occurrence_date'] ?? '', 'Occurrence date');
+            if (!programCalendarOccursOn($schedule, $date)) {
+                fail('Choose a selected weekday within the activity date range. Set the activity to selected weekdays first.');
+            }
+            $type = $_POST['exception_type'] ?? '';
+            if (!in_array($type, ['cancel', 'reschedule'], true)) {
+                fail('Select a valid exception type.');
+            }
+            $cancelled = $type === 'cancel' ? 1 : 0;
+            $start = $cancelled ? null : parseDateTimeValue($_POST['replacement_start'] ?? '', 'Replacement start');
+            $end = $cancelled ? null : parseDateTimeValue($_POST['replacement_end'] ?? '', 'Replacement end', false);
+            if ($end !== null && $end < $start) {
+                fail('Replacement end cannot be before replacement start.');
+            }
+            $stmt = $db->prepare('SELECT id FROM calendar_program_exceptions WHERE schedule_id = ? AND occurrence_date = ? AND id <> ?');
+            $stmt->bind_param('isi', $scheduleId, $date, $id);
+            $stmt->execute();
+            $duplicate = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($duplicate) {
+                fail('An exception already exists for this activity on that date.', 409);
+            }
+            if ($id > 0) {
+                $stmt = $db->prepare('SELECT id FROM calendar_program_exceptions WHERE id = ?');
+                $stmt->bind_param('i', $id);
+                $stmt->execute();
+                $exists = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if (!$exists) {
+                    fail('Program exception not found.', 404);
+                }
+                $stmt = $db->prepare('UPDATE calendar_program_exceptions SET schedule_id = ?, occurrence_date = ?, is_cancelled = ?, replacement_start = ?, replacement_end = ? WHERE id = ?');
+                $stmt->bind_param('isissi', $scheduleId, $date, $cancelled, $start, $end, $id);
+            } else {
+                $stmt = $db->prepare('INSERT INTO calendar_program_exceptions (schedule_id, occurrence_date, is_cancelled, replacement_start, replacement_end) VALUES (?, ?, ?, ?, ?)');
+                $stmt->bind_param('isiss', $scheduleId, $date, $cancelled, $start, $end);
+            }
+            $stmt->execute();
+            $stmt->close();
+            $db->commit();
+            $programTransaction = false;
+            respond(200, ['status' => 'success', 'message' => 'Program exception saved.']);
+
+        case 'list_program_exceptions':
+            $rows = $db->query(
+                'SELECT e.*, p.prg_evnt_name, s.activity_scheduled
+                 FROM calendar_program_exceptions e
+                 JOIN prg_evnt_schedules s ON s.schedule_id = e.schedule_id
+                 JOIN programs_events p ON p.prg_evnt_id = s.prg_evnt_id
+                 ORDER BY e.occurrence_date DESC, p.prg_evnt_name'
+            )->fetch_all(MYSQLI_ASSOC);
+            respond(200, ['status' => 'success', 'data' => $rows]);
+
+        case 'delete_program_exception':
+            $id = (int)($_POST['id'] ?? 0);
+            $stmt = $db->prepare('DELETE FROM calendar_program_exceptions WHERE id = ?');
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $deleted = $stmt->affected_rows;
+            $stmt->close();
+            if (!$deleted) {
+                fail('Program exception not found.', 404);
+            }
+            respond(200, ['status' => 'success', 'message' => 'Program exception deleted.']);
+
         case 'list_services':
             $result = $db->query(
                 "SELECT s.id, s.name, s.recurrence, s.weekday, s.week_of_month, s.day_of_month, s.start_time, s.end_time,
@@ -371,7 +492,15 @@ try {
         default:
             fail('Invalid action.');
     }
+} catch (InvalidArgumentException $e) {
+    if ($programTransaction) {
+        $db->rollback();
+    }
+    fail($e->getMessage());
 } catch (mysqli_sql_exception $e) {
+    if ($programTransaction) {
+        $db->rollback();
+    }
     error_log('calendar_schedule_api: ' . $e->getMessage());
     fail('Database error: the change could not be saved.', 500);
 }

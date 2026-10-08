@@ -1,5 +1,83 @@
 # JasperStarter runtime
 
+## Naming generated PDFs
+
+The Run System Report form has an optional **PDF Name** field. A name such as
+`October-December Calendar` saves and downloads as `October-December Calendar.pdf`
+and appears in the generated-report list. It does not change the report's printed
+heading. A trailing `.pdf` is accepted and not duplicated. Names support spaces
+and Unicode, up to 100 characters and 200 bytes; filename separators, control
+characters, and reserved device names are rejected.
+
+Leaving the field blank preserves `<report_key>_<YYYYmmdd>_<His>.pdf`. Existing
+PDFs are never overwritten: duplicate custom names become `Name (2).pdf`,
+`Name (3).pdf`, and so on. No database migration is required.
+
+## Calendar formatting
+
+### Program weekdays and date exceptions
+
+In **Admin > Calendar Schedule > Program / Event Calendar Days**, select a saved
+program activity, choose **Selected weekdays only**, check its weekdays (for
+example, Sunday only), and save. The activity's start/end dates from Event
+Management define an inclusive recurrence range; its start/end times apply to
+each occurrence. Equal times produce a point entry, an earlier end time runs
+overnight, and no end date means only the start date is eligible.
+
+Use **Add Program Exception** to cancel or reschedule one selected occurrence.
+The replacement may fall outside the original range or on another weekday.
+Deleting an exception restores the original occurrence. Calendar days apply to
+both signed-in/public calendars and calendar reports, respecting the event's
+existing public/private setting. Registration and other event details are not
+changed. Overnight occurrences can also appear on their following day.
+
+Existing and new activities default to **Continuous date range**, preserving
+the previous display. Activity IDs, weekdays, and exceptions survive ordinary
+event edits. Removing an activity removes its exceptions. Changes to weekdays
+or date ranges that would orphan an exception are rejected; edit/delete those
+exceptions first.
+
+Before deploying the updated PHP files, run this migration **once** from the
+repository root (using your normal database credentials):
+
+```sh
+mysql nbbtm_central < config/migrations/2026-10-08_program_calendar_weekdays.sql
+```
+
+The migration adds the weekday column and exception table, allows the activity
+end to be blank as offered by Event Management, and sources the
+updated `config/mysql/calendar_build_range.sql`. Deploy that SQL file with the
+migration. It leaves existing activity data unchanged. Deploy `events.php`,
+`prg_event_api.php`, `calendar_schedule.php`, `calendar_schedule_api.php`, and
+`include/program_calendar.php` together. Reload already-open Event Management
+forms before saving. No JRXML/Jasper recompilation is required for this change.
+
+Calendar stored procedures may return Jasper styled-text tags such as
+`<style forecolor="...">`. The app calendar maps report colors to entry types
+(Program `#2E7D32`, Service `#6A1B9A`, Reminder `#EF6C00`, Birthday `#C2185B`,
+Anniversary `#00838F`) to preserve its existing background colors without visible
+type prefixes. It removes the tags, decodes Jasper's escaped title text, and
+still HTML-escapes the displayed text. Plain entries with type prefixes remain
+supported. This display-only conversion leaves the stored procedure output and
+PDF report formatting unchanged. Keep the mapping in `calendar.php` synchronized
+if the report colors change.
+
+All seven entry fields in `three_month_calendar.jrxml` use `markup="styled"` so
+the PDF renders these tags as colored text rather than printing them literally.
+Recompile `three_month_calendar.jasper` after changing the template and deploy
+both files; PDF generation uses the compiled report.
+
+The calendar layout is adapted from the Jaspersoft Studio workspace's
+JasperReports 7 template into the application's JasperReports 6 JRXML format.
+It retains Liberation Serif, blue headings, the header image, and the colored
+footer legend. Do not deploy the Studio 7 compiled `.jasper` directly to this
+runtime. The calendar declares `IMAGE_DIR`; the generator supplies the absolute
+application `images/` directory on the server and checks that
+`nbbtm header - no addr.png` is readable. The image does not rely on classpath
+lookup or a hardcoded deployment path. No report-parameter database change is
+required. Deploy the updated generator, JRXML, compiled `.jasper`, and header
+image together.
+
 Report generation and compilation use the executable `bin/jasperstarter` PHP
 launcher. Keep its executable permission when deploying (`chmod +x
 reporting/bin/jasperstarter`).

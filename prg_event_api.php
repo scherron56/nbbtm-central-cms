@@ -14,6 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/include/auth.php';
 require_once __DIR__ . '/include/registration_fee.php';
+require_once __DIR__ . '/include/program_calendar.php';
 
 function sendEventJson(array $data, int $statusCode = 200): void {
     http_response_code($statusCode);
@@ -317,18 +318,55 @@ switch ($action) {
                 $stmt->close();
             }
 
-            // Sync Schedules
-            $db->query("DELETE FROM prg_evnt_schedules WHERE prg_evnt_id = $prgevntId");
+            // Preserve activity IDs so calendar settings and exceptions survive event edits.
+            $schStmt = $db->prepare('SELECT * FROM prg_evnt_schedules WHERE prg_evnt_id = ? FOR UPDATE');
+            $schStmt->bind_param('i', $prgevntId);
+            $schStmt->execute();
+            $existingSchedules = [];
+            foreach ($schStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $schedule) {
+                $existingSchedules[(int)$schedule['schedule_id']] = $schedule;
+            }
+            $schStmt->close();
+            if ($existingSchedules && !isset($_POST['schedule_ids'])) {
+                throw new InvalidArgumentException('Reload Event Management before saving so activity calendar settings can be preserved.');
+            }
+            $submittedScheduleIds = [];
             if (!empty($_POST['start_datetimes']) && is_array($_POST['start_datetimes'])) {
-                $schStmt = $db->prepare("INSERT INTO prg_evnt_schedules (prg_evnt_id, activity_scheduled, start_datetime, end_datetime) VALUES (?, ?, ?, ?)");
                 foreach ($_POST['start_datetimes'] as $idx => $startDt) {
                     if (empty($startDt)) continue;
+                    $scheduleId = (int)($_POST['schedule_ids'][$idx] ?? 0);
+                    if ($scheduleId && (!isset($existingSchedules[$scheduleId]) || in_array($scheduleId, $submittedScheduleIds, true))) {
+                        throw new InvalidArgumentException('Invalid or duplicate activity. Reload the event and try again.');
+                    }
                     $actScheduled = $_POST['activity_scheduled'][$idx] ?? '';
                     $endDt = !empty($_POST['end_datetimes'][$idx]) ? $_POST['end_datetimes'][$idx] : null;
-                    $schStmt->bind_param("isss", $prgevntId, $actScheduled, $startDt, $endDt);
+                    $startDt = parseProgramActivityDateTime($startDt);
+                    $endDt = $endDt === null ? null : parseProgramActivityDateTime($endDt);
+                    $schedule = $scheduleId ? $existingSchedules[$scheduleId] : [
+                        'schedule_id' => 0, 'calendar_weekdays' => null,
+                    ];
+                    $schedule['start_datetime'] = $startDt;
+                    $schedule['end_datetime'] = $endDt;
+                    validateProgramCalendarSchedule($db, $schedule);
+                    if ($scheduleId) {
+                        $schStmt = $db->prepare('UPDATE prg_evnt_schedules SET activity_scheduled = ?, start_datetime = ?, end_datetime = ? WHERE schedule_id = ? AND prg_evnt_id = ?');
+                        $schStmt->bind_param('sssii', $actScheduled, $startDt, $endDt, $scheduleId, $prgevntId);
+                    } else {
+                        $schStmt = $db->prepare('INSERT INTO prg_evnt_schedules (prg_evnt_id, activity_scheduled, start_datetime, end_datetime) VALUES (?, ?, ?, ?)');
+                        $schStmt->bind_param('isss', $prgevntId, $actScheduled, $startDt, $endDt);
+                    }
                     $schStmt->execute();
+                    $submittedScheduleIds[] = $scheduleId ?: (int)$schStmt->insert_id;
+                    $schStmt->close();
                 }
-                $schStmt->close();
+            }
+            foreach (array_keys($existingSchedules) as $scheduleId) {
+                if (!in_array($scheduleId, $submittedScheduleIds, true)) {
+                    $schStmt = $db->prepare('DELETE FROM prg_evnt_schedules WHERE schedule_id = ? AND prg_evnt_id = ?');
+                    $schStmt->bind_param('ii', $scheduleId, $prgevntId);
+                    $schStmt->execute();
+                    $schStmt->close();
+                }
             }
 
             // Sync Budgets: update existing, insert new, delete removed, and ensure Registration Fee exists if requires_fee is set.
@@ -453,6 +491,9 @@ switch ($action) {
             $db->commit();
             sendEventJson(['success' => true, 'message' => 'Event saved successfully.', 'prg_evnt_id' => $prgevntId]);
 
+        } catch (InvalidArgumentException $e) {
+            $db->rollback();
+            sendEventJson(['success' => false, 'error' => $e->getMessage()], 400);
         } catch (Exception $e) {
             $db->rollback();
             sendEventJson(['success' => false, 'error' => 'Database operation failed: ' . $e->getMessage()], 500);

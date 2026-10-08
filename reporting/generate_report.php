@@ -26,6 +26,7 @@ if (!file_exists(__DIR__ . '/../vendor/autoload.php')) {
 }
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/report_paths.php';
+require_once __DIR__ . '/generated_report_names.php';
 
 use PHPJasper\PHPJasper;
  
@@ -36,6 +37,13 @@ $reportKey = trim($_POST['report'] ?? $_GET['report'] ?? '');
 if ($reportKey === '') {
     http_response_code(400);
     die("Error: No report was specified.");
+}
+
+try {
+    $customName = generatedReportCustomName($_POST['generated_report_name'] ?? $_GET['generated_report_name'] ?? '');
+} catch (InvalidArgumentException $e) {
+    http_response_code(422);
+    die('Error: ' . htmlspecialchars($e->getMessage()));
 }
 
 // 5. Fetch Report Details
@@ -142,15 +150,8 @@ if (!is_dir($resourceDirectory)) {
     die("Error: Report styles directory not found: {$resourceDirectory}");
 }
 
-// Saved reports are named "<report_key>_<YYYYmmdd>_<His>.pdf" so
-// generated_reports.php can list them; a numeric suffix avoids collisions
-// when the same report is generated twice within one second.
-$fileStem   = preg_replace('/[^A-Za-z0-9_-]/', '_', $reportKey) . '_' . date('Ymd_His');
-$outputName = $fileStem;
-for ($suffix = 2; file_exists($outputDir . '/' . $outputName . '.pdf'); $suffix++) {
-    $outputName = $fileStem . '_' . $suffix;
-}
-$outputPath = $outputDir . '/' . $outputName;
+$fileStem = $customName !== '' ? $customName : preg_replace('/[^A-Za-z0-9_-]/', '_', $reportKey) . '_' . date('Ymd_His');
+$outputPath = $outputDir . '/.pending-report-' . bin2hex(random_bytes(16));
 
 // 10. Database Connection Parameters
 $options = [
@@ -170,6 +171,14 @@ $options = [
 
 // 11. Run JasperReports and open the saved PDF in the in-browser viewer
 try {
+    if (basename($inputPath) === 'three_month_calendar.jasper') {
+        $imageDirectory = realpath(__DIR__ . '/../images');
+        if ($imageDirectory === false || !is_readable($imageDirectory . '/nbbtm header - no addr.png')) {
+            throw new RuntimeException('Calendar header image is missing or unreadable: images/nbbtm header - no addr.png');
+        }
+        $options['params']['IMAGE_DIR'] = $imageDirectory . '/';
+    }
+
     $jasperStarterPath = reportJasperStarterPath();
     $jasper = new PHPJasper(dirname($jasperStarterPath));
     $jasper->process($inputPath, $outputPath, $options)->execute();
@@ -177,14 +186,22 @@ try {
     $generatedPdf = $outputPath . '.pdf';
 
     if (!file_exists($generatedPdf)) {
-        http_response_code(500);
-        die("Error: Report execution completed but output PDF was not created. Check your MySQL stored procedure.");
+        throw new RuntimeException('Report execution completed but output PDF was not created. Check your MySQL stored procedure.');
     }
 
-    header('Location: preview_generated_report.php?file=' . rawurlencode(basename($generatedPdf)), true, 303);
-    exit;
+    $savedPdf = saveGeneratedReport($generatedPdf, $outputDir, $fileStem, $customName !== '');
 
 } catch (Exception $e) {
+    error_log('Report generation failed: ' . $e->getMessage());
     http_response_code(500);
-    die("Jasper Execution Exception: " . $e->getMessage());
+    echo 'Jasper Execution Exception: ' . htmlspecialchars($e->getMessage());
+} finally {
+    if (is_file($outputPath . '.pdf') && !unlink($outputPath . '.pdf')) {
+        error_log('Unable to remove temporary generated PDF: ' . $outputPath . '.pdf');
+    }
 }
+
+if (isset($savedPdf)) {
+    header('Location: preview_generated_report.php?file=' . rawurlencode(basename($savedPdf)), true, 303);
+}
+exit;

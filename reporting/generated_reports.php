@@ -52,19 +52,19 @@ $generatedReports = [];
 if (is_dir($outputDirectory)) {
     foreach (scandir($outputDirectory) as $fileName) {
         $filePath = $outputDirectory . '/' . $fileName;
-        if (strtolower(pathinfo($fileName, PATHINFO_EXTENSION)) !== 'pdf' || !is_file($filePath)) {
+        if (str_starts_with($fileName, '.pending-report-') || strtolower(pathinfo($fileName, PATHINFO_EXTENSION)) !== 'pdf' || !is_file($filePath)) {
             continue;
         }
 
         // Generated files are named "<report_key>_<YYYYmmdd>_<His>.pdf", with an
         // optional "_<n>" suffix when two run in the same second. Parse the
         // report key back out (when it matches that pattern) so we can show a
-        // friendly title; otherwise just display the raw filename.
+        // friendly title; otherwise display the custom filename without ".pdf".
         $reportKey = null;
-        $reportTitle = null;
+        $reportTitle = pathinfo($fileName, PATHINFO_FILENAME);
         if (preg_match('/^(.+)_(\d{8})_(\d{6})(?:_\d+)?$/', pathinfo($fileName, PATHINFO_FILENAME), $matches)) {
             $reportKey = $matches[1];
-            $reportTitle = $reportTitlesByKey[$reportKey] ?? null;
+            $reportTitle = $reportTitlesByKey[$reportKey] ?? $reportTitle;
         }
 
         $generatedReports[] = [

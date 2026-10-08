@@ -16,11 +16,10 @@ if (file_exists(__DIR__ . '/send_email.php')) {
 
 // Verified Brevo sender identities
 $verifiedSenders = [
-    'revtdsublett@claricecraftedsolutions.org'   => 'Rev. Tracye Sublett',
-    'nbbtmadmin@claricecraftedsolutions.org' => 'NBBTM Admin',
-    'nbbtmtest@claricecraftedsolutions.org' => 'NBBTM Test Account',
-    'ccsadmin@claricecraftedsolutions.org' => 'CCS Admin',
-];
+    'webadmin@newbeginningstbm.org'   => 'Web Administrator',
+    'centraladmin@newbeginningstbm.org' => 'Central Administration',
+    'pastorb@newbeginningstbm.org' => 'Pastor, Ian D. Bethel, Sr.',
+    ];
 
 $message = '';
 $statusClass = '';
@@ -188,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   
   <!-- TinyMCE CDN -->
 
-<script src="https://cdn.tiny.cloud/1/saqcb3hu5pn4po97aj84k9x4lnmu4i8fsimn7zshcjjhv3iz/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+<script src="https://cdn.tiny.cloud/1/4iq6kc1sgjl49uj1tzh73eokyf6vjfowb6b9tdgztujheklf/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
   <style>
     .tag-hint {
       font-size: 0.8rem;

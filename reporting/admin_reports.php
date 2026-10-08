@@ -94,6 +94,12 @@ if ($userIsAdmin) {
           </select>
         </div>
 
+        <div class="field-group" style="--colspan: 12; margin-top: 1rem;">
+          <label for="generated_report_name">PDF Name (optional)</label>
+          <input id="generated_report_name" name="generated_report_name" type="text" class="form-control" maxlength="100" placeholder="Example: October-December Calendar" aria-describedby="generated-report-name-help">
+          <small id="generated-report-name-help">Used in the saved-report list and download filename, not the printed heading. Leave blank to use the report name and date. The .pdf extension is added automatically; duplicate names receive a numeric suffix. Avoid &lt; &gt; : &quot; / \ | ? *.</small>
+        </div>
+
         <div id="dynamic-params" class="form-grid-section-12" style="margin-top: 1rem;"></div>
 
         <div style="margin-top: 1.5rem; display: flex; gap: 1rem; align-items: center;">

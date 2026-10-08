@@ -40,16 +40,35 @@ try {
 $dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 $entryClasses = ['service' => 'entry-service', 'program' => 'entry-program', 'birthday' => 'entry-birthday', 'anniversary' => 'entry-anniversary', 'reminder' => 'entry-reminder'];
 
-// Converts "Type: Title (13:30-15:00 ...)" lines from getMonthCalendar into display entries with 12-hour times.
+// Converts plain or Jasper-styled calendar entries into display entries with 12-hour times.
 function parseCalendarEntries(string $entries): array
 {
     $parsed = [];
+    $reportColorTypes = [
+        '#2E7D32' => 'Program',
+        '#6A1B9A' => 'Service',
+        '#EF6C00' => 'Reminder',
+        '#C2185B' => 'Birthday',
+        '#00838F' => 'Anniversary',
+    ];
+    // Keep line breaks in entry text, but not inside report style attributes.
+    $entries = preg_replace_callback('/<style\b[^>]*>/i', static function ($match) {
+        return preg_replace('/\R/', ' ', $match[0]);
+    }, $entries);
     foreach (preg_split('/\R/', $entries) as $line) {
+        $type = '';
+        $isStyled = preg_match('/<style\b[^>]*>/i', $line) === 1;
+        if (preg_match('/<style\b[^>]*\bforecolor\s*=\s*["\'](#[0-9a-f]{6})["\']/i', $line, $style)) {
+            $type = $reportColorTypes[strtoupper($style[1])] ?? '';
+        }
+        $line = strip_tags($line);
+        if ($isStyled) {
+            $line = html_entity_decode($line, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        }
         $line = trim($line);
         if ($line === '') {
             continue;
         }
-        $type = '';
         $text = $line;
         if (preg_match('/^(Service|Program|Reminder|Birthday|Anniversary):\s*(.*)$/s', $line, $m)) {
             $type = $m[1];
@@ -77,6 +96,7 @@ for ($m = 1; $m <= 12; $m++) {
   <title>Calendar - <?= htmlspecialchars($monthStart->format('F Y')) ?></title>
   <link rel="stylesheet" href="css/style.css">
   <style>
+    .calendar-container { max-width: 1400px; }
     .calendar-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -145,7 +165,7 @@ for ($m = 1; $m <= 12; $m++) {
 </head>
 <body>
 <?php include __DIR__ . '/include/header.php'; ?>
-<main class="dashboard-container">
+<main class="dashboard-container calendar-container">
   <h2>Calendar</h2>
 
   <div class="card">

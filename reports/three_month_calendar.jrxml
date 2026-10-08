@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="three_month_calendar" pageWidth="792" pageHeight="612" orientation="Landscape" columnWidth="742" leftMargin="25" rightMargin="25" topMargin="25" bottomMargin="25" whenNoDataType="NoDataSection">
-    <style name="Base" isDefault="true" fontName="DejaVu Sans" fontSize="9"/>
-    <style name="Day" style="Base" isBold="true" fontSize="10"/>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="three_month_calendar" pageWidth="792" pageHeight="612" orientation="Landscape" columnWidth="742" leftMargin="25" rightMargin="25" topMargin="20" bottomMargin="20" whenNoDataType="NoDataSection">
+    <style name="Base" isDefault="true" forecolor="#0B0580" fontName="Liberation Serif" fontSize="9"/>
+    <style name="Day" style="Base" isBold="true" fontSize="11"/>
+    <style name="DayName" style="Day"/>
+    <style name="Title" style="Base" fontSize="20"/>
+    <parameter name="IMAGE_DIR" class="java.lang.String"/>
     <parameter name="p_start_month" class="java.lang.Integer"/>
     <parameter name="p_start_year" class="java.lang.Integer"/>
     <parameter name="p_month_count" class="java.lang.Integer">
@@ -28,59 +31,63 @@
     <group name="Month" isStartNewPage="true">
         <groupExpression><![CDATA[$F{month_start}]]></groupExpression>
         <groupHeader>
-            <band height="62" splitType="Prevent">
+            <band height="68" splitType="Prevent">
                 <textField>
-                    <reportElement x="0" y="0" width="742" height="28"/>
+                    <reportElement style="Title" x="1" y="0" width="742" height="28" forecolor="#0C0E85"/>
                     <textElement textAlignment="Center"><font size="20" isBold="true"/></textElement>
                     <textFieldExpression><![CDATA[$F{month_label}]]></textFieldExpression>
                 </textField>
                 <staticText>
-                    <reportElement x="0" y="28" width="742" height="14"/>
-                    <textElement textAlignment="Center"><font size="8"/></textElement>
+                    <reportElement style="Base" x="0" y="31" width="742" height="14" forecolor="#0A0C80"/>
+                    <textElement textAlignment="Left" verticalAlignment="Bottom"><font size="8" isBold="true" isItalic="true"/></textElement>
                     <text><![CDATA[New Beginnings Baptist Tabernacle Ministries]]></text>
                 </staticText>
                 <staticText>
-                    <reportElement mode="Opaque" x="0" y="42" width="106" height="20" backcolor="#E8EDF2"/>
+                    <reportElement style="DayName" mode="Opaque" x="0" y="49" width="106" height="18" backcolor="#E8EDF2"/>
                     <box><pen lineWidth="0.5"/></box>
-                    <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
+                    <textElement textAlignment="Center" verticalAlignment="Middle"><font size="12" isBold="true"/></textElement>
                     <text><![CDATA[Sunday]]></text>
                 </staticText>
                 <staticText>
-                    <reportElement mode="Opaque" x="106" y="42" width="106" height="20" backcolor="#E8EDF2"/>
+                    <reportElement style="DayName" mode="Opaque" x="106" y="49" width="106" height="18" backcolor="#E8EDF2"/>
                     <box><pen lineWidth="0.5"/></box>
                     <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
                     <text><![CDATA[Monday]]></text>
                 </staticText>
                 <staticText>
-                    <reportElement mode="Opaque" x="212" y="42" width="106" height="20" backcolor="#E8EDF2"/>
+                    <reportElement style="DayName" mode="Opaque" x="212" y="49" width="106" height="18" backcolor="#E8EDF2"/>
                     <box><pen lineWidth="0.5"/></box>
                     <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
                     <text><![CDATA[Tuesday]]></text>
                 </staticText>
                 <staticText>
-                    <reportElement mode="Opaque" x="318" y="42" width="106" height="20" backcolor="#E8EDF2"/>
+                    <reportElement style="DayName" mode="Opaque" x="318" y="49" width="106" height="18" backcolor="#E8EDF2"/>
                     <box><pen lineWidth="0.5"/></box>
                     <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
                     <text><![CDATA[Wednesday]]></text>
                 </staticText>
                 <staticText>
-                    <reportElement mode="Opaque" x="424" y="42" width="106" height="20" backcolor="#E8EDF2"/>
+                    <reportElement style="DayName" mode="Opaque" x="424" y="49" width="106" height="18" backcolor="#E8EDF2"/>
                     <box><pen lineWidth="0.5"/></box>
                     <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
                     <text><![CDATA[Thursday]]></text>
                 </staticText>
                 <staticText>
-                    <reportElement mode="Opaque" x="530" y="42" width="106" height="20" backcolor="#E8EDF2"/>
+                    <reportElement style="DayName" mode="Opaque" x="530" y="49" width="106" height="18" backcolor="#E8EDF2"/>
                     <box><pen lineWidth="0.5"/></box>
                     <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
                     <text><![CDATA[Friday]]></text>
                 </staticText>
                 <staticText>
-                    <reportElement mode="Opaque" x="636" y="42" width="106" height="20" backcolor="#E8EDF2"/>
+                    <reportElement style="DayName" mode="Opaque" x="636" y="49" width="106" height="18" backcolor="#E8EDF2"/>
                     <box><pen lineWidth="0.5"/></box>
                     <textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
                     <text><![CDATA[Saturday]]></text>
                 </staticText>
+                <image scaleImage="FillFrame">
+                    <reportElement x="0" y="0" width="270" height="36"/>
+                    <imageExpression><![CDATA[$P{IMAGE_DIR} + "nbbtm header - no addr.png"]]></imageExpression>
+                </image>
             </band>
         </groupHeader>
     </group>
@@ -95,6 +102,7 @@
                 </textField>
                 <textField textAdjust="ScaleFont" isBlankWhenNull="true">
                     <reportElement x="4" y="17" width="98" height="60"/>
+                    <textElement markup="styled"/>
                     <textFieldExpression><![CDATA[$F{sun_entries}]]></textFieldExpression>
                 </textField>
             </frame>
@@ -107,6 +115,7 @@
                 </textField>
                 <textField textAdjust="ScaleFont" isBlankWhenNull="true">
                     <reportElement x="4" y="17" width="98" height="60"/>
+                    <textElement markup="styled"/>
                     <textFieldExpression><![CDATA[$F{mon_entries}]]></textFieldExpression>
                 </textField>
             </frame>
@@ -119,6 +128,7 @@
                 </textField>
                 <textField textAdjust="ScaleFont" isBlankWhenNull="true">
                     <reportElement x="4" y="17" width="98" height="60"/>
+                    <textElement markup="styled"/>
                     <textFieldExpression><![CDATA[$F{tue_entries}]]></textFieldExpression>
                 </textField>
             </frame>
@@ -131,6 +141,7 @@
                 </textField>
                 <textField textAdjust="ScaleFont" isBlankWhenNull="true">
                     <reportElement x="4" y="17" width="98" height="60"/>
+                    <textElement markup="styled"/>
                     <textFieldExpression><![CDATA[$F{wed_entries}]]></textFieldExpression>
                 </textField>
             </frame>
@@ -143,6 +154,7 @@
                 </textField>
                 <textField textAdjust="ScaleFont" isBlankWhenNull="true">
                     <reportElement x="4" y="17" width="98" height="60"/>
+                    <textElement markup="styled"/>
                     <textFieldExpression><![CDATA[$F{thu_entries}]]></textFieldExpression>
                 </textField>
             </frame>
@@ -155,6 +167,7 @@
                 </textField>
                 <textField textAdjust="ScaleFont" isBlankWhenNull="true">
                     <reportElement x="4" y="17" width="98" height="60"/>
+                    <textElement markup="styled"/>
                     <textFieldExpression><![CDATA[$F{fri_entries}]]></textFieldExpression>
                 </textField>
             </frame>
@@ -167,17 +180,18 @@
                 </textField>
                 <textField textAdjust="ScaleFont" isBlankWhenNull="true">
                     <reportElement x="4" y="17" width="98" height="60"/>
+                    <textElement markup="styled"/>
                     <textFieldExpression><![CDATA[$F{sat_entries}]]></textFieldExpression>
                 </textField>
             </frame>
         </band>
     </detail>
     <pageFooter>
-        <band height="20">
+        <band height="18">
             <staticText>
                 <reportElement x="0" y="5" width="690" height="13"/>
-                <textElement><font size="7"/></textElement>
-                <text><![CDATA[Service / Program / Birthday / Anniversary • Crowded days use smaller text. Regenerate after schedule changes.]]></text>
+                <textElement markup="styled"><font size="7"/></textElement>
+                <text><![CDATA[<style forecolor="#2E7D32">Program/Event</style> / <style forecolor="#6A1B9A">Service</style> / <style forecolor="#EF6C00">Reminder</style> / <style forecolor="#C2185B">Birthday</style> / <style forecolor="#00838F">Anniversary</style> • Crowded days use smaller text. Regenerate after schedule changes.]]></text>
             </staticText>
             <textField>
                 <reportElement x="690" y="5" width="52" height="13"/>
