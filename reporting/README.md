@@ -15,6 +15,26 @@ PDFs are never overwritten: duplicate custom names become `Name (2).pdf`,
 
 ## Calendar formatting
 
+### 12-hour times
+
+The shared calendar procedure formats start/end times as `h:mm AM/PM` for
+the public calendar, members' calendar, and PDF calendar reports. Midnight is
+`12:00 AM` and noon is `12:00 PM`; overnight entries retain their date labels.
+The web calendar also supports older 24-hour procedure output without adding
+AM/PM twice to already-formatted times.
+
+Deploy `calendar.php` and `config/mysql/calendar_build_range.sql`, then run
+the following from the repository root using your normal database credentials
+(after the program-weekdays migration below):
+
+```sh
+mysql nbbtm_central < config/migrations/2026-10-10_calendar_12_hour_times.sql
+```
+
+Changing the SQL file alone does not update the installed stored procedure.
+No JRXML/Jasper recompilation is required. Generate a new PDF to see the updated
+times; previously saved PDFs do not change.
+
 ### Program weekdays and date exceptions
 
 In **Admin > Calendar Schedule > Program / Event Calendar Days**, select a saved

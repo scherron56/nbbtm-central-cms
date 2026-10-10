@@ -261,9 +261,9 @@ BEGIN
                 ELSE '#000000' END;
             SET v_line = CONCAT('<style forecolor="', v_color, '">', v_safe_title,
                 CASE WHEN v_entry_start IS NULL THEN ''
-                     ELSE CONCAT(' (', DATE_FORMAT(v_entry_start, '%H:%i'),
+                     ELSE CONCAT(' (', DATE_FORMAT(v_entry_start, '%l:%i %p'),
                          CASE WHEN v_entry_end IS NULL OR v_entry_end = v_entry_start THEN ''
-                              ELSE CONCAT('-', DATE_FORMAT(v_entry_end, '%H:%i'),
+                              ELSE CONCAT('-', DATE_FORMAT(v_entry_end, '%l:%i %p'),
                                   CASE WHEN DATE(v_entry_end) <> DATE(v_entry_start)
                                        THEN CONCAT(' ', DATE_FORMAT(v_entry_end, '%b %e')) ELSE '' END) END,
                          CASE WHEN DATE(v_entry_start) <> v_entry_date

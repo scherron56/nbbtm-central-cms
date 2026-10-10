@@ -74,7 +74,7 @@ function parseCalendarEntries(string $entries): array
             $type = $m[1];
             $text = $m[2];
         }
-        $text = preg_replace_callback('/\b([01]\d|2[0-3]):([0-5]\d)\b/', static function ($t) {
+        $text = preg_replace_callback('/\b([01]\d|2[0-3]):([0-5]\d)\b(?!\s*[AP]M\b)/i', static function ($t) {
             $h = (int)$t[1];
             return sprintf('%d:%s %s', ($h % 12) ?: 12, $t[2], $h < 12 ? 'AM' : 'PM');
         }, $text);
@@ -121,7 +121,16 @@ for ($m = 1; $m <= 12; $m++) {
     .calendar-toolbar input[type="number"] { width: 6rem; }
     .calendar-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .calendar-nav a { text-decoration: none; }
-    .calendar-title { margin: 0 0 0.75rem; color: #28089a; text-align: center; }
+    .calendar-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .calendar-logo { display: block; width: 80px; height: auto; }
+    .calendar-heading .calendar-title { margin: 0; color: #28089a; text-align: center; }
     .calendar-scroll { overflow-x: auto; }
     .calendar-grid { width: 100%; min-width: 760px; border-collapse: collapse; table-layout: fixed; }
     .calendar-grid th {
@@ -192,7 +201,10 @@ for ($m = 1; $m <= 12; $m++) {
       <p class="calendar-notice error"><?= htmlspecialchars($inputError) ?></p>
     <?php endif; ?>
 
-    <h3 class="calendar-title"><?= htmlspecialchars($monthStart->format('F Y')) ?></h3>
+    <div class="calendar-heading">
+      <img src="assets/img/nbbtm-logo-blue-web826.png" alt="New Beginnings Baptist Tabernacle Ministries logo" class="calendar-logo" width="1688" height="1524">
+      <h3 class="calendar-title"><?= htmlspecialchars($monthStart->format('F Y')) ?></h3>
+    </div>
 
     <?php if ($loadError): ?>
       <p class="calendar-notice error"><?= htmlspecialchars($loadError) ?></p>

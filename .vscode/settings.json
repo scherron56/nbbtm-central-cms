@@ -19,6 +19,21 @@
             "database": "nbbtm_central",
             "username": "admincentral",
             "password": ""
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "database": "nbbtm_central",
+            "username": "admincentral",
+            "password": "kocce7ruD$",
+            "name": "Mysql Debian 13"
         }
     ],
     "cSpell.words": [
