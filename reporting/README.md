@@ -157,3 +157,35 @@ saved JRXML template, and click **Compile Report**. The button shows
 The page then displays either the compilation confirmation or the compiler's
 error details. Compilation still works without JavaScript; progress feedback
 requires JavaScript. A template must be selected before submitting.
+
+### Subreport version compatibility
+
+Compiled `.jasper` files are serialized Java objects, not version-independent
+templates. A parent report can load successfully while one of its subreports
+fails with `InvalidClassException: JRBaseReport; incompatible types for field
+columnCount`. Rebuild the affected subreports from JRXML with the same runtime
+used for PDF generation (currently JasperReports 6.18.1). Recompiling only the
+parent does not rebuild its subreports.
+
+For `event_program_summary`, rebuild all three dependencies from the repository
+root:
+
+```sh
+php -r '
+require "reporting/JasperCompiler.php";
+$compiler = new JasperCompiler(null, reportPath("REPORTS_SUBREPORT_PATH"));
+foreach (["event_schedule", "event_actuals.2", "event_support"] as $name) {
+    $compiler->compile($name);
+    echo "Compiled ", $name, PHP_EOL;
+}
+'
+```
+
+Deploy the rebuilt `event_schedule.jasper`, `event_actuals.2.jasper`, and
+`event_support.jasper` together under `REPORTS_SUBREPORT_PATH`. Preserve their
+filenames: the parent references these exact names. Do not replace them with
+Studio-compiled binaries from a different JasperReports version. The
+`event_actuals.2 2.jasper` file is not referenced by this parent.
+
+The `com.mysql.jdbc.Driver` deprecation message is separate from this failure:
+it is a warning, not the cause of the subreport deserialization exception.

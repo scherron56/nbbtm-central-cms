@@ -21,7 +21,7 @@ if (!function_exists('nbbtmMailerEnv')) {
  * @param string      $message    Plain-text SMS body (no HTML)
  * @param string|null $senderName Optional sender ID (alphanumeric, max 11 chars, or a Brevo-verified number).
  *                                Defaults to .env BREVO_SMS_SENDER.
- * @return array ['success' => bool, 'error' => string|null]
+ * @return array API acceptance result; success does not confirm handset delivery.
  */
 function sendSms($toPhone, $message, $senderName = null) {
     $apiKey = nbbtmMailerEnv('BREVO_API_KEY');
@@ -77,11 +77,23 @@ function sendSms($toPhone, $message, $senderName = null) {
         return ['success' => false, 'error' => $curlError];
     }
 
+    $decoded  = json_decode($response, true);
     if ($httpCode >= 200 && $httpCode < 300) {
-        return ['success' => true];
+        $messageId = $decoded['messageId'] ?? null;
+        if (!is_array($decoded) || (!is_int($messageId) && !is_string($messageId)) || (string)$messageId === '') {
+            error_log("Brevo SMS API returned HTTP {$httpCode} without a message ID; acceptance is unconfirmed.");
+            return [
+                'success' => false,
+                'error' => 'Brevo returned no message ID. Acceptance is unconfirmed; check Brevo SMS logs before retrying to avoid duplicates.',
+            ];
+        }
+
+        return ['success' => true, 'message_id' => (string)$messageId];
     }
 
-    $decoded  = json_decode($response, true);
     $errorMsg = $decoded['message'] ?? "Brevo SMS API returned HTTP status {$httpCode}.";
+    if (!empty($decoded['code']) && is_string($decoded['code'])) {
+        $errorMsg .= ' (' . $decoded['code'] . ')';
+    }
     return ['success' => false, 'error' => $errorMsg];
 }

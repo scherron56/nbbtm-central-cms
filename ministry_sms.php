@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $successCount = 0;
         $failCount = 0;
         $errors = [];
+        $acceptedMessages = [];
 
         foreach ($recipientsToSend as $recipient) {
             $personalizedBody = str_replace(
@@ -61,13 +62,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = sendSms($recipient['phone'], $personalizedBody);
             if (!empty($result['success'])) {
                 $successCount++;
+                $acceptedMessages[] = htmlspecialchars($recipient['full_name']) . ': Brevo message ID ' . htmlspecialchars($result['message_id']);
             } else {
                 $failCount++;
                 $errors[] = htmlspecialchars($recipient['full_name']) . ': ' . htmlspecialchars($result['error'] ?? 'Unknown error');
             }
         }
 
-        $message = "Ministry SMS broadcast complete: <strong>{$successCount}</strong> sent successfully, <strong>{$failCount}</strong> failed.";
+        $message = "Ministry SMS broadcast complete: <strong>{$successCount}</strong> accepted by Brevo, <strong>{$failCount}</strong> failed or unconfirmed.";
+        if ($acceptedMessages) {
+            $message .= '<br><small>Acceptance does not confirm delivery. Check Brevo transactional SMS logs for delivery status or rejection details.<br>' . implode('<br>', $acceptedMessages) . '</small>';
+        }
         if (!empty($errors)) {
             $message .= '<br><small>' . implode('<br>', $errors) . '</small>';
         }
